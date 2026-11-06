@@ -59,7 +59,7 @@ node node_modules\electron\install.js
   - O NFSU2 ganha uma cópia ao abrir (2 últimas versões) em `%APPDATA%\NFS Launcher Saves`.
   - A cópia nunca volta sozinha: restaurar é pelo "Restaurar" do jogo.
 - **Conexão:**
-  - O jogo sempre recarrega sem cache ao abrir, mantendo login e saves.
+  - O jogo abre com carga normal, como no Chrome (sem recarga sem cache), mantendo login e saves.
   - A tela de erro tem um botão de DNS seguro (Cloudflare, depois Google).
 - **Convite da equipe:** o START do NFSU2, com o app em português, abre `#crew=U2BR`. O site pergunta antes de entrar.
 - **Atualizações:**

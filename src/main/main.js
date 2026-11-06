@@ -123,7 +123,6 @@ let crashes = [];
 let customRev = 0;               // muda quando o jogador troca/restaura uma imagem (a interface busca de novo)
 let updateInfo = { status: 'idle', version: null }; // 'idle' | 'checking' | 'new' | 'none' | 'error'
 let saveCopyInfo = { count: 0, last: 0 };
-let freshPending = false;        // o jogo acabou de ser aberto: a página ainda vai ser recarregada sem cache
 let playingSince = 0;            // hora em que o jogo aberto começou (aparece no Discord)
 const presence = new Presence();
 
@@ -141,6 +140,7 @@ function gameRect() {
 }
 
 // ───────────────────────── Instância única ─────────────────────────
+// Na conferência dos mods nada do app abre (nem a trava, nem a janela): só ela roda e sai.
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
@@ -269,15 +269,24 @@ async function copySaveAtStart() {
 const modsDir = () => path.join(app.getPath('appData'), 'NFS Launcher Mods', 'NFSU2');
 let modsOn = null; // resultado de modFiles.install (null = sem mods)
 // Registro curto do que houve com os mods (refeito a cada abertura, no máximo 300 linhas): NFS Launcher Mods\registro.txt.
+// Se a pasta de mods não aceitar gravação, o registro vai para a pasta temporária (nfs-mods-registro.txt).
 let modLogLines = 0;
+let modLogFile = null;
 function modLog(text) {
-  if (modLogLines++ > 300) return;
-  try { fs.appendFileSync(path.join(modsDir(), '..', 'registro.txt'), `${new Date().toLocaleTimeString()} ${text}\r\n`); } catch { /* sem como gravar: segue */ }
+  if (!modLogFile || modLogLines++ > 300) return;
+  try { fs.appendFileSync(modLogFile, `${new Date().toLocaleTimeString()} ${text}\r\n`); } catch { /* sem como gravar: segue */ }
 }
 function setupMods(ses) {
-  const mods = SAFE_MODE ? [] : modFiles.scan(modsDir());
+  const dir = modsDir();
+  if (!fs.existsSync(path.dirname(dir))) return; // sem a pasta "NFS Launcher Mods": nada a fazer nem a registrar
+  const head = `NFS Launcher ${app.getVersion()}, aberto ${new Date().toLocaleString()}\r\n`;
+  for (const f of [path.join(dir, '..', 'registro.txt'), path.join(os.tmpdir(), 'nfs-mods-registro.txt')]) {
+    try { fs.writeFileSync(f, head); modLogFile = f; break; } catch { /* tenta o próximo */ }
+  }
+  if (SAFE_MODE) { modLog('modo seguro: mods desligados'); return; }
+  const mods = modFiles.scan(dir);
+  modLog(`pasta ${dir}: ${mods.length} arquivo(s)`);
   if (!mods.length) return;
-  try { fs.writeFileSync(path.join(modsDir(), '..', 'registro.txt'), `NFS Launcher ${app.getVersion()}, aberto ${new Date().toLocaleString()}\r\n`); } catch { /* segue */ }
   modsOn = modFiles.install(ses, { mods, allowed: (u) => isAllowedUrl(u, 'nfsu2'), log: modLog });
 }
 
@@ -685,12 +694,12 @@ async function applyImageFilter() {
   } catch { /* a página mudou no meio: o dom-ready da nova aplica de novo */ }
 }
 
-// Abrir o jogo sempre pega a versão nova do site, como Ctrl+F5: assim que a página abre, ela é recarregada sem cache
-// (no did-navigate). Login, saves e configurações do jogo não são tocados.
+// Abrir o jogo: carga normal, como no Chrome (a recarga sem cache a cada abertura saiu a pedido do Bruno, 06/11:
+// o site já entrega as versões novas sozinho). Login, saves e configurações do jogo não são tocados.
 function openSite(url) {
-  freshPending = true;
+  try { modLog(`abrindo ${new URL(url).host}${modsOn ? '' : ' (sem mods carregados)'}`); } catch { /* endereço inválido: segue */ }
   if (modsOn) { try { modsOn.active(isAllowedUrl(url, 'nfsu2')); } catch (e) { modLog(`não deu para ligar os mods: ${e && e.message}`); } }
-  gameView.webContents.loadURL(url).catch(() => {}); // o recarregamento interrompe esta carga: é o esperado
+  gameView.webContents.loadURL(url).catch(() => {}); // erros de carga vão para o did-fail-load
 }
 // START com o jogo escolhido nos CDs da tela inicial (sem id: o último iniciado). O app lembra o último iniciado.
 function startGame(gameId) {
@@ -1024,7 +1033,6 @@ function wireGameContents(wc) {
       detail: tr('O progresso que não foi salvo no jogo (Garage > Save) será perdido.', 'Progress not saved in the game (Garage > Save) will be lost.'),
     });
     if (choice === 1) { event.preventDefault(); return; } // ignora o beforeunload e recarrega
-    freshPending = false; // cancelou: a partida continua e não pode ser recarregada depois
     endLoading();         // volta direto para a partida
   });
   wc.on('dom-ready', endLoading);
@@ -1032,23 +1040,18 @@ function wireGameContents(wc) {
 
   wc.on('did-fail-load', (_e, code, _desc, _url, isMainFrame) => {
     if (!isMainFrame) return;
-    freshPending = false; // a página não abriu: quem tentar de novo pede outra carga sem cache
     if (code === -3) return; // -3 = navegação cancelada (normal)
     endLoading();
     showConnError(code);
   });
   wc.on('did-navigate', (_e, url, status) => {
     if (!isAllowedUrl(url)) return;
-    if (status >= 500) { freshPending = false; showConnError(status); return; }
+    if (status >= 500) { showConnError(status); return; }
     connError = null;
     dnsFailed = false;
     if (dnsActive && cfg.secureDns !== dnsActive) { cfg.secureDns = dnsActive; saveCfg(); }
     stopRetry();
     if (screen === 'error') { screen = 'none'; refresh(); }
-    if (freshPending && isAllowedUrl(url, currentGame)) {
-      freshPending = false;
-      setImmediate(() => { if (!wc.isDestroyed()) wc.reloadIgnoringCache(); });
-    }
   });
 
   wc.on('render-process-gone', (_e, details) => {

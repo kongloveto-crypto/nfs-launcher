@@ -258,9 +258,9 @@ check('Botão de versão nova sempre na tela inicial (sem "Depois" e sem opção
   assert(!/cfg\.checkUpdates/.test(read('src/main/main.js')), 'verificação depende de uma opção');
   assert(/\$\('update-box'\)\.hidden = u\.status !== 'new';/.test(read('src/renderer/ui.js')), 'aviso escondido mesmo com versão nova');
 });
-check('Abrir o jogo sempre recarrega sem cache, sem apagar dados', () => {
+check('Abrir o jogo: carga normal, sem recarga sem cache e sem apagar dados', () => {
   const m = read('src/main/main.js');
-  assert(/wc\.reloadIgnoringCache\(\)/.test(m), 'recarregamento sem cache ausente');
+  assert(!/reloadIgnoringCache/.test(m), 'recarga sem cache voltou (saiu a pedido do Bruno, 06/11)');
   const start = m.slice(m.indexOf('function startGame'), m.indexOf('// Reconexão automática'));
   assert(!/\.loadURL\((?!'about:blank')/.test(start), 'o jogo abre sem passar por openSite');
   const open = m.slice(m.indexOf('function openSite'), m.indexOf('// START com o jogo'));
