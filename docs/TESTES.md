@@ -1,6 +1,6 @@
 # Checklist de testes (Windows 11)
 
-Automatizados: `npm test` (128 testes) e `npm run verify` (27 verificações). Conferir a montagem: `"NFS Launcher.exe" --conferir` sai com 73.
+Automatizados: `npm test` (129 testes) e `npm run verify` (27 verificações). Conferir a montagem: `"NFS Launcher.exe" --conferir` sai com 73.
 
 ## PC
 
@@ -53,6 +53,7 @@ Automatizados: `npm test` (128 testes) e `npm run verify` (27 verificações). C
 | 45 | Instalar por cima da versão anterior | Sem admin, imagem própria na lateral; login e saves continuam. Desinstala limpo. |
 | 46 | App instalado, `settings.ini` sem `NFSU2_MAP_TEXTURES`, HUD melhorado ligado (`ui_textures = uhud`) | Texturas do pacote (asfalto, pátio de pedra, árvores, céu) e o mapa detalhado aparecem; o log do F9 mostra `TEXPACKS/detailed.pak: 350 textures`. Saves continuam. |
 | 45c | Jogo com `ui_textures = original` (ou sem a linha), Texturas HD ligada, abrir o app | O `settings.ini` passa a ter `ui_textures = map` e as texturas entram; cópia em `%APPDATA%\NFS Launcher Saves\settings.ini-antes-das-texturas-HD.txt`; o registro dos mods diz "gravada". Com `uhud`, nada muda. Desligar Texturas HD e reabrir: a linha volta a `original`, e o HUD HD de quem usa `uhud` continua. |
+| 45d | Com Texturas HD ligada e uma frase da nuvem salva, abrir o NFSU2 na aba Jogos salvos | "Jogos salvos na nuvem" aparece igual ao de Texturas HD desligada, com "Sincronizado". |
 | 46a | Com o NFSU2 aberto, clicar em "Texturas HD" na barra (em janela) ou no ícone ao lado de Dicas (tela cheia), e também marcar e desmarcar em Configurações > Texturas | Ícone colorido quando ligado; aparece a pergunta "Reinicie o jogo para valer" com Depois e Reiniciar o jogo; Reiniciar recarrega e as texturas mudam. Com Most Wanted ou Carbon, o botão não aparece. |
 | 46b | Pasta `%APPDATA%\NFS Launcher Mods\NFSU2` com um arquivo do mesmo caminho | Vale o da pasta do jogador; com o app aberto, trocar o arquivo só vale ao reabrir. |
 

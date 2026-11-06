@@ -115,3 +115,14 @@ test('readSpan lê o trecho exato', () => {
   assert.strictEqual(mf.readSpan(f, 2, 5).toString(), '234');
   assert.strictEqual(mf.readSpan(f, 8, 12), null, 'arquivo menor que o esperado');
 });
+
+test('Passagem ao site: pedido da página volta com Origin (nuvem do jogo); navegação e outros sites ficam iguais', () => {
+  const allowed = (u) => u.startsWith('https://nfsu2.xyz/');
+  const req = (url, mode, headers = {}) => ({ url, mode, headers: new Headers(headers) });
+  const a = mf.passInit(req('https://nfsu2.xyz/vault', 'cors'), allowed);
+  assert.strictEqual(a.bypassCustomProtocolHandlers, true);
+  assert.strictEqual(a.headers.get('origin'), 'https://nfsu2.xyz');
+  assert.strictEqual(mf.passInit(req('https://nfsu2.xyz/', 'navigate'), allowed).headers, undefined);
+  assert.strictEqual(mf.passInit(req('https://outro.site/x', 'cors'), allowed).headers, undefined);
+  assert.strictEqual(mf.passInit(req('https://nfsu2.xyz/vault', 'cors', { origin: 'https://nfsu2.xyz' }), allowed).headers, undefined);
+});

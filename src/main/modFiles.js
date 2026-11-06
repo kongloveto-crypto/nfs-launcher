@@ -130,6 +130,19 @@ function readSpan(file, start, end) {
   } finally { fs.closeSync(fd); }
 }
 
+// Opções do fetch que leva ao site um pedido que não é de mod. Pelo fetch do app, o pedido sai sem "Origin" e o
+// Chromium o marca como vindo de fora (Sec-Fetch-Site "none"): o site recusa as chamadas da nuvem (/vault: 403, e a
+// parte "Jogos salvos na nuvem" some). Para pedidos da própria página ao próprio site, o Origin volta, e o Chromium
+// marca "same-origin", como sem o app no meio (testado: GET e PUT em /vault iguais com e sem mods).
+function passInit(req, allowed) {
+  const init = { bypassCustomProtocolHandlers: true };
+  if (req.mode !== 'navigate' && allowed(req.url) && !req.headers.has('origin')) {
+    init.headers = new Headers(req.headers);
+    init.headers.set('origin', new URL(req.url).origin);
+  }
+  return init;
+}
+
 // Liga os mods na sessão do jogo, respondendo os endereços https do site (protocol.handle). Não dá para só desviar a
 // lista para um esquema próprio: o service worker do site busca a lista, e nele um esquema próprio não existe
 // (ERR_UNKNOWN_URL_SCHEME; ele então usa a cópia antiga, ou o jogo nem abre). Por isso, com mods e o NFSU2 aberto
@@ -142,7 +155,7 @@ function install(ses, { mods, allowed, log = () => {} }) {
   const HEAD = { 'cache-control': 'no-store', 'cross-origin-resource-policy': 'same-origin' };
   const fail = (status, why) => { log(`recusado (${status}): ${why}`); return new Response(null, { status, headers: HEAD }); };
   const sent = new Set();
-  const pass = (req) => ses.fetch(req, { bypassCustomProtocolHandlers: true });
+  const pass = (req) => ses.fetch(req, passInit(req, allowed));
   let served = new Map(mods.map((m) => [m.p, m]));
   let on = false;
   const handler = async (req) => {
@@ -192,4 +205,4 @@ function install(ses, { mods, allowed, log = () => {} }) {
   };
 }
 
-module.exports = { BLOCK, scan, scanAll, patchManifest, route, blockSpan, rangeSpan, readSpan, encodePath, install };
+module.exports = { BLOCK, scan, scanAll, patchManifest, route, blockSpan, rangeSpan, readSpan, encodePath, passInit, install };
