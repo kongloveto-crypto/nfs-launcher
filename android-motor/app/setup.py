@@ -37,7 +37,7 @@ shutil.copytree(HERE / 'res', DEST / 'res')  # res/xml/nfs_game_mode_config.xml 
 subprocess.run([str(NODE), str(PROJ / 'scripts' / 'export-guides.js'),
                 str(assets / 'guides.json'), str(assets / 'catalog.json')], check=True)
 
-# Texturas HD do NFSU2 (1.6.4): pacote com até 2x o lado das originais (pedido do Bruno, 06/11; build.js com
+# Texturas HD do NFSU2 (1.6.4): só o NextGen, com até 2x o lado das originais (pedido do Bruno, 06/11; build.js com
 # ESCALA_MAX=2), montado no Windows (C:\e\texturas\celular).
 # Nome .ntxp de propósito: com ".pak" no nome, a montagem o trata como pacote do Chromium e pede um .pak.info.
 # Fica fora de assets/ comum: vai SEM compressão, para o motor ler só os trechos que o jogo pede (patch 0007).
