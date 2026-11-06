@@ -262,12 +262,16 @@ const gameFsRoot = () => path.join(app.getPath('userData'), 'Partitions', PARTIT
 let texUiOn = true;   // o jogo vai carregar o pacote de mapa (falso: ligar Texturas HD só vale reabrindo o app)
 let texUiNote = '';   // vai para o registro dos mods
 async function texturesSettingAtStart() {
-  if (SAFE_MODE || (!fs.existsSync(bundledModsDir()) && !fs.existsSync(modsDir()))) return;
+  // Sem pacote (instalado sem as texturas, escolha do instalador): só desfaz a linha que o app tinha gravado antes,
+  // para o jogo não continuar carregando o mapa detalhado do site num PC que escolheu ficar sem texturas.
+  const hasPack = fs.existsSync(bundledModsDir()) || fs.existsSync(modsDir());
+  if (SAFE_MODE || (!hasPack && cfg.texUiPrev === null)) return;
+  const on = cfg.hdTextures && hasPack;
   try {
-    const r = await gameSettings.run({ root: gameFsRoot(), backupDir: saveCopyDir(), on: cfg.hdTextures, prev: cfg.texUiPrev });
+    const r = await gameSettings.run({ root: gameFsRoot(), backupDir: saveCopyDir(), on, prev: cfg.texUiPrev });
     // Só pede para reabrir quando reabrir resolve: com o mapa escolhido pelo jogador ou sem achar o arquivo certo, não.
     texUiOn = !!r.uiOn || (!!r.why && r.why !== 'sem settings.ini');
-    texUiNote = `settings.ini do jogo: ${r.changed ? (cfg.hdTextures ? `"${gameSettings.UI_LINE}" gravada` : 'linha do app desfeita') : 'sem mudança'}${r.why ? ` (${r.why})` : ''}`;
+    texUiNote = `settings.ini do jogo: ${r.changed ? (on ? `"${gameSettings.UI_LINE}" gravada` : 'linha do app desfeita') : 'sem mudança'}${r.why ? ` (${r.why})` : ''}`;
     if (r.prev !== cfg.texUiPrev) { cfg = { ...cfg, texUiPrev: r.prev }; saveCfg(); }
   } catch (e) {
     texUiNote = `settings.ini do jogo: não deu para conferir (${e && e.message})`;
