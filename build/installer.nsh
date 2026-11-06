@@ -14,7 +14,14 @@
 
 !define NFS_KEY "Software\NFS Launcher"
 
+; Linha sem texturas (versão 2.x, pedido do Bruno, 06/11): instalador leve, sem a página e sem mexer na escolha guardada.
+!searchparse /noerrors "v${VERSION}" "v" NFS_MAJOR "."
+!if "${NFS_MAJOR}" == "2"
+  !define NFS_LEVE
+!endif
+
 !ifndef BUILD_UNINSTALLER
+!ifndef NFS_LEVE
   Var TexR ; "1" instala o Redux, "0" não
   Var TexD ; Definitive Edition
   Var TexN ; NextGen
@@ -106,9 +113,11 @@
     FunctionEnd
   !macroend
 !endif
+!endif
 
 !macro customInstall
   WriteRegStr HKCU "Software\Microsoft\DirectX\UserGpuPreferences" "$INSTDIR\${APP_EXECUTABLE_FILENAME}" "GpuPreference=2;"
+  !ifndef NFS_LEVE
   ${If} $TexR == "0"
     Delete "$INSTDIR\resources\texturas\redux.pak"
   ${EndIf}
@@ -127,6 +136,7 @@
   WriteRegStr HKCU "${NFS_KEY}" "TexDefinitive" $TexD
   WriteRegStr HKCU "${NFS_KEY}" "TexNextgen" $TexN
   DeleteRegValue HKCU "${NFS_KEY}" "TexturasHD"
+  !endif
 !macroend
 
 !macro customUnInstall

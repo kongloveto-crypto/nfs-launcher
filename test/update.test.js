@@ -25,6 +25,13 @@ test('aceita os instaladores com e sem texturas', () => {
   assert.deepStrictEqual(update.versionsIn(html), ['2.0.7', '3.0.1']);
   assert.strictEqual(update.newer(html, '3.0.0'), '3.0.1');
   assert.strictEqual(update.newer(html, '3.0.1'), null);
+  // Cada linha só vê a própria: o leve (2.x) não é mandado ao com texturas, nem o contrário.
+  const pasta = '<div>NFS-Launcher-Setup-2.0.9-sem-texturas.exe</div><div>NFS-Launcher-Setup-3.0.5-com-texturas.exe</div><div>NFS-Launcher-Setup-2.0.8.exe</div><div>NFS-Launcher-Setup-3.0.2.exe</div>';
+  assert.strictEqual(update.newer(pasta, '2.0.8'), '2.0.9');
+  assert.strictEqual(update.newer(pasta, '3.0.2'), '3.0.5');
+  assert.strictEqual(update.newer('<div>NFS-Launcher-Setup-3.0.2.exe</div>', '2.0.8'), null);
+  assert.strictEqual(update.newer('<div>NFS-Launcher-Setup-2.0.9.exe</div>', '3.0.1'), null);
+  assert.strictEqual(update.newer('<div>NFS-Launcher-Setup-4.0.0-sem-texturas.exe</div>', '2.0.8'), '4.0.0');
   assert.deepStrictEqual(update.versionsIn('<div>NFS-Launcher-Setup-3.0.1-.exe</div><div>NFS-Launcher-Setup-3.0.1.exe.txt</div>'), ['3.0.1']);
 });
 

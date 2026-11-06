@@ -459,6 +459,7 @@
     renderSaves(s);
     if (s.screen === 'settings') renderCustom(s);
     $('tex-box').hidden = !s.texParts;
+    $('tex-sec').hidden = !s.texParts && !s.texturesAvail; // instalador sem texturas (linha 2.x) ou nenhum mod marcado
     loadCustom(s);
     $('e-exit').hidden = !s.locked;
     $('e-settings').hidden = s.locked;

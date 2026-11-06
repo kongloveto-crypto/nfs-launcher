@@ -1,7 +1,8 @@
 {
   "name": "nfsu2-launcher",
   "productName": "NFS Launcher",
-  "version": "3.0.1",
+  "version": "3.0.2",
+  "versaoLeve": "2.0.8",
   "description": "Cliente dedicado (não oficial) para NFSU2 (nfsu2.xyz), NFSMW (web.nfsmwo.com) e NFSC (nfscrb.xyz) com WebGPU, tela cheia protegida e instalador para Windows 11",
   "main": "src/main/main.js",
   "author": "NFS Launcher",
@@ -17,7 +18,8 @@
     "test": "node --test \"test/**/*.test.js\"",
     "verify": "node scripts/verify.js",
     "pack": "electron-builder --win --dir",
-    "dist": "npm run verify && electron-builder --win nsis --x64"
+    "dist": "npm run verify && electron-builder --win nsis --x64",
+    "dist:leve": "npm run verify && electron-builder --win nsis --x64 --config build/leve.config.js"
   },
   "devDependencies": {
     "electron": "^45.1.0",
