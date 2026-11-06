@@ -247,7 +247,7 @@ check('Internet só para o jogo e para a pasta de versões; um único link exter
   // Mods (modFiles.js): o app só responde endereços do próprio NFSU2; o resto segue para o site sem mudança.
   const mods = read('src/main/modFiles.js');
   assert(/allowed: \(u\) => isAllowedUrl\(u, 'nfsu2'\)/.test(m) && /const r = allowed\(req\.url\) && route\(req\.url, served\);\s*if \(!r\) return pass\(req\);/.test(mods) &&
-    /modsOn\.active\(isAllowedUrl\(url, 'nfsu2'\)\)/.test(m), 'mods: só o NFSU2 pode passar pelo app');
+    /modsOn\.active\(cfg\.hdTextures && isAllowedUrl\(url, 'nfsu2'\)\)/.test(m), 'mods: só o NFSU2 pode passar pelo app, e só com "Texturas melhores" ligada');
   const u = require('../src/main/update');
   assert(/^https:\/\/drive\.google\.com\//.test(u.FOLDER_URL) && /^https:\/\/drive\.google\.com\//.test(u.LIST_URL), 'pasta de versões fora do Google Drive');
 });

@@ -70,6 +70,7 @@ node node_modules\electron\install.js
   - Duas pastas com a mesma árvore do jogo: a que vem no instalador (`resources\mods\NFSU2`) e a do jogador (`%APPDATA%\NFS Launcher Mods\NFSU2`), que vale por cima. Os arquivos delas entram na lista de arquivos que o jogo recebe do site e são entregues pelo app.
   - O instalador traz `TEXPACKS\detailed.pak`: o mapa detalhado do site junto com texturas de mods da comunidade, montado fora do repositório (os arquivos dos mods não entram aqui). O jogo já carrega esse pacote com o HUD melhorado, sem mudar o `settings.ini`.
   - Com mods e o NFSU2 aberto, os pedidos do site passam pelo app: a lista e os arquivos dos mods são respondidos por ele, o resto segue para o site sem mudança. Sem script na página. Vale ao abrir o app e só no PC.
+  - Liga e desliga em Configurações > Texturas e no botão "Texturas HD" da barra (na tela cheia, só o ícone, ao lado de Dicas); o botão só aparece com o NFSU2 aberto e o pacote presente. A troca vale quando o jogo carrega de novo: o app pergunta se reinicia o jogo agora, lembrando de salvar na garagem.
 
 ## Dicas para o jogador
 

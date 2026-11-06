@@ -52,6 +52,7 @@ Automatizados: `npm test` (123 testes) e `npm run verify` (27 verificações). C
 | 44 | Mesmo trecho no Chrome e no app, F8 detalhado | Tempo de quadro e FPS iguais ou melhores; sem quadros misturados. |
 | 45 | Instalar por cima da versão anterior | Sem admin, imagem própria na lateral; login e saves continuam. Desinstala limpo. |
 | 46 | App instalado, `settings.ini` sem `NFSU2_MAP_TEXTURES`, HUD melhorado ligado (`ui_textures = uhud`) | Texturas do pacote (asfalto, pátio de pedra, árvores, céu) e o mapa detalhado aparecem; o log do F9 mostra `TEXPACKS/detailed.pak: 350 textures`. Saves continuam. |
+| 46a | Com o NFSU2 aberto, clicar em "Texturas HD" na barra (em janela) ou no ícone ao lado de Dicas (tela cheia), e também marcar e desmarcar em Configurações > Texturas | Ícone colorido quando ligado; aparece a pergunta "Reinicie o jogo para valer" com Depois e Reiniciar o jogo; Reiniciar recarrega e as texturas mudam. Com Most Wanted ou Carbon, o botão não aparece. |
 | 46b | Pasta `%APPDATA%\NFS Launcher Mods\NFSU2` com um arquivo do mesmo caminho | Vale o da pasta do jogador; com o app aberto, trocar o arquivo só vale ao reabrir. |
 
 ## Celular (Android)

@@ -134,9 +134,14 @@ button.disc[aria-pressed="true"] .disc-name { color: var(--neon); }
 .corner .label { display: none; }
 .corner #c-image:not([hidden]) { display: flex; align-items: center; gap: 4px; }
 .corner #c-image.on { color: var(--neon); }
+.corner #c-tex:not([hidden]) { display: flex; align-items: center; gap: 4px; }
+.corner #c-tex.on { color: var(--neon); }
+/* Nome "Texturas HD" só na barra da janela; na tela cheia, só o ícone (ao lado de Dicas). */
+.corner .tex-name { display: none; font-size: 11px; line-height: 1; white-space: nowrap; color: inherit; }
+body.windowed .corner .tex-name { display: inline; }
 .corner .image-name { width: 76px; font-size: 11px; line-height: 1; text-align: left; white-space: nowrap; color: inherit; }
 /* Janela estreita: o nome do modo encostaria no nome do jogo. Fica só o ícone (colorido se ligado), com o modo na dica do mouse. */
-@media (max-width: 1060px) { body.windowed .corner .image-name { display: none; } }
+@media (max-width: 1060px) { body.windowed .corner .image-name, body.windowed .corner .tex-name { display: none; } }
 /* Modo descoberta: fixo, mais visível, com rótulo; brilha algumas vezes e fica parado (sem animação contínua sobre o jogo). */
 .corner.discover { opacity: 1; }
 .corner.discover #c-tips { display: flex; align-items: center; gap: 6px; padding: 5px 10px; color: #04121a; font-weight: 700; font-size: 13px;

@@ -2,7 +2,7 @@
   'use strict';
   const $ = (id) => document.getElementById(id);
   const api = window.launcher;
-  const BOOLS = ['startFullscreen', 'highPriority', 'prepareGame', 'lighterGpu', 'unblockGpu', 'newDrawing', 'antiAlias', 'imageFilter'];
+  const BOOLS = ['startFullscreen', 'highPriority', 'prepareGame', 'lighterGpu', 'unblockGpu', 'newDrawing', 'antiAlias', 'imageFilter', 'hdTextures'];
   let state = null;
   let capturingFor = null;
   let gpuResult = null;
@@ -382,6 +382,13 @@
     $('btn-tips').hidden = !(gameInfo(selGame) || {}).tips;
     $('btn-saves').hidden = selGame !== 'nfsu2'; // só o NFSU2 tem cópia do save
     $('c-tips').hidden = !s.tipsOn || !s.gameStarted;
+    // Texturas melhores: só com o NFSU2 aberto e o pacote presente. Colorido quando ligado.
+    $('c-tex').hidden = !(s.gameStarted && s.game === 'nfsu2' && s.texturesAvail);
+    $('c-tex').classList.toggle('on', !!s.settings.hdTextures);
+    const texTip = s.settings.hdTextures ? t('Texturas melhores: ligadas. Clique para desligar', 'Better textures: on. Click to turn off')
+      : t('Texturas melhores: desligadas. Clique para ligar', 'Better textures: off. Click to turn on');
+    $('c-tex').title = texTip;
+    $('c-tex').setAttribute('aria-label', texTip);
     $('loading-note').textContent = t('Na primeira vez os arquivos do jogo são baixados; depois ficam guardados neste PC.',
       'The first time, the game files are downloaded; after that they stay on this PC.');
     $('versions').textContent = `v${s.versions.app}`;
@@ -439,6 +446,7 @@
   $('c-set').onclick = () => api.openSettings();
   $('c-image').onclick = () => api.nextImageMode();
   $('c-tips').onclick = () => api.openTips();
+  $('c-tex').onclick = () => api.toggleTextures();
   $('c-home').onclick = () => api.goHome(); // fecha o jogo aberto e volta aos CDs
   $('c-reload').onclick = () => api.reloadAsk(); // só por clique: as teclas são do jogo
   $('btn-tips').onclick = () => api.openTips();

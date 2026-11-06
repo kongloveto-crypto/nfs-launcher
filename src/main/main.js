@@ -215,7 +215,7 @@ function buildState() {
       startFullscreen: cfg.startFullscreen, showHome: cfg.showHome, protectFullscreen: cfg.protectFullscreen,
       blockAltSpace: cfg.blockAltSpace, highPriority: cfg.highPriority, showCorner: cfg.showCorner,
       toggleCombo: cfg.toggleCombo, exitCombo: cfg.exitCombo, lang: cfg.lang, game: cfg.game,
-      prepareGame: cfg.prepareGame, lighterGpu: cfg.lighterGpu, unblockGpu: cfg.unblockGpu, newDrawing: cfg.newDrawing, antiAlias: cfg.antiAlias, imageFilter: cfg.imageFilter, imageMode: cfg.imageMode, sounds: cfg.sounds, discord: cfg.discord,
+      prepareGame: cfg.prepareGame, lighterGpu: cfg.lighterGpu, unblockGpu: cfg.unblockGpu, newDrawing: cfg.newDrawing, antiAlias: cfg.antiAlias, imageFilter: cfg.imageFilter, imageMode: cfg.imageMode, hdTextures: cfg.hdTextures, sounds: cfg.sounds, discord: cfg.discord,
     },
     customRev, custom: customFlags(),   // quais jogos têm fundo/capa próprios (as imagens vêm por custom:get)
     update: updateInfo,
@@ -224,6 +224,7 @@ function buildState() {
     cornerMode: cfg.tipsDiscovered || tipsBlocked() ? 'normal' : 'discover',
     game: currentGame,  // jogo aberto (null antes do START); o último iniciado fica em settings.game
     tipsOn: !tipsBlocked(),
+    texturesAvail: !!modsOn, // pacote de texturas carregado (instalador ou pasta de mods)
     games: GAME_IDS.map((id) => { const g = GAMES[id]; return { id, short: g.short, name: g.name, disc: g.disc, tips: g.tips, host: new URL(g.url).host }; }),
     fsHint: hintOn, // dica piscando no topo: "para sair da tela cheia: <atalho>"
     guideOpen: panelOpen('guide'),
@@ -701,8 +702,9 @@ async function applyImageFilter() {
 // Abrir o jogo: carga normal, como no Chrome (a recarga sem cache a cada abertura saiu a pedido do Bruno, 06/11:
 // o site já entrega as versões novas sozinho). Login, saves e configurações do jogo não são tocados.
 function openSite(url) {
-  try { modLog(`abrindo ${new URL(url).host}${modsOn ? '' : ' (sem mods carregados)'}`); } catch { /* endereço inválido: segue */ }
-  if (modsOn) { try { modsOn.active(isAllowedUrl(url, 'nfsu2')); } catch (e) { modLog(`não deu para ligar os mods: ${e && e.message}`); } }
+  try { modLog(`abrindo ${new URL(url).host}${modsOn ? (cfg.hdTextures ? '' : ' (texturas desligadas nas configurações)') : ' (sem mods carregados)'}`); } catch { /* endereço inválido: segue */ }
+  // "Texturas melhores" desligada: nada passa pelo app e o jogo recebe a lista do site como ela é.
+  if (modsOn) { try { modsOn.active(cfg.hdTextures && isAllowedUrl(url, 'nfsu2')); } catch (e) { modLog(`não deu para ligar os mods: ${e && e.message}`); } }
   gameView.webContents.loadURL(url).catch(() => {}); // erros de carga vão para o did-fail-load
 }
 // START com o jogo escolhido nos CDs da tela inicial (sem id: o último iniciado). O app lembra o último iniciado.
@@ -766,6 +768,23 @@ async function askReloadGame() {
     message: tr('Já salvou o jogo na garagem?', 'Have you saved the game in the garage?'),
     detail: tr('Vá para a garagem e salve o jogo antes de recarregar. O progresso que não foi salvo será perdido.',
       'Go to the garage and save the game before reloading. Progress that was not saved will be lost.'),
+  });
+  if (response !== 1) return;
+  reloadConfirmed = true;
+  reloadGame();
+}
+// Texturas melhores ligadas ou desligadas (botão da barra ou Configurações): só valem quando o jogo carrega de novo.
+// Com o NFSU2 aberto, pergunta se reinicia agora, lembrando de salvar na garagem.
+async function askTexturesRestart() {
+  if (!gameStarted || currentGame !== 'nfsu2' || !modsOn) return;
+  const on = cfg.hdTextures;
+  const { response } = await dialog.showMessageBox(win, {
+    type: 'info', buttons: [tr('Depois', 'Later'), tr('Reiniciar o jogo', 'Restart the game')], defaultId: 1, cancelId: 0, noLink: true,
+    title: tr('Texturas melhores', 'Better textures'),
+    message: on ? tr('Texturas melhores ligadas. Reinicie o jogo para valer.', 'Better textures on. Restart the game to apply.')
+      : tr('Texturas melhores desligadas. Reinicie o jogo para valer.', 'Better textures off. Restart the game to apply.'),
+    detail: tr('Vá para a garagem e salve o jogo antes de reiniciar. O progresso que não foi salvo será perdido.',
+      'Go to the garage and save the game before restarting. Progress that was not saved will be lost.'),
   });
   if (response !== 1) return;
   reloadConfirmed = true;
@@ -1160,6 +1179,14 @@ function registerIpc() {
     if (key === 'highPriority') applyPriority();
     if (key === 'imageFilter' || key === 'imageMode') applyImageFilter();
     refresh();
+    if (key === 'hdTextures') askTexturesRestart();
+    return { ok: true };
+  });
+  handle('textures:toggle', () => {
+    cfg = { ...cfg, hdTextures: !cfg.hdTextures };
+    saveCfg();
+    refresh();
+    askTexturesRestart();
     return { ok: true };
   });
   handle('image:next', () => {

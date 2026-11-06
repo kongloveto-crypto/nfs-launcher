@@ -20,6 +20,7 @@ const DEFAULTS = Object.freeze({
   antiAlias: false,         // anti-serrilhado do nosso motor (teste). Vale ao reabrir
   imageFilter: false,       // filtro de cor e nitidez sobre a imagem do jogo. Vale na hora
   imageMode: 'vivido',      // modo do filtro (imageFilter.js)
+  hdTextures: true,         // texturas melhores do NFSU2 (pacote do instalador e pasta de mods). Vale ao iniciar ou recarregar o jogo
   sounds: true,             // sons nas telas do app (nunca durante o jogo)
   discord: true,            // mostra "Jogando NFS Launcher" no Discord aberto neste PC
   toggleCombo: 'Ctrl+F',    // entra E sai da tela cheia (também sai do modo protegido)
@@ -35,7 +36,7 @@ const DEFAULTS = Object.freeze({
 const { GAME_IDS, SECURE_DNS } = require('./config');
 const { MODE_IDS } = require('./imageFilter');
 const LANGS = ['pt', 'en'];
-const USER_BOOLS = ['startFullscreen', 'highPriority', 'prepareGame', 'lighterGpu', 'unblockGpu', 'newDrawing', 'antiAlias', 'imageFilter'];
+const USER_BOOLS = ['startFullscreen', 'highPriority', 'prepareGame', 'lighterGpu', 'unblockGpu', 'newDrawing', 'antiAlias', 'imageFilter', 'hdTextures'];
 // Sempre ligadas e fora das configurações (pedido do Bruno): vale também para quem tinha desligado antes.
 const ALWAYS_ON = ['showHome', 'protectFullscreen', 'blockAltSpace', 'showCorner', 'sounds', 'discord'];
 const BOOLS = [...USER_BOOLS, 'maximized', 'tipsDiscovered', 'unblockTried'];
