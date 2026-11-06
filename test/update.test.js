@@ -20,6 +20,14 @@ test('lê só os instaladores da lista da pasta e acha a versão nova', () => {
   assert.strictEqual(update.newer('<html>pasta vazia</html>', '1.8.0'), null);
 });
 
+test('aceita os instaladores com e sem texturas', () => {
+  const html = '<div>NFS-Launcher-Setup-2.0.7-sem-texturas.exe</div><div>NFS-Launcher-Setup-3.0.1-com-texturas.exe</div>';
+  assert.deepStrictEqual(update.versionsIn(html), ['2.0.7', '3.0.1']);
+  assert.strictEqual(update.newer(html, '3.0.0'), '3.0.1');
+  assert.strictEqual(update.newer(html, '3.0.1'), null);
+  assert.deepStrictEqual(update.versionsIn('<div>NFS-Launcher-Setup-3.0.1-.exe</div><div>NFS-Launcher-Setup-3.0.1.exe.txt</div>'), ['3.0.1']);
+});
+
 test('o APK de Android nunca conta como atualização do PC', () => {
   const soAndroid = '<div>NFS-Launcher-Android-9.9.9.apk</div><div>NFS-Launcher-Android-9.9.9.apk.idsig</div>';
   assert.deepStrictEqual(update.versionsIn(soAndroid), []);

@@ -18,7 +18,7 @@ Rode um comando por vez:
 ```powershell
 npm install        # também baixa o Electron
 npm start          # abre o app com o motor oficial do Electron
-npm test           # 135 testes
+npm test           # 136 testes
 npm run verify     # 27 verificações estáticas (travam erros já corrigidos)
 npm run pack       # monta dist\win-unpacked para examinar, sem instalador
 npm run dist       # instalador dist\NFS-Launcher-Setup-<versão>.exe, com o motor próprio de C:\e\motor-final

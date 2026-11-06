@@ -15,8 +15,9 @@ function compare(a, b) {
   return 0;
 }
 // Versões de instalador que aparecem na lista da pasta (outros arquivos, como o .apk, são ignorados).
+// Desde a 3.0.2, aceita também nome com complemento, como "-com-texturas" e "-sem-texturas" (pedido do Bruno, 06/11).
 function versionsIn(html) {
-  return [...String(html).matchAll(/NFS-Launcher-Setup-(\d{1,4}\.\d{1,4}\.\d{1,4})\.exe/g)].map((m) => m[1]);
+  return [...String(html).matchAll(/NFS-Launcher-Setup-(\d{1,4}\.\d{1,4}\.\d{1,4})(?:-[A-Za-z]+(?:-[A-Za-z]+)*)?\.exe/g)].map((m) => m[1]);
 }
 // A versão mais nova da pasta, se for maior que a instalada; senão null.
 function newer(html, current) {

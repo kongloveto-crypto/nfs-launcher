@@ -1,6 +1,6 @@
 # Checklist de testes (Windows 11)
 
-Automatizados: `npm test` (135 testes) e `npm run verify` (27 verificações). Conferir a montagem: `"NFS Launcher.exe" --conferir` sai com 73.
+Automatizados: `npm test` (136 testes) e `npm run verify` (27 verificações). Conferir a montagem: `"NFS Launcher.exe" --conferir` sai com 73.
 
 ## PC
 
