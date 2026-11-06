@@ -268,9 +268,17 @@ async function copySaveAtStart() {
 // Com mods, os pedidos do site passam pelo app só enquanto o NFSU2 está aberto (openSite). Lida ao abrir o app.
 const modsDir = () => path.join(app.getPath('appData'), 'NFS Launcher Mods', 'NFSU2');
 let modsOn = null; // resultado de modFiles.install (null = sem mods)
+// Registro curto do que houve com os mods (refeito a cada abertura, no máximo 300 linhas): NFS Launcher Mods\registro.txt.
+let modLogLines = 0;
+function modLog(text) {
+  if (modLogLines++ > 300) return;
+  try { fs.appendFileSync(path.join(modsDir(), '..', 'registro.txt'), `${new Date().toLocaleTimeString()} ${text}\r\n`); } catch { /* sem como gravar: segue */ }
+}
 function setupMods(ses) {
   const mods = SAFE_MODE ? [] : modFiles.scan(modsDir());
-  modsOn = modFiles.install(ses, { mods, allowed: (u) => isAllowedUrl(u, 'nfsu2') });
+  if (!mods.length) return;
+  try { fs.writeFileSync(path.join(modsDir(), '..', 'registro.txt'), `NFS Launcher ${app.getVersion()}, aberto ${new Date().toLocaleString()}\r\n`); } catch { /* segue */ }
+  modsOn = modFiles.install(ses, { mods, allowed: (u) => isAllowedUrl(u, 'nfsu2'), log: modLog });
 }
 
 // ───────────────────────── Personalização: fundo e capa de cada jogo ─────────────────────────
@@ -681,7 +689,7 @@ async function applyImageFilter() {
 // (no did-navigate). Login, saves e configurações do jogo não são tocados.
 function openSite(url) {
   freshPending = true;
-  if (modsOn) { try { modsOn.active(isAllowedUrl(url, 'nfsu2')); } catch { /* sem mods nesta abertura */ } }
+  if (modsOn) { try { modsOn.active(isAllowedUrl(url, 'nfsu2')); } catch (e) { modLog(`não deu para ligar os mods: ${e && e.message}`); } }
   gameView.webContents.loadURL(url).catch(() => {}); // o recarregamento interrompe esta carga: é o esperado
 }
 // START com o jogo escolhido nos CDs da tela inicial (sem id: o último iniciado). O app lembra o último iniciado.
@@ -1294,7 +1302,7 @@ if (gotLock) {
     const gameSession = session.fromPartition(PARTITION);
     gameSession.setPermissionRequestHandler((_wc, perm, cb, details) => cb(allowPermission(perm, details)));
     gameSession.setPermissionCheckHandler((_wc, perm, _origin, details) => allowPermission(perm, details));
-    try { setupMods(gameSession); } catch { /* mod com problema não impede o jogo de abrir */ }
+    try { setupMods(gameSession); } catch (e) { modLog(`mods fora nesta abertura: ${e && e.message}`); } // não impede o jogo de abrir
     // Abre a conexão com o site enquanto a tela inicial aparece: o jogo carrega mais rápido ao clicar INICIAR.
     try { gameSession.preconnect({ url: gameOf(cfg.game).url, numSockets: 2 }); } catch { /* sem rede: ignora */ }
     session.defaultSession.setPermissionRequestHandler((_wc, _perm, cb) => cb(false));

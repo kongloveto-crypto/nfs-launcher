@@ -127,11 +127,13 @@ function readSpan(file, start, end) {
 // (ERR_UNKNOWN_URL_SCHEME; ele então usa a cópia antiga, ou o jogo nem abre). Por isso, com mods e o NFSU2 aberto
 // (`active(true)`), cada pedido https da sessão passa por aqui: a lista e os arquivos dos mods são respondidos
 // pelo app; o resto segue para o site sem mudança (`fetch` da própria sessão, sem passar por aqui de novo).
-// `allowed(url)`: o endereço é do site do NFSU2.
-function install(ses, { mods, allowed }) {
+// `allowed(url)`: o endereço é do site do NFSU2. `log(texto)`: registro curto para o jogador (e para nós) ver o que houve.
+function install(ses, { mods, allowed, log = () => {} }) {
   if (!mods.length) return null;
+  log(`mods encontrados: ${mods.map((m) => `"${m.p}" (${m.s} bytes)`).join(', ')}`);
   const HEAD = { 'cache-control': 'no-store', 'cross-origin-resource-policy': 'same-origin' };
-  const fail = (status) => new Response(null, { status, headers: HEAD });
+  const fail = (status, why) => { log(`recusado (${status}): ${why}`); return new Response(null, { status, headers: HEAD }); };
+  const sent = new Set();
   const pass = (req) => ses.fetch(req, { bypassCustomProtocolHandlers: true });
   let served = new Map(mods.map((m) => [m.p, m]));
   let on = false;
@@ -141,32 +143,34 @@ function install(ses, { mods, allowed }) {
     try {
       if (r.kind === 'manifest') {
         const res = await pass(req);
-        if (!res.ok) return res;
+        if (!res.ok) { log(`lista do site com erro ${res.status}: segue sem mods`); return res; }
         const out = patchManifest(await res.json(), mods);
         served = out.served;
+        log(`lista entregue ao jogo com ${served.size} de ${mods.length} mods: ${[...served.keys()].join(', ')}`);
         // Mesmos cabeçalhos do site (COEP, CORP...), sem os de compressão: o corpo vai sem compressão.
         const headers = new Headers(res.headers);
         for (const h of ['content-encoding', 'content-length', 'etag']) headers.delete(h);
         return new Response(JSON.stringify(out.manifest), { status: 200, headers });
       }
       const mod = served.get(r.p);
-      if (!mod || r.kind === 'bad') return fail(400);
+      if (!mod || r.kind === 'bad') return fail(400, `pedido inválido ${req.url}`);
       // O arquivo mudou com o app aberto: não entrega pedaço misturado (vale ao reabrir).
       const st = fs.statSync(mod.file);
-      if (st.size !== mod.s || Math.floor(st.mtimeMs / 1000) !== mod.m) return fail(409);
+      if (st.size !== mod.s || Math.floor(st.mtimeMs / 1000) !== mod.m) return fail(409, `"${r.p}" mudou com o app aberto (vale ao reabrir)`);
       let span, status = 200;
       const headers = { ...HEAD, 'content-type': 'application/octet-stream', 'accept-ranges': 'bytes' };
       if (r.kind === 'blocks') {
         span = blockSpan(r, mod);
-        if (!span) return fail(409);
+        if (!span) return fail(409, `"${r.p}": pedido de uma lista antiga`);
       } else {
         span = rangeSpan(req.headers.get('range'), mod.s);
-        if (span === false) return fail(416);
+        if (span === false) return fail(416, `"${r.p}": trecho inválido`);
         if (span) { status = 206; headers['content-range'] = `bytes ${span.start}-${span.end - 1}/${mod.s}`; } else span = { start: 0, end: mod.s };
       }
       const body = readSpan(mod.file, span.start, span.end);
-      return body ? new Response(body, { status, headers }) : fail(409);
-    } catch { return fail(500); }
+      if (body && !sent.has(r.p)) { sent.add(r.p); log(`o jogo começou a ler "${r.p}"`); }
+      return body ? new Response(body, { status, headers }) : fail(409, `"${r.p}": não deu para ler o arquivo`);
+    } catch (e) { return fail(500, String((e && e.message) || e)); }
   };
   return {
     served: () => served,
@@ -175,6 +179,7 @@ function install(ses, { mods, allowed }) {
       if (want === on) return;
       if (want) ses.protocol.handle('https', handler); else ses.protocol.unhandle('https');
       on = want;
+      log(want ? 'NFSU2 aberto: mods ligados' : 'outro jogo: mods desligados');
     },
   };
 }
