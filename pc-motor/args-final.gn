@@ -1,0 +1,14 @@
+# Versão final: os mesmos cortes de args-treino.gn, otimizada pelo perfil oficial somado ao treino no jogo.
+import("//electron/build/args/release.gn")
+
+target_cpu = "x64"
+symbol_level = 0
+blink_symbol_level = 0
+v8_symbol_level = 0
+pgo_data_path = "//out/nfs-jogo.profdata"
+
+# Peças que o jogo e o launcher não usam.
+# Extensões ficam: com enable_electron_extensions = false, o BUILD.gn do Electron 45.1.0 aponta para um arquivo que não existe mais.
+enable_pdf_viewer = false
+enable_builtin_spellchecker = false
+enable_prompt_api = false

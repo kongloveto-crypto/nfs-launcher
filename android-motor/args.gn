@@ -1,0 +1,34 @@
+# NFS Motor: o Chromium (motor do Chrome) compilado para o NFS Launcher de celular.
+# Só arm64 (todo celular com Android 12+), versão de lançamento enxuta, sem símbolos de depuração.
+target_os = "android"
+target_cpu = "arm64"
+is_debug = false
+is_component_build = false
+symbol_level = 0
+blink_symbol_level = 0
+v8_symbol_level = 0
+treat_warnings_as_errors = false
+# Compilação "oficial" (como o Chrome do Google): otimização ThinLTO, sem DCHECKs. O 1º APK (31/10) foi sem isso:
+# 531 MB, travava muito no jogo e a página caía (DCHECK derruba a página de propósito). Mudar isto recompila tudo,
+# e o "link" final do libchrome usa muita memória (o .wslconfig dá 24 GB + 16 GB de swap).
+is_official_build = true
+dcheck_always_on = false
+# Só Android 12+ (é a partir dele que o WebGPU existe no Android): não instala onde o jogo não roda e o app
+# fica sem o código de compatibilidade com Androids antigos.
+default_min_sdk_version = 31
+# Sem as tabelas de "desenrolar a pilha" (.eh_frame, ~25 MB): só servem para relatórios de travamento do Google.
+exclude_unwind_tables = true
+# Sem perfil PGO (o Google não publica um para Android arm64 nesta versão; sem isto o gn pede o arquivo).
+chrome_pgo_phase = 0
+# Sem modo de depuração no APK (o Chromium não oficial liga por padrão; inseguro para distribuir).
+debuggable_apks = false
+# Sem lint/Errorprone: são verificações de código dos robôs do Google, lentas e que podem falhar no fim.
+android_static_analysis = "off"
+
+# App único (launcher 1.3.0): o mesmo pacote do NFS Launcher antigo, então instala POR CIMA dele (mesma chave).
+# Instala ao lado do Chrome, sem conflito. O patch 0001 confia neste pacote + chave para abrir os jogos sem barra.
+chrome_public_manifest_package = "xyz.nfs.launcher"
+# Sem android_channel = "stable": ele liga verificações internas dos robôs do Google que quebram o "gn gen".
+
+# Sem chaves de API do Google (login/sincronização não são usados).
+use_official_google_api_keys = false

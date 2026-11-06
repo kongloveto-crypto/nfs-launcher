@@ -1,0 +1,84 @@
+{
+  "name": "nfsu2-launcher",
+  "productName": "NFS Launcher",
+  "version": "2.0.7",
+  "description": "Cliente dedicado (não oficial) para NFSU2 (nfsu2.xyz), NFSMW (web.nfsmwo.com) e NFSC (nfscrb.xyz) com WebGPU, tela cheia protegida e instalador para Windows 11",
+  "main": "src/main/main.js",
+  "author": "NFS Launcher",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "postinstall": "node node_modules/electron/install.js",
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "test": "node --test \"test/**/*.test.js\"",
+    "verify": "node scripts/verify.js",
+    "pack": "electron-builder --win --dir",
+    "dist": "npm run verify && electron-builder --win nsis --x64"
+  },
+  "devDependencies": {
+    "electron": "^45.1.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "xyz.nfsu2.launcher",
+    "productName": "NFS Launcher",
+    "electronDist": "C:/e/motor-final",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "compression": "maximum",
+    "electronLanguages": [
+      "pt-BR",
+      "en-US"
+    ],
+    "electronFuses": {
+      "runAsNode": false,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "onlyLoadAppFromAsar": true,
+      "enableEmbeddedAsarIntegrityValidation": true
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "differentialPackage": false,
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true,
+      "shortcutName": "NFS Launcher",
+      "deleteAppDataOnUninstall": false,
+      "installerSidebar": "build/installerSidebar.bmp",
+      "uninstallerSidebar": "build/uninstallerSidebar.bmp",
+      "installerHeader": "build/installerHeader.bmp",
+      "installerLanguages": [
+        "pt_BR",
+        "en_US"
+      ],
+      "language": "1046",
+      "include": "build/installer.nsh",
+      "artifactName": "NFS-Launcher-Setup-${version}.exe"
+    }
+  }
+}

@@ -1,0 +1,37 @@
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/browserservices/ui/controller/trustedwebactivity/TrustedWebActivityDisclosureController.java b/chrome/android/java/src/org/chromium/chrome/browser/browserservices/ui/controller/trustedwebactivity/TrustedWebActivityDisclosureController.java
+index 71679cfe4f888..a064356d7572c 100644
+--- a/chrome/android/java/src/org/chromium/chrome/browser/browserservices/ui/controller/trustedwebactivity/TrustedWebActivityDisclosureController.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/browserservices/ui/controller/trustedwebactivity/TrustedWebActivityDisclosureController.java
+@@ -67,6 +67,8 @@ public class TrustedWebActivityDisclosureController extends DisclosureController
+ 
+     @Override
+     protected boolean shouldShowDisclosure() {
++        // NFS Motor: sem o aviso "Executando no Chromium" (o Motor só abre os jogos do NFS Launcher).
++        if (true) return false;
+         /* Has a disclosure been dismissed for this client package before? */
+         return !BrowserServicesStore.hasUserAcceptedTwaDisclosureForPackage(
+                 assertNonNull(mClientPackageNameProvider.get()));
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java
+index af93130ed9e80..b980150a33ff2 100644
+--- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java
+@@ -55,6 +55,9 @@ import org.chromium.components.signin.identitymanager.IdentityManager;
+  */
+ @NullMarked
+ public abstract class FirstRunFlowSequencer {
++    // NFS Motor: sem telas de boas-vindas, termos e conta do Google (o Motor só abre os jogos).
++    private static final boolean NFS_MOTOR_SKIP_FRE = true;
++
+     private static final String TAG = "firstrun";
+ 
+     /**
+@@ -246,7 +249,8 @@ public abstract class FirstRunFlowSequencer {
+         // Retail demo mode suppresses the FRE, except on desktop devices where the signed-in
+         // experience needs to be showcased. Account visibility controls whether sign-in is
+         // actually available on those devices.
+-        if (CommandLine.getInstance().hasSwitch(ChromeSwitches.DISABLE_FIRST_RUN_EXPERIENCE)
++        if (NFS_MOTOR_SKIP_FRE
++                || CommandLine.getInstance().hasSwitch(ChromeSwitches.DISABLE_FIRST_RUN_EXPERIENCE)
+                 || (DeviceInfo.isRetailDemoMode() && !DeviceInfo.isDesktop())
+                 || ApiCompatibilityUtils.isRunningInUserTestHarness()) {
+             return false;

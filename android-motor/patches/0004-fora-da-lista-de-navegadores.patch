@@ -1,0 +1,220 @@
+diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/AndroidManifest.xml
+index 4f8d01457384a..0c7ba26abb738 100644
+--- a/chrome/android/java/AndroidManifest.xml
++++ b/chrome/android/java/AndroidManifest.xml
+@@ -86,6 +86,7 @@ by a child template that "extends" this file.
+ 
+     <uses-permission android:name="android.permission.GET_ACCOUNTS"/>
+     <uses-permission android:name="android.permission.INTERNET"/>
++    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+     <uses-permission android:name="android.permission.MANAGE_ACCOUNTS"/>
+     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+     <uses-permission android:name="android.permission.NFC"/>
+@@ -224,6 +225,8 @@ by a child template that "extends" this file.
+         android:label="{% block application_label %}@string/app_name{% endblock %}"
+         android:memtagMode="async"
+         android:largeHeap="false"
++        android:appCategory="game"
++        android:isGame="true"
+         android:manageSpaceActivity="@string/manage_space_activity"
+         android:supportsRtl="true"
+         android:zygotePreloadName="{{ zygote_preload_class }}"
+@@ -278,125 +281,16 @@ by a child template that "extends" this file.
+             {% endif %}
+             <!-- Matches the common case of intents with no MIME type.
+                  Make sure to keep in sync with the next filter.  -->
+-            <intent-filter>
+-                {% block common_view_intent_shared_filter_body %}
+-                <action android:name="android.intent.action.VIEW" />
+-                <category android:name="android.intent.category.DEFAULT" />
+-                {% if channel in ['stable', 'default'] %}<data android:scheme="googlechrome" />{% endif %}
+-                <data android:scheme="http" />
+-                <data android:scheme="https" />
+-                <data android:scheme="about" />
+-                <category android:name="android.intent.category.BROWSABLE" />
+-                {% endblock %}
+-            </intent-filter>
+             <!-- Same filter as above but with MIME types.  Intents that
+                  do not specify a MIME type won't match. -->
+-            <intent-filter>
+-                {{ self.common_view_intent_shared_filter_body() }}
+-                <data android:mimeType="text/html"/>
+-                <data android:mimeType="text/plain"/>
+-                <data android:mimeType="application/xhtml+xml"/>
+-            </intent-filter>
+             <!-- URL share intent support. -->
+-            <intent-filter>
+-                <action android:name="android.intent.action.SEND" />
+-                <category android:name="android.intent.category.DEFAULT" />
+-                <data android:mimeType="text/plain"/>
+-            </intent-filter>
+             <!-- content URI support. -->
+-            <intent-filter>
+-                <action android:name="android.intent.action.VIEW" />
+-                <category android:name="android.intent.category.DEFAULT" />
+-                <data android:scheme="content" />
+-                <data android:mimeType="text/html"/>
+-                <data android:mimeType="text/plain"/>
+-                <data android:mimeType="application/xhtml+xml"/>
+-            </intent-filter>
+             <!-- MHTML support, used for snapshots -->
+-            <intent-filter>
+-                <action android:name="android.intent.action.VIEW" />
+-                <category android:name="android.intent.category.DEFAULT" />
+-                <category android:name="android.intent.category.BROWSABLE" />
+-                <data android:scheme="file"/>
+-                <data android:mimeType="multipart/related"/>
+-            </intent-filter>
+-            <intent-filter>
+-                <action android:name="android.intent.action.VIEW" />
+-                <category android:name="android.intent.category.DEFAULT" />
+-                <data android:scheme="content"/>
+-                <data android:mimeType="multipart/related"/>
+-            </intent-filter>
+-            <intent-filter>
+-                <action android:name="android.intent.action.VIEW" />
+-                <category android:name="android.intent.category.DEFAULT" />
+-                <data android:scheme="file"/>
+-                <data android:scheme="content"/>
+-                <data android:mimeType="message/rfc822"/>
+-            </intent-filter>
+-            <intent-filter>
+-                {% block mhtml_view_intent_shared_filter_body %}
+-                <action android:name="android.intent.action.VIEW" />
+-                <category android:name="android.intent.category.DEFAULT" />
+-                <category android:name="android.intent.category.BROWSABLE" />
+-                <data android:scheme="file"/>
+-                <data android:host="*" />
+-                {% for i in range(10) %}
+-                <data android:pathPattern="/.*{{ '\\\\..*' * i }}\\.mhtml" />
+-                <data android:pathPattern="/.*{{ '\\\\..*' * i }}\\.mht" />
+-                {% endfor %}
+-                {% endblock %}
+-            </intent-filter>
+             <!-- Same filter as above but with mimeType="*/*". Used for
+                  handling intent send by ShareIt. -->
+-            <intent-filter>
+-                {{ self.mhtml_view_intent_shared_filter_body() }}
+-                <data android:mimeType="*/*"/>
+-            </intent-filter>
+             <!-- Web Bundles (.wbn) support -->
+             {% if channel in ['dev', 'canary', 'default'] %}
+-            <intent-filter>
+-                {% block wbn_view_intent_shared_filter_body %}
+-                <action android:name="android.intent.action.VIEW" />
+-                <category android:name="android.intent.category.DEFAULT" />
+-                <category android:name="android.intent.category.BROWSABLE" />
+-                <data android:scheme="file" />
+-                <data android:host="*" />
+-                {% for i in range(10) %}
+-                <data android:pathPattern="/.*{{ '\\\\..*' * i }}\\.wbn" />
+-                {% endfor %}
+-                {% endblock %}
+-            </intent-filter>
+-            <intent-filter>
+-                {{ self.wbn_view_intent_shared_filter_body() }}
+-                <data android:mimeType="*/*"/>
+-            </intent-filter>
+-            <intent-filter tools:ignore="AppLinkUrlError">
+-                <action android:name="android.intent.action.VIEW" />
+-                <category android:name="android.intent.category.DEFAULT" />
+-                <data android:scheme="content" />
+-                <data android:mimeType="application/webbundle" />
+-            </intent-filter>
+             {% endif %}
+-            <intent-filter>
+-                <action android:name="android.intent.action.MEDIA_SEARCH" />
+-                <category android:name="android.intent.category.DEFAULT" />
+-            </intent-filter>
+-            <intent-filter>
+-                <action android:name="android.speech.action.VOICE_SEARCH_RESULTS" />
+-                <category android:name="android.intent.category.DEFAULT" />
+-            </intent-filter>
+-            <intent-filter>
+-                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+-                <category android:name="android.intent.category.DEFAULT" />
+-                <data android:scheme="http" />
+-                <data android:scheme="https" />
+-            </intent-filter>
+-            <intent-filter>
+-                <action android:name="android.intent.action.SEARCH" />
+-            </intent-filter>
+-            <intent-filter>
+-                <action android:name="com.sec.android.airview.HOVER" />
+-            </intent-filter>
+             <meta-data android:name="android.app.searchable"
+                 android:resource="@xml/searchable" />
+         </activity-alias>
+@@ -404,7 +298,7 @@ by a child template that "extends" this file.
+         <!-- PDF viewing support. -->
+         <activity-alias android:name="org.chromium.chrome.browser.document.PdfLauncherActivityAlias"
+             android:targetActivity="org.chromium.chrome.browser.document.ChromeLauncherActivity"
+-            android:exported="true"
++            android:exported="false"
+             android:enabled="false"><!-- This will be selectively enabled at runtime. -->
+             <intent-filter>
+                 <action android:name="android.intent.action.VIEW" />
+@@ -417,7 +311,7 @@ by a child template that "extends" this file.
+         <activity android:name="org.chromium.chrome.browser.media.MediaLauncherActivity"
+             android:theme="@style/Theme.BrowserUI.NoDisplay"
+             android:excludeFromRecents="true"
+-            android:exported="true"
++            android:exported="false"
+             android:enabled="false"><!-- This will be selectively enabled at runtime. -->
+             <intent-filter tools:ignore="AppLinkUrlError">
+                 <action android:name="android.intent.action.VIEW" />
+@@ -485,7 +379,7 @@ by a child template that "extends" this file.
+              images in that case. -->
+         <activity-alias android:name="org.chromium.chrome.browser.media.AudioLauncherActivity"
+             android:targetActivity="org.chromium.chrome.browser.media.MediaLauncherActivity"
+-            android:exported="true"
++            android:exported="false"
+             android:enabled="false"><!-- This will be selectively enabled at runtime. -->
+             <intent-filter tools:ignore="AppLinkUrlError">
+                 <action android:name="android.intent.action.VIEW" />
+@@ -677,11 +571,7 @@ by a child template that "extends" this file.
+             <intent-filter>
+                 <action android:name="android.intent.action.MAIN" />
+                 <category android:name="android.intent.category.DEFAULT" />
+-                <category android:name="android.intent.category.LAUNCHER" />
+-                <category android:name="android.intent.category.BROWSABLE" />
+-                <category android:name="android.intent.category.APP_BROWSER" />
+                 {% if channel in ['dev', 'canary', 'default'] %}
+-                <category android:name="android.intent.category.MULTIWINDOW_LAUNCHER" />
+                 {% endif %}
+             </intent-filter>
+             <meta-data android:name="android.app.shortcuts"
+@@ -1085,7 +975,7 @@ by a child template that "extends" this file.
+         <activity android:name="org.chromium.chrome.browser.searchwidget.SearchActivity"
+             android:theme="@style/Theme.Chromium.SearchActivity"
+             android:label="Search"
+-            android:exported="true"
++            android:exported="false"
+             android:launchMode="singleTask"
+             android:taskAffinity=""
+             android:clearTaskOnLaunch="true"
+@@ -1553,6 +1443,24 @@ by a child template that "extends" this file.
+           tools:ignore="ExportedContentProvider">
+       </provider>
+ 
++      <!-- NFS Launcher: tela inicial e bolha de dicas. -->
++      <activity android:name="xyz.nfs.launcher.MainActivity"
++          android:process=":nfs"
++          android:label="NFS Launcher"
++          android:exported="true"
++          android:launchMode="singleTask"
++          android:screenOrientation="sensorLandscape"
++          android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen"
++          android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode|density">
++          <intent-filter>
++              <action android:name="android.intent.action.MAIN" />
++              <category android:name="android.intent.category.LAUNCHER" />
++          </intent-filter>
++      </activity>
++      <service android:name="xyz.nfs.launcher.BubbleService" android:process=":nfs" android:exported="false" />
++      <!-- Modo de jogo do Android 13+: o app cuida do próprio desempenho; o sistema não reduz resolução nem FPS. -->
++      <meta-data android:name="android.game_mode_config" android:resource="@xml/nfs_game_mode_config" />
++
+       {% block base_application_definitions %}
+       {% endblock %}
+       {% block extra_application_definitions_for_test %}

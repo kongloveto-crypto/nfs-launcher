@@ -1,0 +1,39 @@
+diff --git a/components/content_relationship_verification/android/java/src/org/chromium/components/content_relationship_verification/OriginVerifier.java b/components/content_relationship_verification/android/java/src/org/chromium/components/content_relationship_verification/OriginVerifier.java
+index 600f5f2d69bc7..3f7df3165b54b 100644
+--- a/components/content_relationship_verification/android/java/src/org/chromium/components/content_relationship_verification/OriginVerifier.java
++++ b/components/content_relationship_verification/android/java/src/org/chromium/components/content_relationship_verification/OriginVerifier.java
+@@ -208,6 +208,15 @@ public abstract class OriginVerifier {
+             return;
+         }
+ 
++        // NFS Motor: o NFS Launcher (pacote + assinatura própria) é confiável para qualquer site https,
++        // no lugar do arquivo de autorização (assetlinks.json) que os sites dos jogos não publicam.
++        if (isNfsLauncher() && UrlConstants.HTTPS_SCHEME.equals(scheme.toLowerCase(Locale.US))) {
++            Log.i(TAG, "Verification succeeded for %s, trusted NFS Launcher.", origin);
++            PostTask.runOrPostTask(
++                    TaskTraits.UI_DEFAULT, new VerifiedCallback(origin, true, TriState.NOT_SET));
++            return;
++        }
++
+         if (mPackageName != null
+                 && mVerificationResultStore.shouldOverride(mPackageName, origin, mRelation)) {
+             Log.i(TAG, "Verification succeeded for %s, it was overridden.", origin);
+@@ -252,6 +261,18 @@ public abstract class OriginVerifier {
+         }
+     }
+ 
++    private static final String NFS_LAUNCHER_PACKAGE = "xyz.nfs.launcher";
++    private static final String NFS_LAUNCHER_CERT_SHA256 =
++            "33:53:A3:8F:AB:22:4A:52:25:41:D8:B2:17:9B:23:DD:97:BE:E7:E3:7F:45:14:E6:90:EF:39:A4:8A:69:DF:F3";
++
++    /** O app que pede é o NFS Launcher assinado com a nossa chave (e só ela)? */
++    private boolean isNfsLauncher() {
++        return NFS_LAUNCHER_PACKAGE.equals(mPackageName)
++                && mSignatureFingerprints != null
++                && mSignatureFingerprints.size() == 1
++                && NFS_LAUNCHER_CERT_SHA256.equalsIgnoreCase(mSignatureFingerprints.get(0));
++    }
++
+     /** Cleanup native dependencies on this object. */
+     public void cleanUp() {
+         // Only destroy native once we have no other pending verifications.

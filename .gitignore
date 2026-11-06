@@ -1,0 +1,21 @@
+# Gerados
+node_modules/
+dist/
+
+# Segredos: chave do Android, senhas e backups (nunca publicar)
+*.jks
+*.keystore
+keystore.properties
+local.properties
+Backup/
+
+# Projeto Android antigo (só histórico e a chave)
+android/
+
+# Contexto interno e anotações pessoais
+.claude/
+CLAUDE.md
+docs/historico-contexto.md
+
+# Foto pessoal, fora do app
+/nfsu2.png

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:">
+  <title>NFS Launcher</title>
+  <link rel="stylesheet" href="home.css">
+</head>
+<body>
+  <div id="intro" class="intro" aria-hidden="true">
+    <img src="icon.png" alt="" width="120" height="120">
+    <div class="intro-name">NFS <span>Launcher</span></div>
+  </div>
+
+  <!-- Tela inicial do app de celular: os mesmos CDs, START e idioma do app de PC. -->
+  <main id="home" class="screen">
+    <div id="home-lang" class="lang top-right" role="group" aria-label="Idioma / Language"></div>
+    <h1>NFS <span>Launcher</span></h1>
+    <p id="tagline" class="muted"></p>
+    <div id="games" class="games" role="group"></div>
+    <button id="btn-start" class="primary">START</button>
+    <div class="row">
+      <button id="btn-tips"></button>
+      <button id="btn-saves"></button>
+      <button id="btn-settings"></button>
+      <button id="btn-quit"></button>
+    </div>
+    <div id="update-box" class="update-box" role="status" hidden>
+      <span id="update-text"></span>
+      <button id="update-get" class="primary small"></button>
+    </div>
+    <div id="disk-box" class="update-box" role="status" hidden><span id="disk-text"></span></div>
+    <footer id="versions" class="muted small"></footer>
+  </main>
+
+  <main id="settings" class="screen panel-screen" hidden>
+    <h2 id="set-h"></h2>
+    <section>
+      <h3>Idioma / Language</h3>
+      <div id="set-lang" class="lang" role="group"></div>
+    </section>
+    <section>
+      <h3 id="set-perf-h"></h3>
+      <label class="switch"><input type="checkbox" id="s-prepareGame"><span id="s-prepareGame-l"></span></label>
+    </section>
+    <section>
+      <h3 id="set-game-h"></h3>
+      <label class="switch"><input type="checkbox" id="s-bubble"><span id="s-bubble-l"></span></label>
+    </section>
+    <section>
+      <h3 id="set-custom-h"></h3>
+      <p id="custom-note" class="muted small"></p>
+      <div id="custom-list" class="custom-list"></div>
+    </section>
+    <section>
+      <h3 id="set-update-h"></h3>
+      <p id="update-note" class="muted small"></p>
+      <div class="row left">
+        <button id="b-update"></button>
+        <button id="b-update-open"></button>
+        <span id="update-status" class="muted small"></span>
+      </div>
+    </section>
+    <section>
+      <h3 id="set-saves-h"></h3>
+      <p id="saves-note" class="muted small"></p>
+      <div class="row left">
+        <button id="b-saves-open"></button>
+        <span id="saves-status" class="muted small"></span>
+      </div>
+    </section>
+    <details id="advanced" class="advanced">
+      <summary id="advanced-h"></summary>
+      <section>
+        <h3 id="set-maint-h"></h3>
+        <p id="maint-note" class="muted small"></p>
+        <div class="row left"><button id="b-app-settings"></button></div>
+      </section>
+    </details>
+    <div class="footer"><button id="s-back" class="primary small"></button></div>
+  </main>
+
+  <main id="tips" class="screen panel-screen" hidden>
+    <div class="tips-head">
+      <h2 id="tips-h">Dicas</h2>
+      <div class="tips-tools">
+        <div class="lang" role="group"><button id="tf-dn">A−</button><button id="tf-up">A+</button></div>
+        <div id="tips-lang" class="lang" role="group"></div>
+      </div>
+    </div>
+    <nav id="tips-tabs" class="tabs" role="tablist"></nav>
+    <div id="tips-body" class="tips-body"></div>
+    <div class="footer"><button id="t-back" class="primary small"></button></div>
+  </main>
+
+  <main id="loading" class="screen center" hidden>
+    <img id="loading-disc" class="load-disc" src="games/nfsu2.png" alt="" width="120" height="120">
+    <h2 id="loading-h"></h2>
+    <p id="loading-name" class="muted"></p>
+    <p id="loading-note" class="muted small"></p>
+  </main>
+
+  <main id="error" class="screen center" hidden>
+    <div class="warn">!</div>
+    <h2 id="err-h"></h2>
+    <p id="err-detail" class="muted"></p>
+    <p id="err-retrying" class="muted small"></p>
+    <div class="row">
+      <button id="e-retry" class="primary small"></button>
+      <button id="e-dns" hidden></button>
+      <button id="e-home"></button>
+    </div>
+  </main>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+  <script src="tips.js"></script>
+  <script src="sounds.js"></script>
+  <script src="home.js"></script>
+</body>
+</html>

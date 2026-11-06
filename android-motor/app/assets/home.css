@@ -1,0 +1,121 @@
+/* Mesmo visual do app de PC (src/renderer/ui.css), adaptado para toque: alvos grandes e rolagem. */
+:root { --bg:#0b0d17; --panel:#131627; --line:#262a45; --txt:#e9ebff; --mut:#a4aad0; --neon:#00ffc8; --amber:#ffb020; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--txt);
+  font: 15px/1.45 system-ui, "Roboto", sans-serif; user-select: none; }
+/* Fundo de cada jogo, escurecido para o texto ficar legível (o jogador pode trocar em Configurações). */
+body { background-color: var(--bg); background-image: linear-gradient(rgba(8, 10, 20, .5), rgba(8, 10, 20, .72)), var(--bgimg);
+  background-size: auto, cover; background-position: center; background-repeat: no-repeat; background-attachment: fixed; }
+body[data-game="nfsu2"] { --bgimg: url("bg/nfsu2.jpg"); }
+body[data-game="nfsmw"] { --bgimg: url("bg/nfsmw.jpg"); }
+body[data-game="nfsc"] { --bgimg: url("bg/nfsc.jpg"); }
+.screen { min-height: 100vh; padding: max(18px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left));
+  display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.center { justify-content: center; }
+h1 { margin: 26px 0 0; font-size: 34px; letter-spacing: 2px; font-weight: 800; }
+h1 span { color: var(--neon); font-weight: 600; }
+h2 { margin: 0; font-size: 22px; }
+h3 { margin: 18px 0 8px; font-size: calc(13px * var(--fs, 1.2)); color: var(--neon); text-transform: uppercase; letter-spacing: 1.2px; }
+.muted { color: var(--mut); margin: 0; } .small { font-size: 12px; }
+#home > h1, #home > .muted, #home footer, .disc-name, #loading h2, #loading p, #error h2, #error p { text-shadow: 0 1px 6px rgba(0, 0, 0, .95), 0 0 2px rgba(0, 0, 0, .9); }
+button { font: inherit; color: var(--txt); background: #1b1f38; border: 1px solid var(--line); border-radius: 12px; padding: 11px 18px; min-height: 44px; }
+button:active { transform: translateY(1px); background: #20254a; }
+button:disabled { opacity: .45; }
+button.small { padding: 6px 12px; min-height: 38px; font-size: 13px; }
+button.primary { background: linear-gradient(90deg, #00d9a8, #00a0ff); color: #04121a; font-weight: 800; letter-spacing: 3px; border: 0;
+  padding: 15px 60px; font-size: 19px; box-shadow: 0 0 28px rgba(0, 220, 200, .35); }
+button.primary.small { padding: 10px 24px; font-size: 15px; letter-spacing: 1px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center; }
+.row.left { justify-content: flex-start; }
+.lang { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.lang button { border: 0; border-radius: 0; padding: 8px 14px; min-height: 40px; background: #151932; color: var(--mut); }
+.lang button[aria-pressed="true"] { background: #102a2a; color: var(--neon); }
+.top-right { align-self: flex-end; }
+
+/* Abertura do app. */
+.intro { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  background: #05060c; animation: introout 1.5s ease-in forwards; }
+.intro img { filter: drop-shadow(0 0 30px rgba(0, 255, 200, .45)); animation: introin .7s ease-out both; }
+.intro-name { font-size: 32px; font-weight: 800; letter-spacing: 3px; animation: introin .7s ease-out .12s both; }
+.intro-name span { color: var(--neon); font-weight: 600; }
+@keyframes introin { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: scale(1); } }
+@keyframes introout { 0%, 72% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+
+/* CDs: o escolhido gira devagar com o anel neon. */
+.games { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin: 6px 0; }
+button.disc { display: grid; justify-items: center; gap: 4px; padding: 12px; border-radius: 18px; background: transparent; border: 1px solid transparent; min-height: 0; }
+button.disc img { width: 132px; height: 132px; border-radius: 50%; object-fit: cover; opacity: .55; filter: saturate(.4); }
+button.disc[aria-pressed="true"] { border-color: var(--neon); background: rgba(0, 255, 200, .06); }
+button.disc[aria-pressed="true"] img { opacity: 1; filter: none; box-shadow: 0 0 0 3px var(--neon), 0 0 26px rgba(0, 255, 200, .45); animation: spin 9s linear infinite; }
+.disc-name { font-weight: 800; letter-spacing: 2px; }
+button.disc[aria-pressed="true"] .disc-name { color: var(--neon); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.load-disc { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin-bottom: 8px; box-shadow: 0 0 0 3px var(--neon), 0 0 28px rgba(0, 255, 200, .45); animation: spin 1.6s linear infinite; }
+.warn { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font-size: 30px; font-weight: 800; color: #04121a; background: var(--amber); }
+
+/* Aviso de versão nova (tela inicial). */
+.update-box { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; padding: 6px 12px; border-radius: 12px;
+  background: rgba(0, 60, 50, .75); border: 1px solid var(--neon); box-shadow: 0 0 16px rgba(0, 255, 200, .25); }
+.update-box button.primary.small { padding: 6px 20px; min-height: 38px; }
+
+.switch { display: flex; align-items: center; gap: 10px; text-align: left; font-size: 14px; padding: 6px 0; }
+.switch input { width: 22px; height: 22px; accent-color: var(--neon); flex: none; }
+code { background: #0c0f1e; border: 1px solid var(--line); padding: 6px 10px; border-radius: 6px; color: var(--neon); user-select: text; }
+
+/* Telas com texto corrido (dicas e configurações): fundo mais escuro. */
+.panel-screen { align-items: stretch; text-align: left; background: rgba(8, 10, 20, .86); }
+.panel-screen section { margin: 0; }
+.panel-screen h3 { margin-top: 10px; }
+.tips-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.tips-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs button[aria-selected="true"] { border-color: var(--neon); color: var(--neon); background: #102a2a; }
+.tips-body { font-size: calc(14px * var(--fs, 1.2)); }
+.tips-body p, .tips-body li { line-height: 1.55; }
+.tips-body ol, .tips-body ul { padding-left: 22px; margin: 6px 0 10px; } .tips-body li { margin: 4px 0; }
+.tips-body .kvt { width: 100%; border-collapse: collapse; margin: 4px 0 10px; font-size: calc(13px * var(--fs, 1.2)); }
+.tips-body .kvt th { text-align: left; font-weight: 600; color: var(--mut); width: 38%; padding: 6px 10px 6px 0; vertical-align: top; }
+.tips-body .kvt td { padding: 6px 0; }
+.tips-body .kvt tr + tr { border-top: 1px solid var(--line); }
+.tips-body .note { padding: 9px 12px; border-left: 3px solid var(--amber); background: #221c0c; border-radius: 6px; }
+
+/* Personalização: uma linha por jogo, com miniatura do fundo e da capa. */
+.custom-list { display: grid; gap: 10px; margin-top: 8px; }
+.custom-row { display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
+.custom-name { min-width: 58px; letter-spacing: 1px; }
+.custom-cell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.thumb-bg { width: 80px; height: 45px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); background: #000; }
+.thumb-disc { width: 45px; height: 45px; object-fit: cover; border-radius: 50%; border: 1px solid var(--line); }
+.advanced { margin-top: 6px; border-top: 1px solid var(--line); padding-top: 6px; }
+.advanced > summary { padding: 10px 0; font-weight: 700; color: var(--mut); list-style: none; }
+.advanced > summary::before { content: "▸"; display: inline-block; width: 18px; color: var(--neon); }
+.advanced[open] > summary::before { content: "▾"; }
+
+.footer { position: sticky; bottom: 0; padding: 10px 0; background: #0b0d17; display: flex; justify-content: flex-end; }
+.toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); max-width: calc(100% - 32px); padding: 10px 16px;
+  border-radius: 10px; background: #0f2a26; border: 1px solid #14584c; z-index: 40; }
+/* O app fica deitado (jogos de corrida): na tela baixa, CDs à esquerda e START/botões à direita, sem rolar. */
+@media (max-height: 520px) and (orientation: landscape) {
+  .screen { gap: 8px; padding-top: max(10px, env(safe-area-inset-top)); padding-bottom: 12px; }
+  #home { display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; row-gap: 8px; align-content: center; justify-items: center;
+    grid-template-areas: "h1 h1" "tag tag" "games start" "games row" "games upd" "ver ver"; }
+  #home .top-right { position: absolute; top: max(10px, env(safe-area-inset-top)); right: max(16px, env(safe-area-inset-right)); }
+  #home h1 { grid-area: h1; margin: 0; font-size: 26px; }
+  #tagline { grid-area: tag; }
+  #games { grid-area: games; align-self: center; margin: 0; gap: 10px; flex-wrap: nowrap; }
+  #btn-start { grid-area: start; align-self: end; }
+  #home > .row { grid-area: row; }
+  #update-box { grid-area: upd; align-self: start; }
+  #versions { grid-area: ver; }
+  button.disc { padding: 6px 10px; }
+  button.disc img { width: 104px; height: 104px; }
+  button { min-height: 40px; padding: 8px 10px; font-size: 14px; }
+  button.primary { padding: 12px 60px; font-size: 18px; }
+  #home > .row { gap: 6px; flex-wrap: nowrap; }
+  .update-box { flex-wrap: nowrap; padding: 4px 6px 4px 12px; font-size: 13px; text-align: left; }
+  .footer { padding: 6px 0; }
+  h3 { margin-top: 12px; }
+  .load-disc { width: 96px; height: 96px; }
+}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; } }

@@ -1,0 +1,179 @@
+:root { --bg:#0b0d17; --panel:#131627; --line:#262a45; --txt:#e9ebff; --mut:#8d93b8; --neon:#00ffc8; --amber:#ffb020; --red:#ff4d6d; }
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; background: transparent; color: var(--txt);
+  font: 14px/1.45 "Segoe UI Variable", "Segoe UI", system-ui, sans-serif; user-select: none; overflow: hidden; }
+/* Fundo por jogo. Cada tema tem cores próprias (--glow, --glow2, --base) e aceita uma imagem opcional em
+   renderer/bg/<jogo>.jpg (se o arquivo não existir, aparece só o degradê). */
+body[data-screen="launcher"], body[data-screen="settings"], body[data-screen="error"], body[data-screen="loading"] {
+  --glow: #25104a; --glow2: #0a2a4a; --base: var(--bg); --bgimg: none; --bgpos: center;
+  background-color: var(--base);
+  background-image:
+    radial-gradient(1200px 600px at 50% -10%, color-mix(in srgb, var(--glow) 40%, transparent) 0%, transparent 65%),
+    radial-gradient(900px 500px at 50% 115%, color-mix(in srgb, var(--glow2) 40%, transparent) 0%, transparent 70%),
+    linear-gradient(rgba(8, 10, 20, .45), rgba(8, 10, 20, .68)),
+    var(--bgimg);
+  background-size: auto, auto, auto, cover; background-position: center, center, center, var(--bgpos); background-repeat: no-repeat; }
+/* Underground 2: noite azul-petróleo com neon roxo e ciano. A foto alinha pela esquerda para não cortar o logo no canto. */
+body[data-game="nfsu2"] { --glow: #3a1070; --glow2: #00506a; --base: #070b18; --bgimg: url("bg/nfsu2.jpg"); --bgpos: left center; }
+/* Most Wanted: asfalto escuro com brilho laranja e vermelho. */
+body[data-game="nfsmw"] { --glow: #7a2a00; --glow2: #4a0a14; --base: #0d0b0a; --bgimg: url("bg/nfsmw.jpg"); }
+/* Carbon: noite azul do cânion com o vermelho do Evo da capa. */
+body[data-game="nfsc"] { --glow: #0b2a66; --glow2: #5a0a14; --base: #060912; --bgimg: url("bg/nfsc.jpg"); }
+[hidden] { display: none !important; }
+.screen { position: absolute; inset: 0; overflow: auto; padding: 24px; }
+.center { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; }
+h1 { margin: 6px 0 0; font-size: 40px; letter-spacing: 2px; font-weight: 800; }
+h1 span { color: var(--neon); font-weight: 600; }
+h2 { margin: 0 0 14px; font-size: 22px; }
+h3 { margin: 18px 0 8px; font-size: 13px; color: var(--neon); text-transform: uppercase; letter-spacing: 1.2px; }
+.muted { color: var(--mut); margin: 0; } .small { font-size: 12px; }
+.logo { filter: drop-shadow(0 0 24px rgba(255, 40, 200, .45)); border-radius: 28px; }
+button { font: inherit; color: var(--txt); background: #1b1f38; border: 1px solid var(--line); border-radius: 10px; padding: 9px 16px; cursor: pointer; transition: .15s; }
+button:hover { border-color: var(--neon); background: #20254a; }
+button:focus-visible { outline: 2px solid var(--neon); outline-offset: 2px; }
+button.primary { background: linear-gradient(90deg, #00d9a8, #00a0ff); color: #04121a; font-weight: 800; letter-spacing: 3px; border: 0; padding: 14px 56px; font-size: 18px; margin: 14px 0 4px; box-shadow: 0 0 28px rgba(0, 220, 200, .35); }
+button.primary.small { padding: 9px 26px; font-size: 14px; letter-spacing: 1px; margin: 0; }
+button.primary:hover { filter: brightness(1.1); }
+button[disabled] { opacity: .5; cursor: default; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; } .row.left { justify-content: flex-start; } .row.right { justify-content: flex-end; margin-top: 14px; }
+.chip { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; padding: 6px 14px; border-radius: 99px; background: #151932; border: 1px solid var(--line); font-size: 12px; }
+.chip i { width: 9px; height: 9px; border-radius: 50%; background: var(--mut); }
+.chip.ok i { background: var(--neon); box-shadow: 0 0 8px var(--neon); } .chip.caution i { background: var(--amber); } .chip.bad i { background: var(--red); }
+.panel { max-width: 780px; margin: 0 auto; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 24px 28px; }
+.switch { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; cursor: pointer; }
+.switch input { margin-top: 3px; accent-color: var(--neon); width: 16px; height: 16px; flex: none; }
+.switch small { color: var(--mut); }
+.image-mode { align-items: center; margin-left: 26px; }
+#s-imageMode { font: inherit; color: inherit; color-scheme: dark; background: #0c0f1e; border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; }
+#s-imageMode:disabled { opacity: .5; }
+.kv { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; padding: 5px 0; }
+code { background: #0c0f1e; border: 1px solid var(--line); padding: 4px 10px; border-radius: 6px; color: var(--neon); user-select: text; }
+.detail { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0 0 12px; font-size: 13px; }
+.detail dt { color: var(--mut); } .detail dd { margin: 0; user-select: text; word-break: break-word; }
+/* Aviso flutuante: fica sempre visível, mesmo com as configurações roladas. */
+.toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 10; max-width: min(640px, calc(100% - 32px));
+  padding: 10px 16px; border-radius: 10px; background: #0f2a26; border: 1px solid #14584c; box-shadow: 0 8px 28px rgba(0, 0, 0, .45);
+  animation: rise .18s ease-out; }
+.toast.err { background: #331420; border-color: #6a2540; }
+/* Rodapé das configurações (Voltar) sempre à vista no fim da tela. */
+.panel .footer { position: sticky; bottom: -24px; align-items: center; gap: 14px; margin: 18px -28px -24px; padding: 12px 28px;
+  background: var(--panel); border-top: 1px solid var(--line); border-radius: 0 0 16px 16px; }
+button:active:not([disabled]) { transform: translateY(1px); }
+.screen.center > :not(.load-disc) { animation: rise .22s ease-out both; }
+@keyframes rise { from { opacity: 0; translate: 0 6px; } to { opacity: 1; translate: 0 0; } }
+/* Carregando: o CD do jogo girando. */
+.load-disc { width: 150px; height: 150px; border-radius: 50%; margin-bottom: 8px; box-shadow: 0 0 0 3px var(--neon), 0 0 28px rgba(0, 255, 200, .45); animation: discspin 1.6s linear infinite; }
+/* Abertura do app: fica por cima de tudo, some sozinha. */
+.intro { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+  background: #05060c; animation: introout 1.5s ease-in forwards; }
+.intro img { filter: drop-shadow(0 0 30px rgba(0, 255, 200, .45)); animation: introin .7s ease-out both; }
+.intro-name { font-size: 38px; font-weight: 800; letter-spacing: 3px; animation: introin .7s ease-out .12s both; }
+.intro-name span { color: var(--neon); font-weight: 600; }
+@keyframes introin { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: scale(1); } }
+@keyframes introout { 0%, 72% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+/* Configurações: a parte técnica fica recolhida em "Avançado". */
+.advanced { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; }
+.advanced > summary { cursor: pointer; padding: 8px 0; font-weight: 700; color: var(--mut); list-style: none; }
+.advanced > summary::before { content: "▸"; display: inline-block; width: 18px; color: var(--neon); }
+.advanced[open] > summary::before { content: "▾"; }
+.advanced > summary:hover { color: var(--txt); }
+.advanced > summary:focus-visible { outline: 2px solid var(--neon); outline-offset: 2px; border-radius: 6px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; } }
+.warn { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; font-size: 36px; font-weight: 800; background: #3a2a08; color: var(--amber); border: 2px solid var(--amber); }
+#err-detail { max-width: 520px; }
+/* Dicas: idioma, abas e conteúdo */
+.tips-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.tips-head h2 { margin: 0; }
+.lang { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+.lang button { border: 0; border-radius: 0; padding: 6px 12px; background: #151932; color: var(--mut); }
+.lang button[aria-pressed="true"] { background: #102a2a; color: var(--neon); }
+/* Dica de tela cheia: os botões ficam no alto, centralizados, e a faixa pisca logo abaixo deles. */
+body.hinting .corner { inset: 0 auto auto 50%; width: 308px; height: 40px; transform: translateX(-50%); opacity: 1; }
+body.hinting .corner.discover { width: 408px; }
+.fs-hint { position: absolute; left: 0; right: 0; top: 48px; height: 36px; display: flex; align-items: center; justify-content: center;
+  padding: 0 14px; border-radius: 10px; background: rgba(6, 30, 40, .92); border: 1px solid var(--neon); color: #eafffa; font-weight: 700;
+  font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 0 18px rgba(0, 255, 200, .45);
+  animation: hintblink .7s ease-in-out 4; }
+@keyframes hintblink { 50% { opacity: .25; } }
+/* Catálogo: um CD por jogo. O escolhido gira devagar e ganha o anel neon; os outros ficam apagados. */
+.games { display: flex; gap: 22px; flex-wrap: wrap; justify-content: center; margin: 10px 0 2px; }
+button.disc { display: grid; justify-items: center; gap: 4px; padding: 12px 14px 10px; border-radius: 16px; background: transparent;
+  border: 1px solid transparent; }
+button.disc img { width: 150px; height: 150px; border-radius: 50%; opacity: .45; filter: saturate(.4); transition: opacity .2s, filter .2s, transform .2s; }
+button.disc:hover { background: rgba(255, 255, 255, .04); border-color: var(--line); }
+button.disc:hover img { opacity: .8; filter: none; }
+button.disc[aria-pressed="true"] { border-color: var(--neon); background: rgba(0, 255, 200, .06); }
+button.disc[aria-pressed="true"] img { opacity: 1; filter: none; box-shadow: 0 0 0 3px var(--neon), 0 0 28px rgba(0, 255, 200, .45); animation: discspin 9s linear infinite; }
+.disc-name { font-weight: 800; letter-spacing: 2px; }
+button.disc[aria-pressed="true"] .disc-name { color: var(--neon); }
+.disc-sub { font-size: 12px; color: var(--mut); }
+@keyframes discspin { to { transform: rotate(360deg); } }
+/* Textos sobre a foto de fundo continuam legíveis. */
+#launcher > h1, #launcher > .muted, .disc-name, .disc-sub { text-shadow: 0 1px 6px rgba(0, 0, 0, .95), 0 0 2px rgba(0, 0, 0, .9); }
+#launcher > .muted { color: #d5d9f2; }
+/* Tela inicial: idioma no canto superior direito. */
+.home-lang { position: absolute; top: 16px; right: 16px; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.tabs button { padding: 7px 14px; }
+.tabs button[aria-selected="true"] { border-color: var(--neon); color: var(--neon); background: #102a2a; }
+.tips-tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+/* Letra das dicas: var(--fs) vem do botão A−/A+ (padrão 1,2 = 20% maior que o original). */
+.tips-body { font-size: calc(14px * var(--fs, 1.2)); }
+.tips-body h3 { margin-top: 20px; font-size: calc(13px * var(--fs, 1.2)); }
+.tips-body p, .tips-body li { line-height: 1.55; }
+.tips-body ol, .tips-body ul { padding-left: 22px; margin: 6px 0 10px; } .tips-body li { margin: 4px 0; }
+.tips-body .kvt { width: 100%; border-collapse: collapse; margin: 4px 0 10px; font-size: calc(13px * var(--fs, 1.2)); }
+.tips-body .kvt th { text-align: left; font-weight: 600; color: var(--mut); width: 38%; padding: 6px 10px 6px 0; vertical-align: top; }
+.tips-body .kvt td { padding: 6px 0; }
+.tips-body .kvt tr + tr { border-top: 1px solid var(--line); }
+.tips-body .note { padding: 9px 12px; border-left: 3px solid var(--amber); background: #221c0c; border-radius: 6px; margin: 8px 0 12px; }
+.corner { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 6px; background: rgba(10, 12, 24, .72); border: 1px solid rgba(255, 255, 255, .12); border-radius: 12px; opacity: .55; }
+.corner:hover { opacity: 1; }
+.corner button { background: transparent; border: 0; padding: 6px; border-radius: 8px; display: grid; place-items: center; }
+.corner button:hover { background: rgba(255, 255, 255, .12); }
+.corner .label { display: none; }
+.corner #c-image:not([hidden]) { display: flex; align-items: center; gap: 4px; }
+.corner #c-image.on { color: var(--neon); }
+.corner .image-name { width: 76px; font-size: 11px; line-height: 1; text-align: left; white-space: nowrap; color: inherit; }
+/* Janela estreita: o nome do modo encostaria no nome do jogo. Fica só o ícone (colorido se ligado), com o modo na dica do mouse. */
+@media (max-width: 1060px) { body.windowed .corner .image-name { display: none; } }
+/* Modo descoberta: fixo, mais visível, com rótulo; brilha algumas vezes e fica parado (sem animação contínua sobre o jogo). */
+.corner.discover { opacity: 1; }
+.corner.discover #c-tips { display: flex; align-items: center; gap: 6px; padding: 5px 10px; color: #04121a; font-weight: 700; font-size: 13px;
+  background: linear-gradient(90deg, #00d9a8, #00a0ff); box-shadow: 0 0 14px rgba(0, 220, 200, .55); animation: nudge 1.2s ease-in-out 5; }
+.corner.discover .label { display: inline; white-space: nowrap; }
+@keyframes nudge { 50% { transform: scale(1.07); box-shadow: 0 0 22px rgba(0, 255, 200, .9); } }
+/* Em janela, .corner é a barra do topo, com 32 px; à direita ficam os botões do Windows (138 px), desenhados por cima.
+   Na tela cheia, volta a ser o botão discreto acima. */
+.bar-title, .bar-gap { display: none; }
+body.windowed .corner { inset: 0 0 auto 0; height: 32px; justify-content: flex-start; gap: 2px; padding: 0 146px 0 6px; z-index: 60;
+  background: #0e1018; border: 0; border-radius: 0; opacity: 1; -webkit-app-region: drag; }
+body.windowed .corner button { padding: 4px 8px; border-radius: 6px; -webkit-app-region: no-drag; }
+body.windowed .corner svg { width: 16px; height: 16px; }
+body.windowed .bar-gap { display: block; flex: 1; }
+body.windowed .bar-title { display: flex; position: absolute; left: 50%; top: 0; height: 32px; transform: translateX(-50%); align-items: center; gap: 7px;
+  font-size: 13px; font-weight: 600; color: #d7daf0; white-space: nowrap; pointer-events: none; }
+body.windowed .screen, body.windowed .intro { top: 32px; }
+/* Janela baixa (ex.: 960×540): a tela inicial encolhe para caber sem rolagem, mesmo com o botão de versão nova. */
+@media (max-height: 680px) {
+  #launcher { gap: 6px; padding: 12px 24px; }
+  #launcher h1 { margin: 0; font-size: 30px; }
+  #launcher .games { margin: 2px 0 0; }
+  button.disc { padding: 6px 12px 4px; }
+  button.disc img { width: 104px; height: 104px; }
+}
+/* Barra de rolagem discreta (a branca padrão lembra navegador). */
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .18); border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, .3); }
+/* Aviso de versão nova (tela inicial). */
+.update-box { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; padding: 8px 14px; border-radius: 12px;
+  background: rgba(0, 60, 50, .55); border: 1px solid var(--neon); box-shadow: 0 0 16px rgba(0, 255, 200, .25); animation: rise .18s ease-out; }
+/* Personalização: uma linha por jogo, com miniatura do fundo e da capa. */
+.custom-list { display: grid; gap: 10px; margin-top: 8px; }
+.custom-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
+.custom-name { min-width: 64px; letter-spacing: 1px; }
+.custom-cell { display: flex; align-items: center; gap: 8px; }
+.thumb-bg { width: 96px; height: 54px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); background: #000; }
+.thumb-disc { width: 54px; height: 54px; object-fit: cover; border-radius: 50%; border: 1px solid var(--line); }

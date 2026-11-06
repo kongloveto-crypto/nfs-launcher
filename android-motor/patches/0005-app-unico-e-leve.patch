@@ -1,0 +1,111 @@
+diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
+index 6ed792010ee90..0b63178d04536 100644
+--- a/chrome/android/BUILD.gn
++++ b/chrome/android/BUILD.gn
+@@ -1945,7 +1945,7 @@ if (_is_default_toolchain) {
+       renaming_sources = []
+       renaming_destinations = []
+ 
+-      foreach(_locale, platform_pak_locales) {
++      foreach(_locale, [ "en-US", "pt-BR" ]) {  # NFS Launcher
+         foreach(_gender_suffix, gender_suffixes) {
+           renaming_sources += [ "$target_gen_dir/${_variant}_paks/locales/${_locale}${_gender_suffix}.pak" ]
+           renaming_destinations += [ "locales/${_locale}${_gender_suffix}.pak" ]
+diff --git a/chrome/android/chrome_public_apk_tmpl.gni b/chrome/android/chrome_public_apk_tmpl.gni
+index 6b9413f634e59..182ed6c30115f 100644
+--- a/chrome/android/chrome_public_apk_tmpl.gni
++++ b/chrome/android/chrome_public_apk_tmpl.gni
+@@ -295,7 +295,7 @@ template("chrome_common_apk_or_module_tmpl") {
+     }
+ 
+     # Include resource strings files only for supported locales.
+-    aapt_locale_allowlist = platform_pak_locales
++    aapt_locale_allowlist = [ "en-US", "pt-BR" ]  # NFS Launcher
+ 
+     resource_exclusion_regex = common_resource_exclusion_regex
+     resource_exclusion_exceptions = common_resource_exclusion_exceptions
+@@ -361,6 +361,7 @@ template("chrome_common_apk_or_module_tmpl") {
+     }
+ 
+     deps += [ "//chrome/android:base_module_java" ]
++    deps += [ "//chrome/android/nfs:java" ]  # NFS Launcher (tela inicial, bolha, guia)
+     if (defined(invoker.deps)) {
+       deps += invoker.deps
+     }
+@@ -427,6 +428,7 @@ template("chrome_common_apk_or_module_tmpl") {
+     }
+ 
+     asset_deps = [ "//chrome/android:chrome_public_non_pak_assets" ]
++    asset_deps += [ "//chrome/android/nfs:assets" ]  # NFS Launcher (assets/nfs/)
+     if (defined(invoker.asset_deps)) {
+       asset_deps += invoker.asset_deps
+     }
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/base/SplitCompatApplication.java b/chrome/android/java/src/org/chromium/chrome/browser/base/SplitCompatApplication.java
+index b2eff462cf575..d061e11b90de1 100644
+--- a/chrome/android/java/src/org/chromium/chrome/browser/base/SplitCompatApplication.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/base/SplitCompatApplication.java
+@@ -221,7 +221,7 @@ public class SplitCompatApplication extends Application {
+ 
+         maybeInitProcessType();
+         LibraryLoader.getInstance().setLinkerImplementation(ProductConfig.USE_CHROMIUM_LINKER);
+-        ResourceBundle.setAvailablePakLocales(ProductConfig.LOCALES);
++        ResourceBundle.setAvailablePakLocales(new String[] {"en-US", "pt-BR"}); // NFS Launcher
+ 
+         if (isBrowserProcess) {
+             // Renderer and GPU processes have command line passed to them via IPC
+@@ -229,6 +229,25 @@ public class SplitCompatApplication extends Application {
+             CommandLineInitUtil.initCommandLine(
+                     COMMAND_LINE_FILE, SplitCompatApplication::shouldUseDebugFlags);
+             PathUtils.setPrivateDataDirectorySuffix(PRIVATE_DATA_DIRECTORY_SUFFIX);
++            // NFS Launcher: o navegador por baixo do jogo fica quieto (nada de rede/CPU em segundo plano).
++            org.chromium.base.CommandLine.getInstance()
++                    .appendSwitchesAndArguments(
++                            new String[] {
++                                "--disable-background-networking",
++                                "--disable-component-update",
++                                "--disable-domain-reliability",
++                                "--disable-features=OptimizationHints,MediaRouter",
++                                // Sem a lista de chips bloqueados do WebGPU: Samsung com Xclipse (ex.: A56) só
++                                // funcionava ligando uma opção escondida no Chrome. Quem já era aceito não muda.
++                                "--disable-dawn-features=adapter_blocklist"
++                            });
++            // NFS Launcher: opção "Preparar o jogo ao carregar" (Configurações > Avançado), como no PC.
++            if (context.getSharedPreferences("nfs", 0).getBoolean("prepareGame", false)) {
++                org.chromium.base.CommandLine.getInstance()
++                        .appendSwitchWithValue(
++                                "js-flags",
++                                "--no-wasm-lazy-compilation --no-wasm-dynamic-tiering");
++            }
+             // Register for activity lifecycle callbacks. Must be done before any activities are
+             // created and is needed only by processes that use the ApplicationStatus api (which
+             // for Chrome is just the browser process).
+diff --git a/chrome/android/modules/xr/xr_module.gni b/chrome/android/modules/xr/xr_module.gni
+index 392db811ca8a4..0ee6c4c54b5fe 100644
+--- a/chrome/android/modules/xr/xr_module.gni
++++ b/chrome/android/modules/xr/xr_module.gni
+@@ -24,11 +24,6 @@ xr_module_desc = {
+     "//third_party/arcore-android-sdk-client:com_google_ar_core_java",
+   ]
+   uses_split = "chrome"
+-  loadable_modules_64_bit = [
+-    "$root_out_dir/obj/third_party/androidx/androidx_xr_arcore_arcore_openxr_java/jni/$_xr_jni_abi/libandroidx.xr.arcore.openxr.so",
+-    "$root_out_dir/obj/third_party/androidx/androidx_xr_runtime_runtime_openxr_java/jni/$_xr_jni_abi/libandroidx.xr.runtime.openxr.so",
+-    "$root_out_dir/obj/third_party/android_deps/com_google_ar_impress_java/jni/$_xr_jni_abi/libimpress_api_jni.so",
+-    "$root_out_dir/obj/third_party/arcore-android-sdk-client/com_google_ar_core_java/jni/$_xr_jni_abi/libarcore_sdk_jni.so",
+-    "$root_out_dir/obj/third_party/arcore-android-sdk-client/com_google_ar_core_java/jni/$_xr_jni_abi/libarcore_sdk_c.so",
+-  ]
++  # NFS Launcher: sem as bibliotecas nativas de XR/ARCore (~20 MB; só óculos XR e WebXR).
++  loadable_modules_64_bit = []
+ }
+diff --git a/skia/BUILD.gn b/skia/BUILD.gn
+index ef4a697c98bc0..06c0d77c70356 100644
+--- a/skia/BUILD.gn
++++ b/skia/BUILD.gn
+@@ -474,6 +474,7 @@ component("skia") {
+     # Note that this requires expat.
+     # Note that this requires skia_ports_fontmgr_android_parser_sources.
+     sources += skia_ports_fontmgr_android_ndk_sources
++    libs = [ "icu" ]  # NFS Launcher: ICU do Android (NDK, API 31+), usada direto pelo Skia com minSdk 31
+   }
+ 
+   if (is_fuchsia) {

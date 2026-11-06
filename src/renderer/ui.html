@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:">
+  <title>NFS Launcher</title>
+  <link rel="stylesheet" href="ui.css">
+</head>
+<body class="windowed">
+  <!-- Textos: o português fica aqui; o inglês vem de i18n.js pelas chaves data-t (conteúdo), data-tt (dica) e data-ta (rótulo). -->
+  <div id="corner" class="corner" hidden>
+    <button id="c-home" title="Voltar ao início (fecha o jogo)" aria-label="Voltar ao início" data-tt="cHomeT" data-ta="cHomeA">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>
+    </button>
+    <button id="c-reload" title="Recarregar o jogo" aria-label="Recarregar o jogo" data-tt="cReloadA" data-ta="cReloadA">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 6.3"/><path d="M20 4v7h-7"/></svg>
+    </button>
+    <span class="bar-title"><img src="icon.png" alt="" width="18" height="18"><span id="bar-name">NFS Launcher</span></span>
+    <span class="bar-gap"></span>
+    <button id="c-image">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg>
+      <span id="c-image-name" class="image-name"></span>
+    </button>
+    <button id="c-tips" title="Dicas (Ctrl+Alt+I)" aria-label="Dicas" data-tt="cTipsT" data-ta="cTipsA">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></svg>
+      <span class="label" data-t="cTipsA">Dicas</span>
+    </button>
+    <button id="c-fs" aria-label="Alternar tela cheia" data-ta="cFsA">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+    </button>
+    <button id="c-set" title="Configurações" aria-label="Configurações" data-tt="settings" data-ta="settings">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+    </button>
+  </div>
+  <div id="fs-hint" class="fs-hint" role="status" hidden></div>
+
+  <div id="intro" class="intro" aria-hidden="true">
+    <img src="icon.png" alt="" width="168" height="168">
+    <div class="intro-name">NFS <span>Launcher</span></div>
+  </div>
+
+  <main id="launcher" class="screen center" hidden>
+    <div id="home-lang" class="lang home-lang" role="group" aria-label="Idioma / Language"></div>
+    <h1>NFS <span>Launcher</span></h1>
+    <p class="muted" data-t="tagline">Escolha o jogo e aperte <b>START</b></p>
+    <div id="games" class="games" role="group" aria-label="Jogos"></div>
+    <button id="btn-start" class="primary">START</button>
+    <div class="row">
+      <button id="btn-fs">Tela cheia</button>
+      <button id="btn-tips" data-t="cTipsA">Dicas</button>
+      <button id="btn-saves" data-t="mySaves">Meus saves</button>
+      <button id="btn-settings" data-t="settings">Configurações</button>
+      <button id="btn-quit" data-t="close">Fechar</button>
+    </div>
+    <div id="update-box" class="update-box" role="status" hidden>
+      <span id="update-text"></span>
+      <button id="update-get" class="primary small" data-t="updGet">Baixar</button>
+    </div>
+    <div id="disk-box" class="update-box" role="status" hidden><span id="disk-text"></span></div>
+    <div id="gpu-chip" class="chip" hidden><i></i><span>Verificando WebGPU…</span><button id="gpu-unblock" class="primary small" hidden></button></div>
+    <footer id="versions" class="muted small"></footer>
+  </main>
+
+  <main id="settings" class="screen" hidden>
+    <div class="panel">
+      <h2 data-t="settings">Configurações</h2>
+      <section>
+        <h3>Idioma / Language</h3>
+        <div id="set-lang" class="lang" role="group" aria-label="Idioma / Language"></div>
+      </section>
+      <section>
+        <h3 data-t="hPerf">Desempenho</h3>
+        <p class="muted small" data-t="perfNote">A Prioridade vale na hora; as outras, ao reabrir o app. Os números são de testes em RTX 4060 e 1440p, fora do jogo: compare jogando, com o F8.</p>
+        <div id="restart-row" class="row left" hidden>
+          <button id="b-restart" class="primary small" data-t="restart">Reabrir o app para aplicar</button>
+          <span class="muted small" data-t="restartNote">A partida aberta será fechada (salve antes no jogo).</span>
+        </div>
+        <label class="switch"><input type="checkbox" id="s-highPriority"><span data-t="sPrio">Prioridade “acima do normal” para o jogo <small>(o Windows dá preferência ao jogo. Só ajuda com outros programas pesados abertos)</small></span></label>
+        <label class="switch"><input type="checkbox" id="s-prepareGame"><span data-t="sPrepare">Preparar o jogo ao carregar <small>(otimiza o jogo todo no início, não durante a corrida. Pesa mais nos primeiros segundos e pode reduzir engasgos depois)</small></span></label>
+        <label class="switch"><input type="checkbox" id="s-lighterGpu"><span data-t="sLighter">Aliviar o processador (Dawn skip_validation) <small>(deixa de conferir cada comando gráfico. Ganho pequeno, ~0,1 ms por quadro. Se o jogo der erro gráfico, pode travar)</small></span></label>
+        <label class="switch"><input type="checkbox" id="s-newDrawing"><span data-t="sNewDrawing">Desenhar a tela do jeito novo (Graphite + Delegated Compositing) <small>(outro método de desenhar a imagem, e o Windows monta a imagem final. Jogando numa RTX 4060: quadros de 3% a 10% mais rápidos e até 30% menos quadros perdidos)</small></span></label>
+        <label class="switch"><input type="checkbox" id="s-antiAlias"><span data-t="sAntiAlias">Anti-serrilhado (FXAA) <small>(deixa as bordas mais lisas. Custa ~0,27 ms por quadro e tira um pouco da nitidez de letras e detalhes)</small></span></label>
+        <label class="switch" id="unblock-row" hidden><input type="checkbox" id="s-unblockGpu"><span data-t="sUnblock">Modo DirectX 11 (Dawn D3D11) <small>(para placa sem DirectX 12. Desliga o desenho novo da tela. Pode dar erro de imagem ou travar)</small></span></label>
+      </section>
+      <section>
+        <h3 data-t="hWindow">Janela e tela cheia</h3>
+        <label class="switch"><input type="checkbox" id="s-startFullscreen"><span data-t="sStartFs">Iniciar em tela cheia</span></label>
+      </section>
+      <section>
+        <h3 data-t="hCustom">Personalização</h3>
+        <p class="muted small" data-t="customNote">Troque o <b>fundo</b> da tela inicial e a <b>capa</b> (o CD) de cada jogo por uma imagem PNG ou JPG do seu PC. A capa fica redonda: o app usa o quadrado do meio da imagem. “Padrão” volta à imagem original.</p>
+        <div id="custom-list" class="custom-list"></div>
+      </section>
+      <section>
+        <h3 data-t="hUpdate">Atualizações</h3>
+        <p class="muted small" data-t="updNote">Quando houver versão nova, o botão de baixar aparece na tela inicial. Nada é baixado ou instalado sozinho e nada do seu PC é enviado.</p>
+        <div class="row left">
+          <button id="b-update" data-t="updCheck">Verificar agora</button>
+          <button id="b-update-open" data-t="updOpen">Abrir a pasta de versões</button>
+          <span id="update-status" class="muted small"></span>
+        </div>
+      </section>
+      <section>
+        <h3 data-t="hSaves">Cópias do save (NFSU2)</h3>
+        <p class="muted small" data-t="savesNote">Ao abrir, o app guarda uma cópia do seu save, só se ele mudou. Ficam as 2 últimas versões, só no seu PC, e nada é enviado. O app nunca coloca uma cópia de volta sozinho. <b>Só restaure se perdeu o save:</b> a cópia pode estar mais antiga que o seu jogo e substitui o que estiver nele. Para voltar: no jogo, em <b>Jogos salvos &gt; Restaurar</b>, escolha o arquivo mais novo da pasta.</p>
+        <div class="row left">
+          <button id="b-saves-open" data-t="savesOpen">Abrir a pasta das cópias</button>
+          <span id="saves-status" class="muted small"></span>
+        </div>
+      </section>
+      <details id="advanced" class="advanced">
+      <summary data-t="advanced">Avançado</summary>
+      <section>
+        <h3 data-t="hImage">Imagem do jogo</h3>
+        <label class="switch"><input type="checkbox" id="s-imageFilter"><span data-t="sImage">Filtro de imagem (CSS filter: saturate, contrast e feConvolveMatrix) <small>(muda a cor e a nitidez na hora, sem reabrir o app. Os modos só de cor quase não pesam; os nítidos pesam um pouco, então confira com o F8)</small></span></label>
+        <div class="row left image-mode">
+          <label for="s-imageMode" data-t="imgMode">Modo</label>
+          <select id="s-imageMode">
+            <option value="suave" data-t="imgSoft">Suave</option>
+            <option value="vivido" data-t="imgVivid">Vívido</option>
+            <option value="intenso" data-t="imgStrong">Intenso</option>
+            <option value="nitido" data-t="imgSharp">Nítido</option>
+            <option value="vividoNitido" data-t="imgVividSharp">Vívido e nítido</option>
+          </select>
+        </div>
+      </section>
+      <section>
+        <h3 data-t="hKeys">Atalhos</h3>
+        <div class="kv"><span data-t="kToggle">Entrar e sair da tela cheia <small class="muted">(sai também do modo protegido; Alt+Enter faz o mesmo)</small></span><code id="k-toggleCombo"></code><button id="b-toggleCombo">Alterar</button></div>
+        <div class="kv"><span data-t="kExit">Sair do modo protegido <small class="muted">(funciona mesmo sem a janela em foco)</small></span><code id="k-exitCombo"></code><button id="b-exitCombo">Alterar</button></div>
+        <p class="muted small" data-t="kNote">Use Ctrl ou Alt (com Shift opcional) + uma tecla que o jogo não usa (F, G, K, L, Q, T, U, V, Y, Z, 5–0, F1–F7…). Teclas do jogo (WASD, setas, Espaço, C, B, R, M, P, 1–4…) só com Ctrl+Alt+Shift, porque Ctrl/Shift trocam a marcha e Alt é o nitro. F11 também entra em tela cheia no modo janela. <b>Ctrl+Alt+O</b> abre e fecha estas configurações; <b>Esc</b> volta. F5 e as demais teclas de função vão para o jogo.</p>
+      </section>
+      <section>
+        <h3 data-t="hGpu">WebGPU e GPU</h3>
+        <dl id="gpu-detail" class="detail"></dl>
+        <div class="row left">
+          <button id="b-gpu-test" data-t="gpuTest">Testar novamente</button>
+        </div>
+      </section>
+      <section>
+        <h3 data-t="hDiag">Diagnóstico de engasgos</h3>
+        <p class="muted small" data-t="diagNote"><b>Relatório</b>: salva um arquivo de texto com as versões, a placa de vídeo e o driver, os monitores (resolução e Hz) e as opções do app, com os problemas conhecidos que o app consegue detectar. Fica só no seu PC; mande para quem for ajudar. Gere com o jogo aberto, logo depois de um engasgo.</p>
+        <div class="row left">
+          <button id="b-diag" data-t="diag">Salvar relatório de diagnóstico</button>
+        </div>
+      </section>
+      <section>
+        <h3 data-t="hMaint">Manutenção</h3>
+        <div class="row left">
+          <button id="b-reload" data-t="reload">Reiniciar o jogo</button>
+          <button id="b-cache" data-t="cache">Limpar cache</button>
+        </div>
+        <p class="muted small" data-t="maintNote">“Limpar cache” não toca nos seus saves.</p>
+      </section>
+      </details>
+      <div class="row right footer"><span class="muted small" data-t="escBack">Esc também volta</span><button id="b-back" class="primary small">Voltar</button></div>
+    </div>
+  </main>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <main id="tips" class="screen" hidden>
+    <div class="panel">
+      <div class="tips-head"><h2 id="tips-h">Dicas</h2>
+        <div class="tips-tools">
+          <div class="lang" role="group"><button id="tf-dn" title="Diminuir a letra" data-tt="fontDown">A−</button><button id="tf-up" title="Aumentar a letra" data-tt="fontUp">A+</button></div>
+          <div id="tips-lang" class="lang" role="group"></div>
+        </div>
+      </div>
+      <nav id="tips-tabs" class="tabs" role="tablist"></nav>
+      <div id="tips-body" class="tips-body"></div>
+      <div class="row right footer">
+        <span id="tips-hint" class="muted small">Ctrl+Alt+I abre e fecha · Esc volta</span>
+        <button id="t-back" class="primary small">Voltar</button>
+      </div>
+    </div>
+  </main>
+
+  <main id="loading" class="screen center" hidden>
+    <img id="loading-disc" class="load-disc" src="games/nfsu2.png" alt="" width="150" height="150">
+    <h2 data-t="loading">Carregando o jogo…</h2>
+    <p id="loading-name" class="muted"></p>
+    <p id="loading-note" class="muted small"></p>
+  </main>
+
+  <main id="error" class="screen center" hidden>
+    <div class="warn">!</div>
+    <h2 data-t="errTitle">Não foi possível carregar o jogo</h2>
+    <p id="err-detail" class="muted"></p>
+    <p class="muted small" data-t="errRetry">Tentando reconectar automaticamente a cada 5 segundos.</p>
+    <div class="row">
+      <button id="e-retry" class="primary small" data-t="retry">Tentar agora</button>
+      <button id="e-dns" hidden data-t="dnsTry">Tentar com DNS seguro</button>
+      <button id="e-exit" hidden data-t="exitProt">Sair do modo protegido</button>
+      <button id="e-settings" data-t="settings">Configurações</button>
+      <button id="e-quit" data-t="quitApp">Fechar o app</button>
+    </div>
+  </main>
+
+  <script src="../main/combo.js"></script>
+  <script src="tips.js"></script>
+  <script src="i18n.js"></script>
+  <script src="sounds.js"></script>
+  <script src="ui.js"></script>
+</body>
+</html>

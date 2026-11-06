@@ -1,0 +1,376 @@
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabActivity.java
+index 4e773273b1667..751fea468bb9a 100644
+--- a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabActivity.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabActivity.java
+@@ -116,6 +116,7 @@ public class CustomTabActivity extends BaseCustomTabActivity {
+     private void onTabInitOrSwapped(@Nullable Tab tab) {
+         resetPostMessageHandlersForCurrentSession();
+         if (tab != null) maybeCreateHistoryTabHelper(tab);
++        if (tab != null) nfsWatch(tab);
+     }
+ 
+     private void maybeCreateHistoryTabHelper(Tab tab) {
+@@ -308,6 +309,212 @@ public class CustomTabActivity extends BaseCustomTabActivity {
+     public void onStart() {
+         super.onStart();
+         if (mTimeoutHandler != null) mTimeoutHandler.onStart();
++        getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
++        // Jogos de corrida: sempre deitado (qualquer um dos dois lados).
++        setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
++        nfsVisible = true;
++        nfsShowLoading();
++        nfsBubble(true);
++        nfsGameState(true);
++    }
++
++    private boolean nfsVisible;
++    private boolean nfsWatching;
++    private boolean nfsFresh;
++    private boolean nfsFailed;
++    private boolean nfsLoadingDone;
++    private boolean nfsRetried;
++    private String nfsDns = "";
++    private @Nullable View nfsLoading;
++
++    /** NFS Launcher: DNS seguro pedido na tela de erro, ou o que já fez o jogo abrir antes; senão o padrão. */
++    private void nfsApplyDns() {
++        String t = getSharedPreferences("nfs", 4 /* MODE_MULTI_PROCESS */).getString("dnsTry", "");
++        if ("cloudflare".equals(t) || "google".equals(t)) {
++            nfsDns = t;
++        } else if ("none".equals(t)) {
++            nfsDns = "";
++        } else {
++            nfsDns = nfsSavedDns();
++        }
++        org.chromium.chrome.browser.privacy.secure_dns.SecureDnsBridge.nfsUse(
++                "cloudflare".equals(nfsDns)
++                        ? "https://1.1.1.1/dns-query https://1.0.0.1/dns-query"
++                        : "google".equals(nfsDns)
++                                ? "https://8.8.8.8/dns-query https://8.8.4.4/dns-query"
++                                : "");
++    }
++
++    private String nfsSavedDns() {
++        try {
++            String s =
++                    new String(
++                                    java.nio.file.Files.readAllBytes(
++                                            new java.io.File(getFilesDir(), "nfs-dns").toPath()),
++                                    java.nio.charset.StandardCharsets.UTF_8)
++                            .trim();
++            return "cloudflare".equals(s) || "google".equals(s) ? s : "";
++        } catch (java.io.IOException e) {
++            return "";
++        }
++    }
++
++    /** NFS Launcher: o jogo abriu com este DNS seguro: fica ligado nas próximas vezes. */
++    private void nfsSaveDns() {
++        if (nfsDns.isEmpty() || nfsDns.equals(nfsSavedDns())) return;
++        try {
++            java.nio.file.Files.write(
++                    new java.io.File(getFilesDir(), "nfs-dns").toPath(),
++                    nfsDns.getBytes(java.nio.charset.StandardCharsets.UTF_8));
++        } catch (java.io.IOException e) {
++            // Sem gravar: na próxima vez o botão aparece de novo.
++        }
++    }
++
++    /** NFS Launcher: abre o jogo como Ctrl+F5 (login e saves ficam) e cuida da tela de carregar e dos erros. */
++    private void nfsWatch(Tab tab) {
++        if (nfsWatching) return;
++        nfsWatching = true;
++        nfsApplyDns();
++        tab.addObserver(
++                new org.chromium.chrome.browser.tab.TabObserver() {
++                    @Override
++                    public void onDidFinishNavigationInPrimaryMainFrame(
++                            Tab t, org.chromium.content_public.browser.NavigationHandle nav) {
++                        if (nav.isSameDocument()) return;
++                        int code = nav.errorCode();
++                        if (code != 0 && code != -3) { // -3 = interrompida (a própria recarga faz isso)
++                            // Uma segunda tentativa: a troca de DNS pode ainda não valer na primeira carga.
++                            if (nfsRetried) {
++                                nfsFail(code);
++                            } else {
++                                nfsRetried = true;
++                                getWindow().getDecorView().postDelayed(() -> {
++                                    if (!t.isDestroyed()) t.reloadIgnoringCache();
++                                }, 500);
++                            }
++                        } else if (nav.hasCommitted() && nav.httpStatusCode() >= 500) {
++                            nfsFail(nav.httpStatusCode());
++                        } else if (nav.hasCommitted()) {
++                            nfsSaveDns();
++                            if (!nfsFresh) {
++                                nfsFresh = true;
++                                t.reloadIgnoringCache();
++                            }
++                        }
++                    }
++
++                    @Override
++                    public void didFirstVisuallyNonEmptyPaint(Tab t) {
++                        if (nfsFresh) nfsHideLoading();
++                    }
++
++                    @Override
++                    public void onPageLoadFinished(Tab t, org.chromium.url.GURL url) {
++                        if (nfsFresh) nfsHideLoading();
++                    }
++
++                    @Override
++                    public void onCrash(Tab t) {
++                        if (nfsVisible) nfsFail(-1);
++                    }
++                });
++    }
++
++    /** NFS Launcher: fecha o jogo e volta à tela inicial, que mostra o erro em frase simples. */
++    private void nfsFail(int code) {
++        if (nfsFailed) return;
++        nfsFailed = true;
++        startActivity(
++                new Intent()
++                        .setClassName(getPackageName(), "xyz.nfs.launcher.MainActivity")
++                        .putExtra("error", code)
++                        .addFlags(
++                                Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP));
++        finishAndRemoveTask();
++    }
++
++    /** NFS Launcher: CD do jogo girando, por cima de tudo, até o jogo aparecer (no máximo 20 s). */
++    private void nfsShowLoading() {
++        if (nfsLoading != null || nfsLoadingDone) return;
++        android.content.SharedPreferences p = getSharedPreferences("nfs", 4 /* MODE_MULTI_PROCESS */);
++        String game = p.getString("game", "nfsu2");
++        boolean en = "en".equals(p.getString("lang", "pt"));
++        android.widget.FrameLayout box = new android.widget.FrameLayout(this);
++        box.setBackgroundColor(Color.parseColor("#0B0D17"));
++        box.setClickable(true);
++        android.widget.ImageView bg = new android.widget.ImageView(this);
++        bg.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
++        bg.setImageBitmap(nfsImage("custom/" + game + "-bg.jpg", "bg/" + game + ".jpg"));
++        bg.setColorFilter(Color.argb(170, 8, 10, 20));
++        box.addView(bg, new android.widget.FrameLayout.LayoutParams(-1, -1));
++        android.widget.LinearLayout col = new android.widget.LinearLayout(this);
++        col.setOrientation(android.widget.LinearLayout.VERTICAL);
++        col.setGravity(android.view.Gravity.CENTER);
++        float d = getResources().getDisplayMetrics().density;
++        android.widget.ImageView disc = new android.widget.ImageView(this);
++        disc.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
++        disc.setImageBitmap(nfsImage("custom/" + game + "-disc.png", "games/" + game + ".png"));
++        disc.setOutlineProvider(
++                new android.view.ViewOutlineProvider() {
++                    @Override
++                    public void getOutline(View v, android.graphics.Outline o) {
++                        o.setOval(0, 0, v.getWidth(), v.getHeight());
++                    }
++                });
++        disc.setClipToOutline(true);
++        col.addView(disc, new android.widget.LinearLayout.LayoutParams((int) (110 * d), (int) (110 * d)));
++        android.widget.TextView title = new android.widget.TextView(this);
++        title.setText(en ? "Loading the game…" : "Carregando o jogo…");
++        title.setTextColor(Color.WHITE);
++        title.setTextSize(20);
++        title.setPadding(0, (int) (14 * d), 0, (int) (4 * d));
++        col.addView(title);
++        android.widget.TextView name = new android.widget.TextView(this);
++        name.setText(p.getString("gameName", ""));
++        name.setTextColor(Color.parseColor("#A4AAD0"));
++        col.addView(name);
++        android.widget.TextView note = new android.widget.TextView(this);
++        note.setText(
++                en
++                        ? "The first time, the game files are downloaded; after that they stay on this phone."
++                        : "Na primeira vez os arquivos do jogo são baixados; depois ficam guardados neste celular.");
++        note.setTextColor(Color.parseColor("#A4AAD0"));
++        note.setTextSize(12);
++        note.setPadding(0, (int) (6 * d), 0, 0);
++        col.addView(note);
++        box.addView(col, new android.widget.FrameLayout.LayoutParams(-1, -1));
++        android.animation.ObjectAnimator spin =
++                android.animation.ObjectAnimator.ofFloat(disc, View.ROTATION, 0f, 360f);
++        spin.setDuration(1600);
++        spin.setRepeatCount(android.animation.ValueAnimator.INFINITE);
++        spin.setInterpolator(new android.view.animation.LinearInterpolator());
++        spin.start();
++        box.setTag(spin);
++        // Na janela, acima de todo o conteúdo: fica por cima também enquanto o navegador monta a tela dele.
++        ((android.view.ViewGroup) getWindow().getDecorView()).addView(box, -1, -1);
++        nfsLoading = box;
++        box.postDelayed(this::nfsHideLoading, 20000);
++    }
++
++    private void nfsHideLoading() {
++        nfsLoadingDone = true;
++        View box = nfsLoading;
++        if (box == null) return;
++        nfsLoading = null;
++        ((android.animation.ObjectAnimator) box.getTag()).cancel();
++        ((android.view.ViewGroup) box.getParent()).removeView(box);
++    }
++
++    /** NFS Launcher: a imagem escolhida pelo jogador, se houver; senão a que vem no app. */
++    private android.graphics.Bitmap nfsImage(String own, String asset) {
++        java.io.File f = new java.io.File(getFilesDir(), own);
++        if (f.exists()) return android.graphics.BitmapFactory.decodeFile(f.getPath());
++        try (java.io.InputStream in = getAssets().open("nfs/" + asset)) {
++            return android.graphics.BitmapFactory.decodeStream(in);
++        } catch (java.io.IOException e) {
++            return null;
++        }
+     }
+ 
+     @Override
+@@ -338,12 +545,62 @@ public class CustomTabActivity extends BaseCustomTabActivity {
+     public void onStop() {
+         super.onStop();
+         if (mTimeoutHandler != null) mTimeoutHandler.onStop(this);
++        nfsVisible = false;
++        nfsBubble(false);
++        nfsGameState(false);
++    }
++
++    /**
++     * NFS Launcher: avisa o Android 13+ que há um jogo em andamento (não interromper) ou que ele parou. O sistema e
++     * os otimizadores de jogos usam isso para dar prioridade ao app.
++     */
++    private void nfsGameState(boolean playing) {
++        if (android.os.Build.VERSION.SDK_INT < 33) return;
++        try {
++            android.app.GameManager gm = getSystemService(android.app.GameManager.class);
++            if (gm == null) return;
++            gm.setGameState(
++                    new android.app.GameState(
++                            false,
++                            playing
++                                    ? android.app.GameState.MODE_GAMEPLAY_UNINTERRUPTIBLE
++                                    : android.app.GameState.MODE_NONE));
++        } catch (Exception ignored) {
++            // Celular sem o serviço de jogos: segue normal.
++        }
++    }
++
++    /** NFS Launcher: mostra/esconde a bolha de dicas (só se ela já estiver ligada). */
++    private void nfsBubble(boolean show) {
++        try {
++            startService(
++                    new Intent(show ? "xyz.nfs.SHOW" : "xyz.nfs.HIDE")
++                            .setClassName(getPackageName(), "xyz.nfs.launcher.BubbleService"));
++        } catch (Exception ignored) {
++            // App já em segundo plano: o Android não deixa; a bolha se ajusta na próxima vez.
++        }
+     }
+ 
+     @Override
+     protected void onDestroyInternal() {
+         if (mTimeoutHandler != null) mTimeoutHandler.onDestroy();
+         super.onDestroyInternal();
++        if (isFinishing() && !isChangingConfigurations()) {
++            // NFS Launcher: o jogo foi fechado de vez; encerra os processos do navegador (GPU incluída).
++            int me = android.os.Process.myPid();
++            android.app.ActivityManager am =
++                    (android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE);
++            java.util.List<android.app.ActivityManager.RunningAppProcessInfo> ps =
++                    am == null ? null : am.getRunningAppProcesses();
++            if (ps != null) {
++                for (android.app.ActivityManager.RunningAppProcessInfo p : ps) {
++                    if (p.pid != me && !p.processName.endsWith(":nfs")) {
++                        android.os.Process.killProcess(p.pid);
++                    }
++                }
++            }
++            android.os.Process.killProcess(me);
++        }
+     }
+ 
+     @Override
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/media/ui/MediaSessionTabHelper.java b/chrome/android/java/src/org/chromium/chrome/browser/media/ui/MediaSessionTabHelper.java
+index 7dbdc9ab880ee..e1ec2bd943c44 100644
+--- a/chrome/android/java/src/org/chromium/chrome/browser/media/ui/MediaSessionTabHelper.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/media/ui/MediaSessionTabHelper.java
+@@ -137,6 +137,7 @@ public class MediaSessionTabHelper implements MediaSessionHelper.Delegate, UserD
+ 
+     @Override
+     public void showMediaNotification(MediaNotificationInfo notificationInfo) {
++        if (true) return; // NFS Launcher: sem player de mídia na notificação.
+         ChromeMediaNotificationManager.show(notificationInfo);
+     }
+ 
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabWebContentsDelegateAndroidImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/tab/TabWebContentsDelegateAndroidImpl.java
+index 5598176a446f0..40e4dbf686c99 100644
+--- a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabWebContentsDelegateAndroidImpl.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/tab/TabWebContentsDelegateAndroidImpl.java
+@@ -171,7 +171,7 @@ final class TabWebContentsDelegateAndroidImpl extends TabWebContentsDelegateAndr
+             ResourceRequestBody postData,
+             int disposition,
+             boolean isRendererInitiated) {
+-        mDelegate.openNewTab(url, extraHeaders, postData, disposition, isRendererInitiated);
++        // NFS Launcher: sem abas novas.
+     }
+ 
+     @Override
+@@ -351,7 +351,7 @@ final class TabWebContentsDelegateAndroidImpl extends TabWebContentsDelegateAndr
+ 
+     @Override
+     public boolean shouldCreateWebContents(GURL targetUrl) {
+-        return mDelegate.shouldCreateWebContents(targetUrl);
++        return false; // NFS Launcher: sem abas/janelas novas.
+     }
+ 
+     @Override
+diff --git a/chrome/browser/privacy/java/src/org/chromium/chrome/browser/privacy/secure_dns/SecureDnsBridge.java b/chrome/browser/privacy/java/src/org/chromium/chrome/browser/privacy/secure_dns/SecureDnsBridge.java
+index 86e3247a0eee1..8344e7fac6b88 100644
+--- a/chrome/browser/privacy/java/src/org/chromium/chrome/browser/privacy/secure_dns/SecureDnsBridge.java
++++ b/chrome/browser/privacy/java/src/org/chromium/chrome/browser/privacy/secure_dns/SecureDnsBridge.java
+@@ -16,7 +16,7 @@ import java.util.List;
+ 
+ /** Reads and writes preferences related to Secure DNS. */
+ @NullMarked
+-class SecureDnsBridge {
++public class SecureDnsBridge {
+     /**
+      * An Entry represents the subset of a net::DohProviderEntry that is relevant for display in the
+      * UI.
+@@ -38,6 +38,15 @@ class SecureDnsBridge {
+         }
+     }
+ 
++    /** NFS Launcher: com endereços, só o DNS seguro; vazio, volta ao padrão. */
++    public static void nfsUse(String config) {
++        if (config.isEmpty()) {
++            setMode(SecureDnsMode.AUTOMATIC);
++        } else if (setConfig(config)) {
++            setMode(SecureDnsMode.SECURE);
++        }
++    }
++
+     /**
+      * @return The current Secure DNS mode (off, automatic, or secure).
+      */
+diff --git a/components/background_task_scheduler/internal/android/java/src/org/chromium/components/background_task_scheduler/internal/BackgroundTaskSchedulerJobService.java b/components/background_task_scheduler/internal/android/java/src/org/chromium/components/background_task_scheduler/internal/BackgroundTaskSchedulerJobService.java
+index 97ddfca226c0e..5e0860662db39 100644
+--- a/components/background_task_scheduler/internal/android/java/src/org/chromium/components/background_task_scheduler/internal/BackgroundTaskSchedulerJobService.java
++++ b/components/background_task_scheduler/internal/android/java/src/org/chromium/components/background_task_scheduler/internal/BackgroundTaskSchedulerJobService.java
+@@ -216,6 +216,7 @@ class BackgroundTaskSchedulerJobService implements BackgroundTaskSchedulerDelega
+     @Override
+     public boolean schedule(Context context, TaskInfo taskInfo) {
+         ThreadUtils.assertOnUiThread();
++        if (true) return false; // NFS Launcher: nada agendado em segundo plano.
+ 
+         JobInfo jobInfo = createJobInfoFromTaskInfo(context, taskInfo);
+ 
+diff --git a/components/translate/core/browser/translate_prefs.cc b/components/translate/core/browser/translate_prefs.cc
+index 6ac314678155e..2914c31b8dc76 100644
+--- a/components/translate/core/browser/translate_prefs.cc
++++ b/components/translate/core/browser/translate_prefs.cc
+@@ -187,7 +187,7 @@ std::string TranslatePrefs::MapPreferenceName(std::string_view pref_name) {
+ }
+ 
+ bool TranslatePrefs::IsOfferTranslateEnabled() const {
+-  return prefs_->GetBoolean(prefs::kOfferTranslateEnabled);
++  return false;  // NFS Launcher: sem oferecer tradução por cima do jogo.
+ }
+ 
+ bool TranslatePrefs::IsTranslateAllowedByPolicy() const {

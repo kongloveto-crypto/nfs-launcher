@@ -1,0 +1,8 @@
+# Base de comparação: a mesma configuração do Electron oficial, com as otimizações dele (PGO e ThinLTO).
+# Só tira os símbolos de depuração, que não mudam o programa e deixam a compilação bem mais curta.
+import("//electron/build/args/release.gn")
+
+target_cpu = "x64"
+symbol_level = 0
+blink_symbol_level = 0
+v8_symbol_level = 0

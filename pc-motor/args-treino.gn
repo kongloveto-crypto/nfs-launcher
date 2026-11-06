@@ -1,0 +1,13 @@
+# Versão de treino: conta o que o processador mais usa durante o jogo. Roda bem mais lenta e nunca vai para a equipe.
+# Os cortes precisam ser iguais aos de args-final.gn, senão o treino não vale para a versão final.
+import("//electron/build/args/pgo-instrument.gn")
+
+target_cpu = "x64"
+blink_symbol_level = 0
+v8_symbol_level = 0
+
+# Peças que o jogo e o launcher não usam.
+# Extensões ficam: com enable_electron_extensions = false, o BUILD.gn do Electron 45.1.0 aponta para um arquivo que não existe mais.
+enable_pdf_viewer = false
+enable_builtin_spellchecker = false
+enable_prompt_api = false
