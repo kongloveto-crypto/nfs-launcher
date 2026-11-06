@@ -68,7 +68,7 @@ node node_modules\electron\install.js
 - **Discord:** "Jogando NFS Launcher", só pelo canal local do PC.
 - **Mods de textura (NFSU2, só PC, `modFiles.js`):**
   - Arquivos em `%APPDATA%\NFS Launcher Mods\NFSU2`, com a mesma árvore do jogo (ex.: `TEXPACKS\meu.pak`), entram na lista de arquivos que o jogo recebe do site e são entregues pelo app.
-  - Só esses pedidos passam pelo app; o resto vem do site. Sem script na página. Vale ao abrir o app e só no PC de quem instalou.
+  - Com mods e o NFSU2 aberto, os pedidos do site passam pelo app: a lista e os arquivos dos mods são respondidos por ele, o resto segue para o site sem mudança. Sem script na página. Vale ao abrir o app e só no PC de quem instalou.
 
 ## Dicas para o jogador
 

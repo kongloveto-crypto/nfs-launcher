@@ -10,7 +10,6 @@ const fs = require('fs');
 const path = require('path');
 
 const BLOCK = 1 << 20;
-const SCHEME = 'nfsmod';
 const MAX_FILES = 500;
 // Só a raiz da árvore do jogo: um nome de pasta ou arquivo comum, sem "..", sem barra invertida, sem ":".
 const SEGMENT = /^[A-Za-z0-9 _.()+-]{1,96}$/;
@@ -71,17 +70,6 @@ function patchManifest(manifest, mods) {
 // Mesmo formato do jogo (datacache.ts): cada parte do caminho com encodeURIComponent.
 const encodePath = (p) => p.split('/').map(encodeURIComponent).join('/');
 
-// Endereços que o app precisa atender: a lista e os arquivos dos mods, nos dois formatos de pedido do jogo.
-function urlFilters(hosts, servedPaths) {
-  const urls = [];
-  for (const h of hosts) {
-    if (h.startsWith('.')) continue;
-    urls.push(`https://${h}/data-manifest*`);
-    for (const p of servedPaths) urls.push(`https://${h}/data-blocks/*/${encodePath(p)}*`, `https://${h}/data/${encodePath(p)}*`);
-  }
-  return urls;
-}
-
 // Pedido do jogo -> o que entregar. null = não é nosso (segue para o site).
 function route(url, served) {
   let u;
@@ -134,38 +122,32 @@ function readSpan(file, start, end) {
   } finally { fs.closeSync(fd); }
 }
 
-// Liga os mods na sessão do jogo. Só os endereços da lista e dos arquivos dos mods passam pelo app (filtro do
-// webRequest); eles vão para o esquema próprio, que lê a lista do site e entrega os arquivos daqui.
-// `fetchManifest(url)`: busca a lista por uma sessão que não seja a do jogo (senão o pedido volta para cá).
-// `allowed(url)`: o endereço é do site do NFSU2. Precisa de protocol.registerSchemesAsPrivileged antes do `ready`.
-function install(ses, { mods, hosts, allowed, fetchManifest }) {
+// Liga os mods na sessão do jogo, respondendo os endereços https do site (protocol.handle). Não dá para só desviar a
+// lista para um esquema próprio: o service worker do site busca a lista, e nele um esquema próprio não existe
+// (ERR_UNKNOWN_URL_SCHEME; ele então usa a cópia antiga, ou o jogo nem abre). Por isso, com mods e o NFSU2 aberto
+// (`active(true)`), cada pedido https da sessão passa por aqui: a lista e os arquivos dos mods são respondidos
+// pelo app; o resto segue para o site sem mudança (`fetch` da própria sessão, sem passar por aqui de novo).
+// `allowed(url)`: o endereço é do site do NFSU2.
+function install(ses, { mods, allowed }) {
   if (!mods.length) return null;
-  const HEAD = { 'cache-control': 'no-store', 'cross-origin-resource-policy': 'cross-origin', 'access-control-allow-origin': '*' };
+  const HEAD = { 'cache-control': 'no-store', 'cross-origin-resource-policy': 'same-origin' };
   const fail = (status) => new Response(null, { status, headers: HEAD });
+  const pass = (req) => ses.fetch(req, { bypassCustomProtocolHandlers: true });
   let served = new Map(mods.map((m) => [m.p, m]));
-  let manifestUrl = null;
-  const listen = (paths) => {
-    ses.webRequest.onBeforeRequest({ urls: urlFilters(hosts, paths) }, (d, cb) => {
-      const r = route(d.url, served);
-      if (!r) return cb({});
-      if (r.kind === 'manifest') manifestUrl = d.url;
-      cb({ redirectURL: `${SCHEME}://mod/${r.kind}?u=${encodeURIComponent(d.url)}` });
-    });
-  };
-  ses.protocol.handle(SCHEME, async (req) => {
+  let on = false;
+  const handler = async (req) => {
+    const r = allowed(req.url) && route(req.url, served);
+    if (!r) return pass(req);
     try {
-      const u = new URL(req.url).searchParams.get('u');
-      const r = u && route(u, served);
-      if (!r) return fail(404);
       if (r.kind === 'manifest') {
-        if (!allowed(u) || u !== manifestUrl) return fail(404);
-        const res = await fetchManifest(manifestUrl);
-        if (!res.ok) return fail(res.status);
+        const res = await pass(req);
+        if (!res.ok) return res;
         const out = patchManifest(await res.json(), mods);
         served = out.served;
-        // Arquivo que troca um do site com outra caixa de letra: o filtro passa a usar o nome do site.
-        if ([...served.keys()].some((p) => !mods.some((m) => m.p === p))) listen([...served.keys()]);
-        return new Response(JSON.stringify(out.manifest), { headers: { ...HEAD, 'content-type': 'application/json' } });
+        // Mesmos cabeçalhos do site (COEP, CORP...), sem os de compressão: o corpo vai sem compressão.
+        const headers = new Headers(res.headers);
+        for (const h of ['content-encoding', 'content-length', 'etag']) headers.delete(h);
+        return new Response(JSON.stringify(out.manifest), { status: 200, headers });
       }
       const mod = served.get(r.p);
       if (!mod || r.kind === 'bad') return fail(400);
@@ -173,7 +155,7 @@ function install(ses, { mods, hosts, allowed, fetchManifest }) {
       const st = fs.statSync(mod.file);
       if (st.size !== mod.s || Math.floor(st.mtimeMs / 1000) !== mod.m) return fail(409);
       let span, status = 200;
-      const headers = { ...HEAD, 'content-type': 'application/octet-stream' };
+      const headers = { ...HEAD, 'content-type': 'application/octet-stream', 'accept-ranges': 'bytes' };
       if (r.kind === 'blocks') {
         span = blockSpan(r, mod);
         if (!span) return fail(409);
@@ -185,9 +167,16 @@ function install(ses, { mods, hosts, allowed, fetchManifest }) {
       const body = readSpan(mod.file, span.start, span.end);
       return body ? new Response(body, { status, headers }) : fail(409);
     } catch { return fail(500); }
-  });
-  listen(mods.map((m) => m.p));
-  return { served: () => served };
+  };
+  return {
+    served: () => served,
+    // Liga só com o NFSU2 aberto: nos outros jogos (mesma sessão) nada passa pelo app.
+    active(want) {
+      if (want === on) return;
+      if (want) ses.protocol.handle('https', handler); else ses.protocol.unhandle('https');
+      on = want;
+    },
+  };
 }
 
-module.exports = { BLOCK, SCHEME, scan, patchManifest, urlFilters, route, blockSpan, rangeSpan, readSpan, encodePath, install };
+module.exports = { BLOCK, scan, patchManifest, route, blockSpan, rangeSpan, readSpan, encodePath, install };

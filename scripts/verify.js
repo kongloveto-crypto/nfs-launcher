@@ -243,10 +243,11 @@ check('Internet só para o jogo e para a pasta de versões; um único link exter
   const opens = [...m.matchAll(/shell\.openExternal\(([^)]*)\)/g)].map((x) => x[1].trim());
   assert(opens.length === 1 && opens[0] === 'update.FOLDER_URL', `openExternal inesperado: ${opens.join(', ')}`);
   const fetches = [...m.matchAll(/net\.fetch\(([\w.]+(?:\(\))?)/g)].map((x) => x[1].trim());
-  assert(fetches.every((f) => ['gameUrl()', 'update.LIST_URL', 'manifestUrl'].includes(f)), `net.fetch inesperado: ${fetches.join(', ')}`);
-  // Mods (modFiles.js): só a lista de arquivos do próprio NFSU2, o mesmo endereço que o jogo pediu.
-  assert(!fetches.includes('manifestUrl') || (/allowed: \(u\) => isAllowedUrl\(u, 'nfsu2'\)/.test(m) &&
-    /if \(!allowed\(u\) \|\| u !== manifestUrl\) return fail\(404\);/.test(read('src/main/modFiles.js'))), 'mods: lista de arquivos fora do site do NFSU2');
+  assert(fetches.every((f) => ['gameUrl()', 'update.LIST_URL'].includes(f)), `net.fetch inesperado: ${fetches.join(', ')}`);
+  // Mods (modFiles.js): o app só responde endereços do próprio NFSU2; o resto segue para o site sem mudança.
+  const mods = read('src/main/modFiles.js');
+  assert(/allowed: \(u\) => isAllowedUrl\(u, 'nfsu2'\)/.test(m) && /const r = allowed\(req\.url\) && route\(req\.url, served\);\s*if \(!r\) return pass\(req\);/.test(mods) &&
+    /modsOn\.active\(isAllowedUrl\(url, 'nfsu2'\)\)/.test(m), 'mods: só o NFSU2 pode passar pelo app');
   const u = require('../src/main/update');
   assert(/^https:\/\/drive\.google\.com\//.test(u.FOLDER_URL) && /^https:\/\/drive\.google\.com\//.test(u.LIST_URL), 'pasta de versões fora do Google Drive');
 });

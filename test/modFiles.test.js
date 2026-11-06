@@ -60,13 +60,17 @@ test('patchManifest: não troca pasta por arquivo nem arquivo por pasta', () => 
   assert.throws(() => mf.patchManifest({}, []));
 });
 
-test('urlFilters: lista e os dois formatos de pedido, só nos hosts exatos', () => {
-  const u = mf.urlFilters(['nfsu2.xyz', '.algo.xyz'], ['TEXPACKS/meu pack.pak']);
-  assert.deepStrictEqual(u, [
-    'https://nfsu2.xyz/data-manifest*',
-    'https://nfsu2.xyz/data-blocks/*/TEXPACKS/meu%20pack.pak*',
-    'https://nfsu2.xyz/data/TEXPACKS/meu%20pack.pak*',
-  ]);
+test('encodePath: igual ao jogo (cada parte do caminho codificada)', () => {
+  assert.strictEqual(mf.encodePath('TEXPACKS/meu pack.pak'), 'TEXPACKS/meu%20pack.pak');
+});
+
+test('install: sem mods não liga nada; com mods, liga e desliga o https só quando pedido', () => {
+  assert.strictEqual(mf.install({}, { mods: [], allowed: () => true }), null);
+  const calls = [];
+  const ses = { protocol: { handle: (s) => calls.push('on ' + s), unhandle: (s) => calls.push('off ' + s) } };
+  const m = mf.install(ses, { mods: [{ p: 'TEXPACKS/a.pak', file: 'x', s: 1, m: 1 }], allowed: () => true });
+  m.active(false); m.active(true); m.active(true); m.active(false);
+  assert.deepStrictEqual(calls, ['on https', 'off https']);
 });
 
 test('route: só o que é do mod; resto segue para o site', () => {

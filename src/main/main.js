@@ -1,7 +1,7 @@
 'use strict';
 const {
   app, BrowserWindow, WebContentsView, Menu, powerSaveBlocker, session, globalShortcut,
-  ipcMain, dialog, Notification, net, powerMonitor, screen: displays, shell, nativeImage, protocol,
+  ipcMain, dialog, Notification, net, powerMonitor, screen: displays, shell, nativeImage,
 } = require('electron');
 const { execFile } = require('child_process');
 const path = require('path');
@@ -55,10 +55,6 @@ sw('autoplay-policy', 'no-user-gesture-required');  // áudio do jogo sem clique
 // O app virou "NFS Launcher" (mais de um jogo), mas a pasta de dados continua a antiga: preferências, login e
 // saves de quem já usava não se perdem. Precisa vir antes de qualquer uso do userData.
 app.setPath('userData', path.join(app.getPath('appData'), 'NFSU2 Launcher'));
-// Endereço próprio para entregar os arquivos dos mods ao jogo (modFiles.js). bypassCSP: a página só aceita pedidos
-// ao próprio site; corsEnabled e supportFetchAPI: o jogo baixa com fetch numa página isolada (COEP).
-protocol.registerSchemesAsPrivileged([{ scheme: modFiles.SCHEME, privileges: {
-  standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, bypassCSP: true, stream: true } }]);
 const savedAtStart = RESET_SETTINGS ? settings.DEFAULTS : settings.load(path.join(app.getPath('userData'), 'settings.json'));
 const VSYNC_OFF = UNCAPPED;
 if (VSYNC_OFF) { sw('disable-frame-rate-limit'); sw('disable-gpu-vsync'); }
@@ -269,16 +265,12 @@ async function copySaveAtStart() {
 
 // ───────────────────────── Mods de textura do NFSU2 (modFiles.js) ─────────────────────────
 // Pasta com a mesma árvore do jogo (ex.: NFSU2\TEXPACKS\meu.pak). Vazia ou ausente: nada muda, nenhum pedido passa pelo app.
-// Lida ao abrir o app; mudou com ele aberto, vale ao reabrir.
+// Com mods, os pedidos do site passam pelo app só enquanto o NFSU2 está aberto (openSite). Lida ao abrir o app.
 const modsDir = () => path.join(app.getPath('appData'), 'NFS Launcher Mods', 'NFSU2');
 let modsOn = null; // resultado de modFiles.install (null = sem mods)
 function setupMods(ses) {
   const mods = SAFE_MODE ? [] : modFiles.scan(modsDir());
-  modsOn = modFiles.install(ses, {
-    mods, hosts: GAMES.nfsu2.hosts, allowed: (u) => isAllowedUrl(u, 'nfsu2'),
-    // Pela sessão padrão: a do jogo mandaria o pedido de volta para cá.
-    fetchManifest: (manifestUrl) => net.fetch(manifestUrl, { cache: 'no-store' }),
-  });
+  modsOn = modFiles.install(ses, { mods, allowed: (u) => isAllowedUrl(u, 'nfsu2') });
 }
 
 // ───────────────────────── Personalização: fundo e capa de cada jogo ─────────────────────────
@@ -689,6 +681,7 @@ async function applyImageFilter() {
 // (no did-navigate). Login, saves e configurações do jogo não são tocados.
 function openSite(url) {
   freshPending = true;
+  if (modsOn) { try { modsOn.active(isAllowedUrl(url, 'nfsu2')); } catch { /* sem mods nesta abertura */ } }
   gameView.webContents.loadURL(url).catch(() => {}); // o recarregamento interrompe esta carga: é o esperado
 }
 // START com o jogo escolhido nos CDs da tela inicial (sem id: o último iniciado). O app lembra o último iniciado.
