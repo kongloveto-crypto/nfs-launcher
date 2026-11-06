@@ -78,5 +78,5 @@ Automatizados: `npm test` (136 testes) e `npm run verify` (27 verificações). C
 | A12 | Dicas > Outros carros, com um guia aberto | O guia aberto troca para o novo. |
 | A13 | Samsung A56 (Xclipse) | Sem GPU-ADAPTER-ANDROID; o jogo abre e roda. |
 | A14 | Avançado > Preparar o jogo ao carregar | Vale na próxima abertura; comparar ligado e desligado. |
-| A15 | (1.6.4) NFSU2 com Configurações > Texturas HD ligada: free roam por avenidas, calçadas, prédios e céu | Asfalto, prédios e céu com mais detalhe que no Chrome; o jogo não fica mais lento nem fecha sozinho. Em Options do jogo, o mapa detalhado aparece ligado. |
+| A15 | (1.6.4) NFSU2 com Configurações > Texturas HD ligada: free roam por avenidas com faixa, calçadas e grama; olhar a sombra e o neon do carro | Asfalto, faixas, calçadas e grama mais nítidos que no Chrome, com o mesmo visual do jogo; o jogo não fica mais lento nem fecha sozinho. |
 | A16 | (1.6.4) Desligar Texturas HD e abrir o NFSU2 de novo | Texturas originais; o mapa do jogo volta ao que era antes. Quem usa HUD HD continua com ele. |

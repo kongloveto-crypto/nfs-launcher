@@ -159,8 +159,8 @@
     $('tex-sec').hidden = !st.texAvail;
     $('set-tex-h').textContent = t('Texturas (NFSU2)', 'Textures (NFSU2)');
     $('s-hdTextures').checked = !!st.hdTextures;
-    $('s-hdTextures-l').textContent = t('Texturas melhores: asfalto, prédios, árvores e céu do mod NextGen, com até 2x o tamanho das originais. Em celular fraco, desligue se o jogo ficar lento. O app liga o mapa detalhado do jogo, por onde elas entram. Vale na próxima vez que o jogo abrir',
-      'Better textures: asphalt, buildings, trees and sky from the NextGen mod, up to 2x the size of the originals. On a weak phone, turn it off if the game gets slow. The app turns on the game\'s detailed map, which is how they come in. Applies the next time the game opens');
+    $('s-hdTextures-l').textContent = t('Texturas melhores: asfalto, faixas, calçadas, grama e terra do próprio jogo refeitos em alta resolução, com até 2x o tamanho das originais, e sombra e neon dos carros mais nítidos. Vale na próxima vez que o jogo abrir',
+      'Better textures: the game\'s own asphalt, lane lines, sidewalks, grass and dirt remade in high resolution, up to 2x the size of the originals, plus sharper car shadows and neon. Applies the next time the game opens');
     $('set-maint-h').textContent = t('Manutenção', 'Maintenance');
     $('maint-note').textContent = t('Limpar o cache fica nos ajustes do Android, em Armazenamento, e não toca nos seus saves. Atenção: nunca use “Limpar dados” ali: ele apaga o login, as configurações e os saves do jogo neste app.',
       'Clearing the cache is in the Android settings, under Storage, and does not touch your saves. Warning: never use “Clear data” there: it erases the login, settings and game saves in this app.');
