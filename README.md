@@ -18,7 +18,7 @@ Rode um comando por vez:
 ```powershell
 npm install        # também baixa o Electron
 npm start          # abre o app com o motor oficial do Electron
-npm test           # 130 testes
+npm test           # 135 testes
 npm run verify     # 27 verificações estáticas (travam erros já corrigidos)
 npm run pack       # monta dist\win-unpacked para examinar, sem instalador
 npm run dist       # instalador dist\NFS-Launcher-Setup-<versão>.exe, com o motor próprio de C:\e\motor-final
@@ -67,8 +67,9 @@ node node_modules\electron\install.js
   - Com `NFS-Launcher-Setup-<versão>.exe` mais novo, o botão Baixar fica na tela inicial e abre a pasta no navegador.
 - **Discord:** "Jogando NFS Launcher", só pelo canal local do PC.
 - **Mods de textura (NFSU2, só PC, `modFiles.js`):**
-  - Duas pastas com a mesma árvore do jogo: a que vem no instalador (`resources\mods\NFSU2`) e a do jogador (`%APPDATA%\NFS Launcher Mods\NFSU2`), que vale por cima. Os arquivos delas entram na lista de arquivos que o jogo recebe do site e são entregues pelo app.
-  - O instalador traz `TEXPACKS\detailed.pak`: o mapa detalhado do site junto com texturas de mods da comunidade, montado fora do repositório (os arquivos dos mods não entram aqui). O jogo já carrega esse pacote com o HUD melhorado, sem mudar o `settings.ini`. Uma página do instalador (`build/installer.nsh`) deixa instalar sem ele: desmarcada, o instalador apaga `resources\mods` depois de copiar e guarda a escolha em `HKCU\Software\NFS Launcher\TexturasHD` para a próxima instalação; o app, sem pacote, desfaz a linha `ui_textures` que tinha gravado.
+  - O pacote do app (abaixo) e a pasta do jogador, com a mesma árvore do jogo (`%APPDATA%\NFS Launcher Mods\NFSU2`), que vale por cima. Os arquivos delas entram na lista de arquivos que o jogo recebe do site e são entregues pelo app.
+  - O instalador traz, em `resources\texturas`, um pacote de cada mod da comunidade (`redux.pak`, `definitive.pak`, `nextgen.pak`) e o mapa detalhado do site (`site.pak`), montados fora do repositório (os arquivos dos mods não entram aqui). Uma página do instalador (`build/installer.nsh`) tem uma caixa por mod: os desmarcados são apagados depois de copiar, e a escolha fica em `HKCU\Software\NFS Launcher` para a próxima instalação. Sem nenhum mod, o app desfaz a linha `ui_textures` que tinha gravado.
+  - **Partes (`texPack.js`):** em Configurações > Texturas, cada parte (asfalto, calçadas, prédios, árvores, céu, carros, efeitos, menus) vem do mod escolhido, ou "Original"; os outros mods completam o que faltar naquela parte. O app não grava pacote novo: monta `TEXPACKS\detailed.pak` virtual (cabeçalho em memória e trechos dos pacotes de origem, lidos quando o jogo pede), com uma data própria para cada escolha (o jogo guarda cópia por tamanho e data). Mesma textura no site e num mod: fica a maior (empate: a do site). O jogo já carrega esse pacote com o HUD melhorado, sem mudar o `settings.ini`.
   - Desde a 3.0.0, o pacote também tem as texturas de rua, calçada e pista guardadas com paleta de cores (o jogo as envia em 32 bits) e as que ficam em blocos comprimidos (HUFF e JDLZ) dos carros e do céu. As que o HUD melhorado do site também troca ficam fora: com ele ligado, vale sempre o do site.
   - Com mods e o NFSU2 aberto, os pedidos do site passam pelo app: a lista e os arquivos dos mods são respondidos por ele, o resto segue para o site sem mudança. Sem script na página. Vale ao abrir o app e só no PC.
   - O jogo só carrega o pacote com `ui_textures` em `map` ou `uhud` no `settings.ini` dele. Com Texturas HD ligada, o app troca só essa linha para `ui_textures = map` (mapa detalhado; menus e HUD continuam), ao abrir e antes de o navegador abrir os dados (`gameSettings.js`). Só mexe se estiver em `original` ou ausente, nunca com `NFSU2_MAP_TEXTURES` escrito pelo jogador, guarda cópia em `%APPDATA%\NFS Launcher Saves` e, com a opção desligada, desfaz só o que ele trocou. É a única escrita do app nos dados do jogo.

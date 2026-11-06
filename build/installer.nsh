@@ -2,24 +2,44 @@
 ; marca ESTE app como "Alto desempenho" (GPU dedicada em notebooks híbridos).
 ; Configuração por usuário (HKCU), visível e reversível no Windows, removida na desinstalação.
 ;
-; Texturas HD do NFSU2 (pedido do Bruno, 06/11): página própria depois da pasta, com a caixa "Instalar as texturas HD"
-; (marcada por padrão). Desmarcada, o instalador tira resources\mods depois de copiar (o app então roda sem pacote e
-; desfaz a linha ui_textures que tinha gravado). A escolha fica em HKCU\Software\NFS Launcher\TexturasHD ("1"/"0")
-; e volta marcada assim na próxima atualização. Os textos ficam em português ou inglês, conforme o idioma do instalador.
+; Texturas HD do NFSU2 (pedido do Bruno, 06/11): página própria depois da pasta, com uma caixa para cada mod (Redux,
+; Definitive Edition, NextGen), todas marcadas por padrão. O instalador copia resources\texturas\<mod>.pak e apaga os
+; desmarcados; sem nenhum, apaga a pasta inteira (o app então roda sem texturas e desfaz a linha ui_textures que tinha
+; gravado). Em Configurações > Texturas, o jogador escolhe de qual dos mods instalados vem cada parte.
+; A escolha fica em HKCU\Software\NFS Launcher (TexRedux, TexDefinitive, TexNextgen = "1"/"0") e volta assim na
+; próxima instalação (quem desmarcou tudo na versão de uma caixa só, TexturasHD = "0", começa com tudo desmarcado).
+; Os textos ficam em português ou inglês, conforme o idioma do instalador.
 !include nsDialogs.nsh
 !include LogicLib.nsh
 
 !define NFS_KEY "Software\NFS Launcher"
 
 !ifndef BUILD_UNINSTALLER
-  Var TexWant ; "1" instala as texturas, "0" não. Lida ao abrir o instalador (antes de a versão antiga sair)
-  Var TexBox
+  Var TexR ; "1" instala o Redux, "0" não
+  Var TexD ; Definitive Edition
+  Var TexN ; NextGen
+  Var TexBoxR
+  Var TexBoxD
+  Var TexBoxN
+
+  ; Lê a última escolha (antes de a versão antiga sair). Sem nada guardado: marcado.
+  !macro texReadChoice VAR NAME
+    ReadRegStr ${VAR} HKCU "${NFS_KEY}" "${NAME}"
+    ${If} ${VAR} == ""
+      ReadRegStr $0 HKCU "${NFS_KEY}" "TexturasHD"
+      ${If} $0 == "0"
+        StrCpy ${VAR} "0"
+      ${EndIf}
+    ${EndIf}
+    ${If} ${VAR} != "0"
+      StrCpy ${VAR} "1"
+    ${EndIf}
+  !macroend
 
   !macro customInit
-    ReadRegStr $TexWant HKCU "${NFS_KEY}" "TexturasHD"
-    ${If} $TexWant != "0"
-      StrCpy $TexWant "1"
-    ${EndIf}
+    !insertmacro texReadChoice $TexR "TexRedux"
+    !insertmacro texReadChoice $TexD "TexDefinitive"
+    !insertmacro texReadChoice $TexN "TexNextgen"
   !macroend
 
   !macro customPageAfterChangeDir
@@ -33,29 +53,55 @@
       ${EndIf}
       ${If} $LANGUAGE == 1046
         !insertmacro MUI_HEADER_TEXT "Texturas HD" "Need for Speed: Underground 2"
-        ${NSD_CreateLabel} 0 0 100% 72u "Texturas melhores para as ruas, calçadas, pistas, céu e carros do NFSU2, de mods da comunidade. Deixam o jogo mais bonito, mas pesam mais na placa de vídeo e deixam o primeiro carregamento mais lento.$\r$\n$\r$\nEm PC com placa de vídeo integrada ou antiga (sem DirectX 12), deixe desmarcado. Sem elas, o jogo fica com as texturas originais. Para mudar de ideia depois, é só instalar de novo."
+        ${NSD_CreateLabel} 0 0 100% 64u "Texturas melhores para as ruas, calçadas, prédios, árvores, céu e carros do NFSU2, de 3 mods da comunidade. Deixam o jogo mais bonito, mas pesam mais na placa de vídeo e deixam o primeiro carregamento mais lento. Depois, em Configurações > Texturas, você escolhe de qual mod vem cada parte (por exemplo, o asfalto de um e o céu de outro).$\r$\n$\r$\nEm PC com placa de vídeo integrada ou antiga (sem DirectX 12), deixe tudo desmarcado. Para mudar de ideia depois, é só instalar de novo."
         Pop $0
-        ${NSD_CreateCheckbox} 0 82u 100% 14u "Instalar as texturas HD (cerca de 390 MB a mais no disco)"
-        Pop $TexBox
+        ${NSD_CreateCheckbox} 0 70u 100% 12u "Redux (cerca de 390 MB no disco)"
+        Pop $TexBoxR
+        ${NSD_CreateCheckbox} 0 84u 100% 12u "Definitive Edition (cerca de 325 MB)"
+        Pop $TexBoxD
+        ${NSD_CreateCheckbox} 0 98u 100% 12u "NextGen (cerca de 250 MB)"
+        Pop $TexBoxN
       ${Else}
         !insertmacro MUI_HEADER_TEXT "HD textures" "Need for Speed: Underground 2"
-        ${NSD_CreateLabel} 0 0 100% 72u "Better textures for the NFSU2 streets, sidewalks, tracks, sky and cars, from community mods. They make the game look better, but are heavier on the graphics card and make the first load slower.$\r$\n$\r$\nOn a PC with integrated or old graphics (no DirectX 12), leave this unchecked. Without them the game keeps its original textures. To change your mind later, just install again."
+        ${NSD_CreateLabel} 0 0 100% 64u "Better textures for the NFSU2 streets, sidewalks, buildings, trees, sky and cars, from 3 community mods. They make the game look better, but are heavier on the graphics card and make the first load slower. Later, in Settings > Textures, you choose which mod each part comes from (for example, the asphalt from one and the sky from another).$\r$\n$\r$\nOn a PC with integrated or old graphics (no DirectX 12), leave everything unchecked. To change your mind later, just install again."
         Pop $0
-        ${NSD_CreateCheckbox} 0 82u 100% 14u "Install the HD textures (about 390 MB more on disk)"
-        Pop $TexBox
+        ${NSD_CreateCheckbox} 0 70u 100% 12u "Redux (about 390 MB on disk)"
+        Pop $TexBoxR
+        ${NSD_CreateCheckbox} 0 84u 100% 12u "Definitive Edition (about 325 MB)"
+        Pop $TexBoxD
+        ${NSD_CreateCheckbox} 0 98u 100% 12u "NextGen (about 250 MB)"
+        Pop $TexBoxN
       ${EndIf}
-      ${If} $TexWant == "1"
-        ${NSD_Check} $TexBox
+      ${If} $TexR == "1"
+        ${NSD_Check} $TexBoxR
+      ${EndIf}
+      ${If} $TexD == "1"
+        ${NSD_Check} $TexBoxD
+      ${EndIf}
+      ${If} $TexN == "1"
+        ${NSD_Check} $TexBoxN
       ${EndIf}
       nsDialogs::Show
     FunctionEnd
 
     Function TexPageLeave
-      ${NSD_GetState} $TexBox $0
+      ${NSD_GetState} $TexBoxR $0
       ${If} $0 == ${BST_CHECKED}
-        StrCpy $TexWant "1"
+        StrCpy $TexR "1"
       ${Else}
-        StrCpy $TexWant "0"
+        StrCpy $TexR "0"
+      ${EndIf}
+      ${NSD_GetState} $TexBoxD $0
+      ${If} $0 == ${BST_CHECKED}
+        StrCpy $TexD "1"
+      ${Else}
+        StrCpy $TexD "0"
+      ${EndIf}
+      ${NSD_GetState} $TexBoxN $0
+      ${If} $0 == ${BST_CHECKED}
+        StrCpy $TexN "1"
+      ${Else}
+        StrCpy $TexN "0"
       ${EndIf}
     FunctionEnd
   !macroend
@@ -63,12 +109,24 @@
 
 !macro customInstall
   WriteRegStr HKCU "Software\Microsoft\DirectX\UserGpuPreferences" "$INSTDIR\${APP_EXECUTABLE_FILENAME}" "GpuPreference=2;"
-  ${If} $TexWant == "0"
-    RMDir /r "$INSTDIR\resources\mods"
-    WriteRegStr HKCU "${NFS_KEY}" "TexturasHD" "0"
-  ${Else}
-    WriteRegStr HKCU "${NFS_KEY}" "TexturasHD" "1"
+  ${If} $TexR == "0"
+    Delete "$INSTDIR\resources\texturas\redux.pak"
   ${EndIf}
+  ${If} $TexD == "0"
+    Delete "$INSTDIR\resources\texturas\definitive.pak"
+  ${EndIf}
+  ${If} $TexN == "0"
+    Delete "$INSTDIR\resources\texturas\nextgen.pak"
+  ${EndIf}
+  ${If} $TexR == "0"
+  ${AndIf} $TexD == "0"
+  ${AndIf} $TexN == "0"
+    RMDir /r "$INSTDIR\resources\texturas"
+  ${EndIf}
+  WriteRegStr HKCU "${NFS_KEY}" "TexRedux" $TexR
+  WriteRegStr HKCU "${NFS_KEY}" "TexDefinitive" $TexD
+  WriteRegStr HKCU "${NFS_KEY}" "TexNextgen" $TexN
+  DeleteRegValue HKCU "${NFS_KEY}" "TexturasHD"
 !macroend
 
 !macro customUnInstall

@@ -257,6 +257,37 @@
     }));
   }
 
+  // Texturas por partes (texPack.js): para cada parte, os mods que a têm e "Original"; o que vale fica marcado.
+  let texKey = '';
+  function renderTexParts(s) {
+    const tp = s.texParts;
+    $('tex-box').hidden = !tp;
+    if (!tp) return;
+    const key = `${lang}|${JSON.stringify(tp)}`;
+    if (key === texKey) return;
+    texKey = key;
+    const names = Object.fromEntries(tp.mods.map((m) => [m.id, m.name]));
+    $('tex-parts').replaceChildren(...tp.parts.map((p) => {
+      const row = el('div', 'tex-row');
+      row.append(el('b', '', t(p.pt, p.en)));
+      const group = el('div', 'lang');
+      group.setAttribute('role', 'group');
+      group.setAttribute('aria-label', t(p.pt, p.en));
+      for (const id of [...p.mods, 'original']) {
+        const b = el('button', '', id === 'original' ? t('Original', 'Original') : names[id] || id);
+        b.setAttribute('aria-pressed', String(tp.choice[p.id] === id));
+        b.onclick = async () => {
+          if (tp.choice[p.id] === id) return;
+          const r = await api.setTexturePart(p.id, id);
+          if (!(r && r.ok)) toast((r && r.error) || '', true);
+        };
+        group.append(b);
+      }
+      row.append(group);
+      return row;
+    }));
+  }
+
   // Atualizações: o botão fica na tela inicial sempre que a pasta de versões tem um instalador mais novo.
   function renderUpdate(s) {
     const u = s.update || {};
@@ -414,7 +445,7 @@
     renderChip();
     renderUpdate(s);
     renderSaves(s);
-    if (s.screen === 'settings') renderCustom(s);
+    if (s.screen === 'settings') { renderCustom(s); renderTexParts(s); }
     loadCustom(s);
     $('e-exit').hidden = !s.locked;
     $('e-settings').hidden = s.locked;

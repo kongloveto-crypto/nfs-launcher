@@ -13,6 +13,7 @@ const EN = {
   hWindow: 'Window and fullscreen',
   sStartFs: 'Start in fullscreen',
   hTextures: 'Textures (NFSU2)', cTexN: 'HD textures',
+  texPartsNote: 'Choose which mod each part comes from. If the chosen mod lacks a texture of that part, the others fill it in. “Original” leaves the part as in the game.',
   sHdTextures: 'Better textures <small>(more detailed asphalt, buildings, trees and sky, from the Redux, Definitive Edition and NextGen mods, together with the detailed map. The app turns on the game\'s detailed map when it opens; the HUD stays as you left it. Applies when the game starts or reloads)</small>',
   sUnblock: 'DirectX 11 mode (Dawn D3D11) <small>(for graphics without DirectX 12. Starts the game without HD textures and without the extra picture and performance options; you can turn them back on later. It may cause picture errors or freezes)</small>',
   sLighter: 'Ease the processor (Dawn skip_validation) <small>(stops checking each graphics command. Small gain, ~0.1 ms per frame. If the game has a graphics error, it may freeze)</small>',

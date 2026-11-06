@@ -1,6 +1,6 @@
 # Checklist de testes (Windows 11)
 
-Automatizados: `npm test` (130 testes) e `npm run verify` (27 verificações). Conferir a montagem: `"NFS Launcher.exe" --conferir` sai com 73.
+Automatizados: `npm test` (135 testes) e `npm run verify` (27 verificações). Conferir a montagem: `"NFS Launcher.exe" --conferir` sai com 73.
 
 ## PC
 
@@ -51,13 +51,14 @@ Automatizados: `npm test` (130 testes) e `npm run verify` (27 verificações). C
 | 43 | Gerenciador de Tarefas > Detalhes | GPU "Acima do normal" (o Chromium faz). Com Prioridade ligada, o jogo também; desligando, volta a Normal. |
 | 44 | Mesmo trecho no Chrome e no app, F8 detalhado | Tempo de quadro e FPS iguais ou melhores; sem quadros misturados. |
 | 45 | Instalar por cima da versão anterior | Sem admin, imagem própria na lateral; login e saves continuam. Desinstala limpo. |
-| 45b | Instalador: página "Texturas HD" depois da pasta | Caixa marcada por padrão. Desmarcada: o app instalado não tem `resources\mods`, o botão "Texturas HD" não aparece e, se o app tinha gravado `ui_textures = map`, a linha volta ao que era. A próxima instalação já vem com a última escolha. |
+| 45b | Instalador: página "Texturas HD" depois da pasta | Uma caixa por mod (Redux, Definitive Edition, NextGen), todas marcadas por padrão. Desmarcados não ficam em `resources\texturas`; sem nenhum, a pasta some, o botão "Texturas HD" não aparece e a linha `ui_textures` que o app gravou volta ao que era. A próxima instalação já vem com a última escolha. |
 | 46 | App instalado, `settings.ini` sem `NFSU2_MAP_TEXTURES`, HUD melhorado ligado (`ui_textures = uhud`) | Texturas do pacote (asfalto, pátio de pedra, árvores, céu) e o mapa detalhado aparecem; o log do F9 mostra `TEXPACKS/detailed.pak: 346 textures`. Saves continuam. |
 | 45c | Jogo com `ui_textures = original` (ou sem a linha), Texturas HD ligada, abrir o app | O `settings.ini` passa a ter `ui_textures = map` e as texturas entram; cópia em `%APPDATA%\NFS Launcher Saves\settings.ini-antes-das-texturas-HD.txt`; o registro dos mods diz "gravada". Com `uhud`, nada muda. Desligar Texturas HD e reabrir: a linha volta a `original`, e o HUD HD de quem usa `uhud` continua. |
 | 45d | Com Texturas HD ligada e uma frase da nuvem salva, abrir o NFSU2 na aba Jogos salvos | "Jogos salvos na nuvem" aparece igual ao de Texturas HD desligada, com "Sincronizado". |
 | 46a | Com o NFSU2 aberto, clicar em "Texturas HD" na barra (em janela) ou no ícone ao lado de Dicas (tela cheia), e também marcar e desmarcar em Configurações > Texturas | Ícone colorido quando ligado; aparece a pergunta "Reinicie o jogo para valer" com Depois e Reiniciar o jogo; Reiniciar recarrega e as texturas mudam. Com Most Wanted ou Carbon, o botão não aparece. |
 | 46b | Pasta `%APPDATA%\NFS Launcher Mods\NFSU2` com um arquivo do mesmo caminho | Vale o da pasta do jogador; com o app aberto, trocar o arquivo só vale ao reabrir. |
 | 46c | (3.0.0) Texturas HD ligada: andar no free roam por avenidas com faixa amarela, calçadas, ruas de paralelepípedo, a pista de drift e o aeroporto; olhar o neon do 240SX, 350Z ou Escalade | Faixas, asfalto, calçadas e pistas com detalhe (antes ficavam as originais, borradas); neon do carro mais nítido. Com o HUD HD (`uhud`), os ícones de menu e o HUD são sempre os do HUD HD, iguais a cada abertura. |
+| 46d | Configurações > Texturas: trocar o mod de uma parte (ex.: Asfalto e pistas = Definitive, depois Original) com o NFSU2 aberto | Só aparecem os mods instalados que têm aquela parte. Pergunta se reinicia o jogo; reiniciando, a parte muda (Original = como no jogo). Voltar à escolha anterior não baixa nada de novo. |
 
 ## Celular (Android)
 

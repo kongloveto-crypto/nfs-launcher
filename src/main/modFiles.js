@@ -149,6 +149,7 @@ function passInit(req, allowed) {
 // (`active(true)`), cada pedido https da sessão passa por aqui: a lista e os arquivos dos mods são respondidos
 // pelo app; o resto segue para o site sem mudança (`fetch` da própria sessão, sem passar por aqui de novo).
 // `allowed(url)`: o endereço é do site do NFSU2. `log(texto)`: registro curto para o jogador (e para nós) ver o que houve.
+// `mods`: arquivos do disco ({ p, file, s, m }) ou virtuais ({ p, s, m, read(a, b), check() }, texPack.js).
 function install(ses, { mods, allowed, log = () => {} }) {
   if (!mods.length) return null;
   log(`mods encontrados: ${mods.map((m) => `"${m.p}" (${m.s} bytes)`).join(', ')}`);
@@ -175,9 +176,11 @@ function install(ses, { mods, allowed, log = () => {} }) {
       }
       const mod = served.get(r.p);
       if (!mod || r.kind === 'bad') return fail(400, `pedido inválido ${req.url}`);
-      // O arquivo mudou com o app aberto: não entrega pedaço misturado (vale ao reabrir).
-      const st = fs.statSync(mod.file);
-      if (st.size !== mod.s || Math.floor(st.mtimeMs / 1000) !== mod.m) return fail(409, `"${r.p}" mudou com o app aberto (vale ao reabrir)`);
+      // O arquivo mudou com o app aberto: não entrega pedaço misturado (vale ao reabrir). Pacote virtual (texPack.js):
+      // confere os pacotes de origem.
+      if (mod.check ? !mod.check() : (() => { const st = fs.statSync(mod.file); return st.size !== mod.s || Math.floor(st.mtimeMs / 1000) !== mod.m; })()) {
+        return fail(409, `"${r.p}" mudou com o app aberto (vale ao reabrir)`);
+      }
       let span, status = 200;
       const headers = { ...HEAD, 'content-type': 'application/octet-stream', 'accept-ranges': 'bytes' };
       if (r.kind === 'blocks') {
@@ -188,13 +191,19 @@ function install(ses, { mods, allowed, log = () => {} }) {
         if (span === false) return fail(416, `"${r.p}": trecho inválido`);
         if (span) { status = 206; headers['content-range'] = `bytes ${span.start}-${span.end - 1}/${mod.s}`; } else span = { start: 0, end: mod.s };
       }
-      const body = readSpan(mod.file, span.start, span.end);
+      const body = mod.read ? mod.read(span.start, span.end) : readSpan(mod.file, span.start, span.end);
       if (body && !sent.has(r.p)) { sent.add(r.p); log(`o jogo começou a ler "${r.p}"`); }
       return body ? new Response(body, { status, headers }) : fail(409, `"${r.p}": não deu para ler o arquivo`);
     } catch (e) { return fail(500, String((e && e.message) || e)); }
   };
   return {
     served: () => served,
+    // Troca a lista de mods (escolha de partes das texturas): vale na próxima vez que o jogo pedir a lista.
+    setMods(next) {
+      mods = next;
+      served = new Map(mods.map((m) => [m.p, m]));
+      log(`mods trocados: ${mods.map((m) => `"${m.p}" (${m.s} bytes)`).join(', ')}`);
+    },
     // Liga só com o NFSU2 aberto: nos outros jogos (mesma sessão) nada passa pelo app.
     active(want) {
       if (want === on) return;

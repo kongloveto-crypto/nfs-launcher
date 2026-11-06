@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('launcher', {
   trySecureDns: () => call('game:secure-dns'),
   nextImageMode: () => call('image:next'),
   toggleTextures: () => call('textures:toggle'),
+  setTexturePart: (part, mod) => call('textures:part', String(part), String(mod)),
   goHome: () => call('game:home'),
   toggleFullscreen: () => call('window:toggle-fullscreen'),
   exitProtected: () => call('window:exit-protected'),

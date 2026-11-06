@@ -37,8 +37,14 @@
     ],
     "extraResources": [
       {
-        "from": "C:/e/texturas/pacote",
-        "to": "mods"
+        "from": "C:/e/texturas/fontes",
+        "to": "texturas",
+        "filter": [
+          "site.pak",
+          "redux.pak",
+          "definitive.pak",
+          "nextgen.pak"
+        ]
       }
     ],
     "asar": true,

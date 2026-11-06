@@ -27,6 +27,7 @@ const { Presence } = require('./discord');
 const profileLock = require('./profileLock');
 const saveCopy = require('./saveCopy');
 const modFiles = require('./modFiles');
+const texPack = require('./texPack');
 const gameSettings = require('./gameSettings');
 
 // ───────────────────────── Argumentos de linha de comando ─────────────────────────
@@ -226,6 +227,12 @@ function buildState() {
     game: currentGame,  // jogo aberto (null antes do START); o último iniciado fica em settings.game
     tipsOn: !tipsBlocked(),
     texturesAvail: !!modsOn, // pacote de texturas carregado (instalador ou pasta de mods)
+    // Partes das texturas (texPack.js): o que cada parte oferece e o que vale agora. null = sem pacotes do instalador.
+    texParts: texSources ? {
+      parts: texPack.PARTS.map((p) => ({ id: p.id, pt: p.pt, en: p.en, mods: texAvail[p.id] })),
+      mods: texPack.MODS.filter((m) => texSources[m.id]).map((m) => ({ id: m.id, name: m.name })),
+      choice: texPack.effectiveChoice(cfg.texParts, texAvail),
+    } : null,
     games: GAME_IDS.map((id) => { const g = GAMES[id]; return { id, short: g.short, name: g.name, disc: g.disc, tips: g.tips, host: new URL(g.url).host }; }),
     fsHint: hintOn, // dica piscando no topo: "para sair da tela cheia: <atalho>"
     guideOpen: panelOpen('guide'),
@@ -264,7 +271,7 @@ let texUiNote = '';   // vai para o registro dos mods
 async function texturesSettingAtStart() {
   // Sem pacote (instalado sem as texturas, escolha do instalador): só desfaz a linha que o app tinha gravado antes,
   // para o jogo não continuar carregando o mapa detalhado do site num PC que escolheu ficar sem texturas.
-  const hasPack = fs.existsSync(bundledModsDir()) || fs.existsSync(modsDir());
+  const hasPack = fs.existsSync(bundledModsDir()) || fs.existsSync(modsDir()) || texPack.MOD_IDS.some((id) => fs.existsSync(path.join(texSourcesDir(), `${id}.pak`)));
   if (SAFE_MODE || (!hasPack && cfg.texUiPrev === null)) return;
   const on = cfg.hdTextures && hasPack;
   try {
@@ -293,7 +300,33 @@ async function copySaveAtStart() {
 // (%APPDATA%\NFS Launcher Mods\NFSU2), que vale por cima. Sem nenhuma: nada muda, nenhum pedido passa pelo app.
 // Com mods, os pedidos do site passam pelo app só enquanto o NFSU2 está aberto (openSite). Lidas ao abrir o app.
 const modsDir = () => path.join(app.getPath('appData'), 'NFS Launcher Mods', 'NFSU2');
-const bundledModsDir = () => path.join(process.resourcesPath, 'mods', 'NFSU2');
+const bundledModsDir = () => path.join(process.resourcesPath, 'mods', 'NFSU2'); // até a 3.0.0 (pacote já junto)
+// Desde a 3.0.1: um pacote de cada mod (texPack.js), juntados na hora conforme as partes escolhidas.
+const texSourcesDir = () => path.join(process.resourcesPath, 'texturas');
+let texSources = null; // { site, redux, definitive, nextgen } presentes (null = nenhum mod instalado)
+let texAvail = {};     // parte -> mods que têm texturas nela
+function loadTexSources() {
+  if (SAFE_MODE || !fs.existsSync(texSourcesDir())) return;
+  const s = texPack.findSources(texSourcesDir(), (t) => modLog(t));
+  if (!texPack.MOD_IDS.some((id) => s[id])) return; // só o mapa do site: é o que o jogo já tem, nada a fazer
+  texSources = s;
+  texAvail = texPack.partsAvailable(s);
+}
+// Pacote virtual (TEXPACKS/detailed.pak) com a escolha atual, ou nenhum.
+function texVirtualMods() {
+  if (!texSources) return [];
+  try {
+    const v = texPack.virtualMod(texSources, cfg.texParts);
+    modLog(`texturas por partes: ${JSON.stringify(v.virtual.eff)}, ${v.virtual.count} texturas ${JSON.stringify(v.virtual.counts)}`);
+    return [v];
+  } catch (e) { modLog(`não deu para montar as texturas: ${e && e.message}`); return []; }
+}
+// Mods do jogador (pasta própria) valem por cima dos do app, pelo caminho.
+function allMods() {
+  const by = new Map();
+  for (const m of [...texVirtualMods(), ...modFiles.scanAll([bundledModsDir(), modsDir()])]) by.set(m.p.toLowerCase(), m);
+  return [...by.values()];
+}
 let modsOn = null; // resultado de modFiles.install (null = sem mods)
 // Registro curto do que houve com os mods (refeito a cada abertura, no máximo 300 linhas): NFS Launcher Mods\registro.txt
 // para quem tem a pasta; senão (ou se ela não aceitar gravação), na pasta temporária (nfs-mods-registro.txt).
@@ -306,15 +339,16 @@ function modLog(text) {
 function setupMods(ses) {
   const dir = modsDir(), bundled = bundledModsDir();
   const userHas = fs.existsSync(path.dirname(dir));
-  if (!userHas && !fs.existsSync(bundled)) return; // nada a fazer nem a registrar
+  if (!userHas && !fs.existsSync(bundled) && !fs.existsSync(texSourcesDir())) return; // nada a fazer nem a registrar
   const head = `NFS Launcher ${app.getVersion()}, aberto ${new Date().toLocaleString()}\r\n`;
   for (const f of [userHas && path.join(dir, '..', 'registro.txt'), path.join(os.tmpdir(), 'nfs-mods-registro.txt')].filter(Boolean)) {
     try { fs.writeFileSync(f, head); modLogFile = f; break; } catch { /* tenta o próximo */ }
   }
   if (SAFE_MODE) { modLog('modo seguro: mods desligados'); return; }
   if (texUiNote) modLog(texUiNote);
-  const mods = modFiles.scanAll([bundled, dir]);
-  modLog(`do instalador ${bundled}, do jogador ${dir}: ${mods.length} arquivo(s)`);
+  loadTexSources();
+  const mods = allMods();
+  modLog(`do instalador ${texSources ? texSourcesDir() : bundled}, do jogador ${dir}: ${mods.length} arquivo(s)`);
   if (!mods.length) return;
   modsOn = modFiles.install(ses, { mods, allowed: (u) => isAllowedUrl(u, 'nfsu2'), log: modLog });
 }
@@ -799,9 +833,10 @@ async function askReloadGame() {
 }
 // Texturas melhores ligadas ou desligadas (botão da barra ou Configurações): só valem quando o jogo carrega de novo.
 // Com o NFSU2 aberto, pergunta se reinicia agora, lembrando de salvar na garagem.
-async function askTexturesRestart() {
+async function askTexturesRestart(partChanged = false) {
   if (!modsOn) return;
   const on = cfg.hdTextures;
+  if (partChanged && !on) return; // trocou uma parte com as texturas desligadas: vale quando ligar
   // Ligou e o jogo ainda está sem o mapa detalhado no settings.ini: a linha só é trocada ao abrir o app (com o jogo
   // fechado), então quem precisa reabrir é o app, não só o jogo.
   if (on && !texUiOn) {
@@ -821,7 +856,8 @@ async function askTexturesRestart() {
   const { response } = await dialog.showMessageBox(win, {
     type: 'info', buttons: [tr('Depois', 'Later'), tr('Reiniciar o jogo', 'Restart the game')], defaultId: 1, cancelId: 0, noLink: true,
     title: tr('Texturas melhores', 'Better textures'),
-    message: on ? tr('Texturas melhores ligadas. Reinicie o jogo para valer.', 'Better textures on. Restart the game to apply.')
+    message: partChanged ? tr('Texturas trocadas. Reinicie o jogo para valer.', 'Textures changed. Restart the game to apply.')
+      : on ? tr('Texturas melhores ligadas. Reinicie o jogo para valer.', 'Better textures on. Restart the game to apply.')
       : tr('Texturas melhores desligadas. Reinicie o jogo para valer.', 'Better textures off. Restart the game to apply.'),
     detail: tr('Vá para a garagem e salve o jogo antes de reiniciar. O progresso que não foi salvo será perdido.',
       'Go to the garage and save the game before restarting. Progress that was not saved will be lost.'),
@@ -1220,6 +1256,17 @@ function registerIpc() {
     if (key === 'imageFilter' || key === 'imageMode' || key === 'unblockGpu') applyImageFilter(); // DX11 desliga o filtro
     refresh();
     if (key === 'hdTextures') askTexturesRestart();
+    return { ok: true };
+  });
+  // Mod de uma parte das texturas (texPack.js): troca o pacote virtual na hora; vale quando o jogo carregar de novo.
+  handle('textures:part', (part, mod) => {
+    if (!texSources || !texPack.PART_IDS.includes(part)) return { ok: false, error: tr('Parte inválida.', 'Invalid part.') };
+    if (mod !== texPack.ORIGINAL && !(texAvail[part] || []).includes(mod)) return { ok: false, error: tr('Esse pacote não tem essa parte.', 'That pack does not have this part.') };
+    cfg = { ...cfg, texParts: texPack.sanitizeChoice({ ...cfg.texParts, [part]: mod }) };
+    saveCfg();
+    if (modsOn) modsOn.setMods(allMods());
+    refresh();
+    askTexturesRestart(true);
     return { ok: true };
   });
   handle('textures:toggle', () => {
