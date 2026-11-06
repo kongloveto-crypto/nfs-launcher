@@ -27,6 +27,7 @@ const { Presence } = require('./discord');
 const profileLock = require('./profileLock');
 const saveCopy = require('./saveCopy');
 const modFiles = require('./modFiles');
+const gameSettings = require('./gameSettings');
 
 // ───────────────────────── Argumentos de linha de comando ─────────────────────────
 const argv = process.argv.slice(1);
@@ -254,9 +255,27 @@ function lowDiskGb() {
 }
 // Fora da pasta de dados do jogo: se ela se perder, as cópias continuam.
 const saveCopyDir = () => path.join(app.getPath('appData'), 'NFS Launcher Saves');
+const gameFsRoot = () => path.join(app.getPath('userData'), 'Partitions', PARTITION.replace('persist:', ''), 'File System');
+
+// Texturas HD (gameSettings.js): com a opção ligada, deixa "ui_textures = map" no settings.ini do jogo, para o pacote
+// entrar sem o jogador ligar nada; desligada, desfaz só o que o app trocou. Antes de o navegador abrir os dados.
+let texUiOn = true;   // o jogo vai carregar o pacote de mapa (falso: ligar Texturas HD só vale reabrindo o app)
+let texUiNote = '';   // vai para o registro dos mods
+async function texturesSettingAtStart() {
+  if (SAFE_MODE || (!fs.existsSync(bundledModsDir()) && !fs.existsSync(modsDir()))) return;
+  try {
+    const r = await gameSettings.run({ root: gameFsRoot(), backupDir: saveCopyDir(), on: cfg.hdTextures, prev: cfg.texUiPrev });
+    // Só pede para reabrir quando reabrir resolve: com o mapa escolhido pelo jogador ou sem achar o arquivo certo, não.
+    texUiOn = !!r.uiOn || (!!r.why && r.why !== 'sem settings.ini');
+    texUiNote = `settings.ini do jogo: ${r.changed ? (cfg.hdTextures ? `"${gameSettings.UI_LINE}" gravada` : 'linha do app desfeita') : 'sem mudança'}${r.why ? ` (${r.why})` : ''}`;
+    if (r.prev !== cfg.texUiPrev) { cfg = { ...cfg, texUiPrev: r.prev }; saveCfg(); }
+  } catch (e) {
+    texUiNote = `settings.ini do jogo: não deu para conferir (${e && e.message})`;
+  }
+}
 // Antes de o navegador abrir os dados do jogo. Disco muito lento não segura a abertura: a cópia termina sozinha logo depois.
 async function copySaveAtStart() {
-  const job = saveCopy.run({ root: path.join(app.getPath('userData'), 'Partitions', PARTITION.replace('persist:', ''), 'File System'), dest: saveCopyDir() })
+  const job = saveCopy.run({ root: gameFsRoot(), dest: saveCopyDir() })
     .catch(() => null)
     .then(() => saveCopy.info(saveCopyDir()))
     .then((i) => { saveCopyInfo = i; sendState(); })
@@ -289,6 +308,7 @@ function setupMods(ses) {
     try { fs.writeFileSync(f, head); modLogFile = f; break; } catch { /* tenta o próximo */ }
   }
   if (SAFE_MODE) { modLog('modo seguro: mods desligados'); return; }
+  if (texUiNote) modLog(texUiNote);
   const mods = modFiles.scanAll([bundled, dir]);
   modLog(`do instalador ${bundled}, do jogador ${dir}: ${mods.length} arquivo(s)`);
   if (!mods.length) return;
@@ -776,8 +796,24 @@ async function askReloadGame() {
 // Texturas melhores ligadas ou desligadas (botão da barra ou Configurações): só valem quando o jogo carrega de novo.
 // Com o NFSU2 aberto, pergunta se reinicia agora, lembrando de salvar na garagem.
 async function askTexturesRestart() {
-  if (!gameStarted || currentGame !== 'nfsu2' || !modsOn) return;
+  if (!modsOn) return;
   const on = cfg.hdTextures;
+  // Ligou e o jogo ainda está sem o mapa detalhado no settings.ini: a linha só é trocada ao abrir o app (com o jogo
+  // fechado), então quem precisa reabrir é o app, não só o jogo.
+  if (on && !texUiOn) {
+    const { response } = await dialog.showMessageBox(win, {
+      type: 'info', buttons: [tr('Depois', 'Later'), tr('Reabrir o app', 'Reopen the app')], defaultId: 1, cancelId: 0, noLink: true,
+      title: tr('Texturas HD', 'HD textures'),
+      message: tr('Texturas HD ligadas. Reabra o app para valer.', 'HD textures on. Reopen the app to apply.'),
+      detail: tr('Ao abrir, o app liga o mapa detalhado do jogo, por onde as texturas entram (o HUD continua o mesmo). Vá para a garagem e salve o jogo antes: o progresso que não foi salvo será perdido.',
+        'When it opens, the app turns on the game\'s detailed map, which is how the textures come in (the HUD stays the same). Go to the garage and save the game first: progress that was not saved will be lost.'),
+    });
+    if (response !== 1) return;
+    app.relaunch({ args: process.argv.slice(1) });
+    quitApp();
+    return;
+  }
+  if (!gameStarted || currentGame !== 'nfsu2') return;
   const { response } = await dialog.showMessageBox(win, {
     type: 'info', buttons: [tr('Depois', 'Later'), tr('Reiniciar o jogo', 'Restart the game')], defaultId: 1, cancelId: 0, noLink: true,
     title: tr('Texturas melhores', 'Better textures'),
@@ -1331,6 +1367,7 @@ if (gotLock) {
       app.exit(0);
       return;
     }
+    await texturesSettingAtStart(); // inteira antes da sessão: é a única escrita nos dados do jogo
     await copySaveAtStart();
 
     const gameSession = session.fromPartition(PARTITION);

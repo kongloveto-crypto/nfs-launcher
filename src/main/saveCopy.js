@@ -153,4 +153,4 @@ async function run({ root, dest, now = new Date() }) {
   return { copied: true, file, entries: entries.map((e) => e.name) };
 }
 
-module.exports = { run, info, zip, crc32, kindOf, isProfile, PROFILE_SIZE, GARAGE_SIZE, KEEP };
+module.exports = { run, info, zip, crc32, kindOf, isProfile, listFiles, readHead, PROFILE_SIZE, GARAGE_SIZE, KEEP };

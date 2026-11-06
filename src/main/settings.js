@@ -21,6 +21,7 @@ const DEFAULTS = Object.freeze({
   imageFilter: false,       // filtro de cor e nitidez sobre a imagem do jogo. Vale na hora
   imageMode: 'vivido',      // modo do filtro (imageFilter.js)
   hdTextures: true,         // texturas melhores do NFSU2 (pacote do instalador e pasta de mods). Vale ao iniciar ou recarregar o jogo
+  texUiPrev: null,          // linha "ui_textures" que o app trocou no settings.ini do jogo (gameSettings.js); null = não trocou
   sounds: true,             // sons nas telas do app (nunca durante o jogo)
   discord: true,            // mostra "Jogando NFS Launcher" no Discord aberto neste PC
   toggleCombo: 'Ctrl+F',    // entra E sai da tela cheia (também sai do modo protegido)
@@ -65,6 +66,7 @@ function sanitize(raw) {
   if (MODE_IDS.includes(r.imageMode)) out.imageMode = r.imageMode;
   if (GAME_IDS.includes(r.game)) out.game = r.game;
   if (Object.hasOwn(SECURE_DNS, r.secureDns)) out.secureDns = r.secureDns;
+  if (typeof r.texUiPrev === 'string' && r.texUiPrev.length <= 200 && !/[\r\n]/.test(r.texUiPrev)) out.texUiPrev = r.texUiPrev;
   // Preferências de antes da versão 4 guardavam os padrões antigos: opacidade do guia 50% -> 75% e
   // tela cheia Ctrl+Alt+F -> Ctrl+F (só se a pessoa não tinha trocado o atalho).
   if (!(Number(r.version) >= 4)) {

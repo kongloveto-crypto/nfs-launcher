@@ -18,7 +18,7 @@ Rode um comando por vez:
 ```powershell
 npm install        # também baixa o Electron
 npm start          # abre o app com o motor oficial do Electron
-npm test           # 123 testes
+npm test           # 128 testes
 npm run verify     # 27 verificações estáticas (travam erros já corrigidos)
 npm run pack       # monta dist\win-unpacked para examinar, sem instalador
 npm run dist       # instalador dist\NFS-Launcher-Setup-<versão>.exe, com o motor próprio de C:\e\motor-final
@@ -70,6 +70,7 @@ node node_modules\electron\install.js
   - Duas pastas com a mesma árvore do jogo: a que vem no instalador (`resources\mods\NFSU2`) e a do jogador (`%APPDATA%\NFS Launcher Mods\NFSU2`), que vale por cima. Os arquivos delas entram na lista de arquivos que o jogo recebe do site e são entregues pelo app.
   - O instalador traz `TEXPACKS\detailed.pak`: o mapa detalhado do site junto com texturas de mods da comunidade, montado fora do repositório (os arquivos dos mods não entram aqui). O jogo já carrega esse pacote com o HUD melhorado, sem mudar o `settings.ini`.
   - Com mods e o NFSU2 aberto, os pedidos do site passam pelo app: a lista e os arquivos dos mods são respondidos por ele, o resto segue para o site sem mudança. Sem script na página. Vale ao abrir o app e só no PC.
+  - O jogo só carrega o pacote com `ui_textures` em `map` ou `uhud` no `settings.ini` dele. Com Texturas HD ligada, o app troca só essa linha para `ui_textures = map` (mapa detalhado; menus e HUD continuam), ao abrir e antes de o navegador abrir os dados (`gameSettings.js`). Só mexe se estiver em `original` ou ausente, nunca com `NFSU2_MAP_TEXTURES` escrito pelo jogador, guarda cópia em `%APPDATA%\NFS Launcher Saves` e, com a opção desligada, desfaz só o que ele trocou. É a única escrita do app nos dados do jogo.
   - Liga e desliga em Configurações > Texturas e no botão "Texturas HD" da barra (na tela cheia, só o ícone, ao lado de Dicas); o botão só aparece com o NFSU2 aberto e o pacote presente. A troca vale quando o jogo carrega de novo: o app pergunta se reinicia o jogo agora, lembrando de salvar na garagem.
 
 ## Dicas para o jogador
