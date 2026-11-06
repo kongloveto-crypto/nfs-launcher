@@ -6,7 +6,10 @@ const os = require('os');
 const path = require('path');
 const mf = require('../src/main/modFiles');
 
-const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'mods-'));
+const made = [];
+const tmp = () => { const d = fs.mkdtempSync(path.join(os.tmpdir(), 'mods-')); made.push(d); return d; };
+// Pastas temporárias dos testes saem no fim (antes ficavam no %TEMP% a cada execução).
+test.after(() => { for (const d of made) fs.rmSync(d, { recursive: true, force: true }); });
 function put(root, rel, data) {
   const p = path.join(root, ...rel.split('/'));
   fs.mkdirSync(path.dirname(p), { recursive: true });

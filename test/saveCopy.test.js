@@ -41,8 +41,11 @@ function readZip(file) {
   }
   return out;
 }
+const made = [];
+test.after(() => { for (const d of made) fs.rmSync(d, { recursive: true, force: true }); }); // nada fica no %TEMP%
 function setup() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nfs-savecopy-'));
+  made.push(dir);
   return { root: path.join(dir, 'File System'), dest: path.join(dir, 'copias') };
 }
 const zips = (dest) => fs.readdirSync(dest).filter((n) => n.endsWith('.zip'));

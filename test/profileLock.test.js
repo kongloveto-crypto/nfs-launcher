@@ -8,6 +8,7 @@ const { spawn } = require('child_process');
 const { acquire } = require('../src/main/profileLock');
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'nfs-trava-'));
+test.after(() => fs.rmSync(tmp, { recursive: true, force: true })); // nada fica no %TEMP%
 let n = 0;
 const fresh = () => path.join(tmp, `${++n}.pid`);
 // Outro processo deste mesmo programa, como uma cópia antiga do app ainda fechando.

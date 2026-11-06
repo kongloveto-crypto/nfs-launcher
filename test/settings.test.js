@@ -111,7 +111,9 @@ test('opções fora das configurações ficam sempre ligadas, mesmo em quem tinh
   }
 });
 test('save/load persistem e arquivo corrompido volta ao padrão', () => {
-  const f = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'nfsu2-')), 'settings.json');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nfsu2-'));
+  test.after(() => fs.rmSync(dir, { recursive: true, force: true })); // nada fica no %TEMP%
+  const f = path.join(dir, 'settings.json');
   const c = { ...s.sanitize({}), startFullscreen: true, bounds: { x: 10, y: 20, width: 1280, height: 720 } };
   assert.ok(s.save(f, c));
   assert.deepEqual(s.load(f), c);
