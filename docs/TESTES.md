@@ -1,6 +1,6 @@
 # Checklist de testes (Windows 11)
 
-Automatizados: `npm test` (129 testes) e `npm run verify` (27 verificações). Conferir a montagem: `"NFS Launcher.exe" --conferir` sai com 73.
+Automatizados: `npm test` (130 testes) e `npm run verify` (27 verificações). Conferir a montagem: `"NFS Launcher.exe" --conferir` sai com 73.
 
 ## PC
 
@@ -33,7 +33,7 @@ Automatizados: `npm test` (129 testes) e `npm run verify` (27 verificações). C
 | 25 | Avançado > Desenhar a tela do jeito novo (Graphite + Delegated), desmarcar e reabrir | O app abre normalmente (erro da 2.0.4). Ligado por padrão. |
 | 26 | Avançado > Preparar o jogo ao carregar / Aliviar o processador / Anti-serrilhado (FXAA) | Pedem para reabrir; comparar no F8 com a opção ligada e desligada. Sem travamento nem erro de gráficos. |
 | 27 | Botão de filtro na barra e no topo da tela cheia | Cada clique troca o modo (Suave, Vívido, Intenso, Nítido, Vívido e nítido) e por fim desliga; o nome do modo aparece ao lado. Vale nos 3 jogos. |
-| 28 | PC sem DirectX 12 (ou lista de bloqueio simulada: `--enable-features=WebGPUService:AdapterBlockList/%2A`) | Na tela inicial, o app liga o modo DirectX 11 e reabre sozinho, uma vez. Funcionando: aviso com "Desfazer e reabrir". Falhando: desliga e mostra o erro com tentar de novo. |
+| 28 | PC sem DirectX 12 (ou lista de bloqueio simulada: `--enable-features=WebGPUService:AdapterBlockList/%2A`) | Na tela inicial, o app liga o modo DirectX 11 e reabre sozinho, uma vez, com Texturas HD, filtro, FXAA, "Preparar o jogo" e "Aliviar o processador" desmarcados (Prioridade não muda; religar alguma fica). Quem já estava no modo e atualiza: os mesmos desmarcados, uma vez. Funcionando: aviso com "Desfazer e reabrir". Falhando: desliga e mostra o erro com tentar de novo. |
 | 29 | Placa de nível 11_0 (ex.: GTX 550 Ti) | No modo DirectX 11, o jogo abre e roda. Comparar o FPS no F8. |
 | 30 | Ctrl+Alt+I / lâmpada no topo | Abre as Dicas (só NFSU2); Esc ou Ctrl+Alt+I voltam ao jogo. |
 | 31 | Dicas > abrir um passo a passo | Janela flutuante dentro da área do jogo; Feito/Anterior/Ver tudo; as teclas continuam indo para o jogo; 75% de opacidade; a altura segue o texto. |

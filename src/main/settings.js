@@ -4,7 +4,7 @@ const path = require('path');
 const combo = require('./combo');
 
 const DEFAULTS = Object.freeze({
-  version: 6,
+  version: 7,
   startFullscreen: false,   // iniciar direto em tela cheia
   showHome: true,           // mostrar tela inicial antes do jogo
   protectFullscreen: true,  // tela cheia = modo protegido
@@ -76,6 +76,17 @@ function sanitize(raw) {
   // Antes da versão 6, o arquivo guardava Graphite e Delegated separados, ou desligados só por serem o padrão antigo:
   // a opção única passa a ligada uma vez. Depois disso, quem desmarcar continua desmarcado.
   if (!(Number(r.version) >= 6)) out.newDrawing = true;
+  // Versão 7: quem já estava no modo DirectX 11 passa uma vez para o jogo "cru" (dx11Basic). Depois, o que religar fica.
+  if (!(Number(r.version) >= 7) && out.unblockGpu) return dx11Basic(out);
+  return out;
+}
+// Modo DirectX 11 = placa fraca ou antiga (pedido do Bruno, 06/11, depois da tela preta numa Intel gen-7): ao entrar
+// nele, o jogo roda "cru", sem texturas HD e sem as opções extras de imagem e desempenho. Graphite e Delegated o
+// próprio modo já ignora. Quem quiser pode religar cada uma depois; sair do modo não as liga de volta.
+const DX11_OFF = ['hdTextures', 'prepareGame', 'lighterGpu', 'antiAlias', 'imageFilter'];
+function dx11Basic(cfg) {
+  const out = { ...cfg, unblockGpu: true };
+  for (const k of DX11_OFF) out[k] = false;
   return out;
 }
 function load(file) {
@@ -93,6 +104,7 @@ function save(file, cfg) {
 function applyChange(cfg, key, value) {
   if (USER_BOOLS.includes(key)) {
     if (typeof value !== 'boolean') return { ok: false, error: 'Valor inválido.' };
+    if (key === 'unblockGpu' && value && !cfg.unblockGpu) return { ok: true, cfg: dx11Basic(cfg) };
     return { ok: true, cfg: { ...cfg, [key]: value } };
   }
   if (key === 'toggleCombo' || key === 'exitCombo') {
@@ -112,4 +124,4 @@ function applyChange(cfg, key, value) {
   }
   return { ok: false, error: 'Configuração desconhecida.' };
 }
-module.exports = { DEFAULTS, LANGS, sanitize, load, save, applyChange, OPACITY };
+module.exports = { DEFAULTS, LANGS, sanitize, load, save, applyChange, OPACITY, dx11Basic, DX11_OFF };

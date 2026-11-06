@@ -175,7 +175,7 @@ test('opacidade: guias começam em 75%, valores fora de 0,3–1 ignorados; botã
   assert.equal(settings.sanitize({ version: 4, guideOpacity: 0.1 }).guideOpacity, 0.75);
   assert.equal(settings.sanitize({ version: 4, guideOpacity: 'x' }).guideOpacity, 0.75);
   assert.equal(settings.sanitize({ version: 3, guideOpacity: 0.5 }).guideOpacity, 0.75, 'quem tinha o padrão antigo (50%) passa para 75%');
-  assert.equal(settings.sanitize({ version: 3, guideOpacity: 0.5 }).version, 6);
+  assert.equal(settings.sanitize({ version: 3, guideOpacity: 0.5 }).version, 7);
   assert.equal(settings.sanitize({ tipsDiscovered: true }).tipsDiscovered, true);
 });
 test('posição do guia: guardada se válida, descartada se lixo', () => {

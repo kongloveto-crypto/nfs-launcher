@@ -1213,7 +1213,7 @@ function registerIpc() {
     cfg = r.cfg;
     saveCfg();
     if (key === 'highPriority') applyPriority();
-    if (key === 'imageFilter' || key === 'imageMode') applyImageFilter();
+    if (key === 'imageFilter' || key === 'imageMode' || key === 'unblockGpu') applyImageFilter(); // DX11 desliga o filtro
     refresh();
     if (key === 'hdTextures') askTexturesRestart();
     return { ok: true };
@@ -1305,7 +1305,7 @@ function registerIpc() {
       unblockOn: UNBLOCK_ON, tried: cfg.unblockTried, safeMode: SAFE_MODE, gameStarted,
     });
     if (action === 'try') {
-      cfg = { ...cfg, unblockGpu: true, unblockTried: true };
+      cfg = { ...settings.dx11Basic(cfg), unblockTried: true }; // modo DirectX 11 com o jogo "cru"
       saveCfg();
       app.relaunch({ args: process.argv.slice(1) });
       quitApp();

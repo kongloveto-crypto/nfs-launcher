@@ -18,7 +18,7 @@ Rode um comando por vez:
 ```powershell
 npm install        # também baixa o Electron
 npm start          # abre o app com o motor oficial do Electron
-npm test           # 129 testes
+npm test           # 130 testes
 npm run verify     # 27 verificações estáticas (travam erros já corrigidos)
 npm run pack       # monta dist\win-unpacked para examinar, sem instalador
 npm run dist       # instalador dist\NFS-Launcher-Setup-<versão>.exe, com o motor próprio de C:\e\motor-final
@@ -52,7 +52,7 @@ node node_modules\electron\install.js
     - "Aliviar o processador";
     - FXAA do motor próprio;
     - filtro de imagem com 5 modos.
-  - Placa sem DirectX 12: liga sozinho o modo DirectX 11, inclusive no nível 11_0, com "Desfazer e reabrir".
+  - Placa sem DirectX 12: liga sozinho o modo DirectX 11, inclusive no nível 11_0, com "Desfazer e reabrir". Nesse modo o jogo começa "cru": sem texturas HD, filtro de imagem, anti-serrilhado, "Preparar o jogo" e "Aliviar o processador" (dá para religar).
 - **Saves:**
   - Nada apaga a pasta de dados nem os saves.
   - `profileLock.js` evita a perda ao fechar e abrir rápido.

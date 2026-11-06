@@ -84,7 +84,7 @@
     $('gpu-unblock').textContent = unblockOn ? t('Desfazer e reabrir', 'Undo and reopen') : t('Tentar modo DirectX 11', 'Try DirectX 11 mode');
     if (!gpuResult) { label.textContent = t('Verificando WebGPU…', 'Checking WebGPU…'); return; }
     if (!problem && unblockOn) {
-      chip.classList.add('caution'); label.textContent = t('Modo DirectX 11 ligado, para placa sem DirectX 12. Se a imagem der erro, desfaça.', 'DirectX 11 mode is on, for graphics without DirectX 12. If the picture has errors, undo it.');
+      chip.classList.add('caution'); label.textContent = t('Modo DirectX 11 ligado, para placa sem DirectX 12, sem texturas HD e sem opções extras. Se a imagem der erro, desfaça.', 'DirectX 11 mode is on, for graphics without DirectX 12, without HD textures or extra options. If the picture has errors, undo it.');
     } else if (gpuResult.supported && !gpuResult.software) {
       chip.classList.add('ok'); label.textContent = t(`WebGPU disponível — ${gpuResult.adapter}`, `WebGPU available — ${gpuResult.adapter}`);
     } else if (gpuResult.supported) {

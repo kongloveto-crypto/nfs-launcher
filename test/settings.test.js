@@ -62,6 +62,22 @@ test('Graphite e Delegated: uma opção só, ligada por padrão, também para qu
   const off = s.sanitize(s.applyChange(d, 'newDrawing', false).cfg);
   assert.equal(off.newDrawing, false);
 });
+test('modo DirectX 11: entrar nele desliga texturas HD e opções extras; quem já estava passa uma vez; religar fica', () => {
+  const tudo = { hdTextures: true, prepareGame: true, lighterGpu: true, antiAlias: true, imageFilter: true, highPriority: true };
+  const on = s.applyChange(s.sanitize({ ...tudo, version: 7 }), 'unblockGpu', true).cfg;
+  assert.equal(on.unblockGpu, true);
+  for (const k of s.DX11_OFF) assert.equal(on[k], false, k);
+  assert.equal(on.highPriority, true, 'prioridade não mexe na placa: fica');
+  const antigo = s.sanitize({ ...tudo, version: 6, unblockGpu: true });
+  for (const k of s.DX11_OFF) assert.equal(antigo[k], false, `migração: ${k}`);
+  assert.equal(antigo.version, 7);
+  const fora = s.sanitize({ ...tudo, version: 6, unblockGpu: false });
+  assert.equal(fora.hdTextures, true, 'quem não está no DX11 não muda');
+  const religou = s.sanitize(s.applyChange({ ...antigo }, 'hdTextures', true).cfg);
+  assert.equal(religou.hdTextures, true, 'depois da migração, o que ele religar fica');
+  const deNovo = s.applyChange(religou, 'unblockGpu', true).cfg;
+  assert.equal(deNovo.hdTextures, true, 'marcar de novo o que já está marcado não desliga nada');
+});
 test('DNS seguro: oferecido só em falha de conexão', () => {
   const { errorKind, offersSecureDns } = require('../src/main/connError');
   assert.equal(offersSecureDns(errorKind(-105)), true, 'nome não resolvido');
