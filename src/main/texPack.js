@@ -1,6 +1,6 @@
 'use strict';
-// Texturas HD do NFSU2 por partes (pedido do Bruno, 06/11): o instalador traz um pacote de cada mod (Redux,
-// Definitive Edition, NextGen) e o mapa detalhado do site, em resources\texturas. O jogador escolhe, para cada parte
+// Texturas HD do NFSU2 por partes (pedido do Bruno, 06/11): o instalador traz um pacote de cada mod (TexWizard,
+// Redux, Definitive Edition, NextGen) e o mapa detalhado do site, em resources\texturas. O jogador escolhe, para cada parte
 // (asfalto, céu, prédios...), de qual mod ela vem, ou "Original". O app NÃO grava um pacote novo no disco: monta
 // TEXPACKS/detailed.pak "de mentira", um cabeçalho em memória e trechos lidos dos pacotes de origem na hora em que o
 // jogo pede (modFiles.js entrega). Trocar a escolha é instantâneo e não ocupa disco a mais.
@@ -12,7 +12,10 @@
 const fs = require('fs');
 const path = require('path');
 
+// TexWizard (pack "02 - Optional - Texture": o visual do próprio jogo em alta resolução) na frente: é o padrão de cada
+// parte que ele tem (pedido do Bruno, 06/11). A escolha que o jogador aplicar fica guardada e não volta sozinha.
 const MODS = Object.freeze([
+  { id: 'texwizard', name: 'TexWizard' },
   { id: 'redux', name: 'Redux' },
   { id: 'definitive', name: 'Definitive Edition' },
   { id: 'nextgen', name: 'NextGen' },
@@ -28,7 +31,7 @@ const PARTS = Object.freeze([
   { id: 'cenario', pt: 'Prédios, muros e objetos', en: 'Buildings, walls and objects', re: /^(ARC_|ARK_|OBJ_|SGN_|SHRM_(?!SKY$)|SHR_|GRG_|GFE_|CRLOT_|PNT_|PRTSHP_|MARBLEFLOOR|SHADOWRAMP)/ },
   { id: 'natureza', pt: 'Árvores, grama e terreno', en: 'Trees, grass and terrain', re: /^(ORG_|TRN_)/ },
   { id: 'ceu', pt: 'Céu', en: 'Sky', re: /^(SKY_|SHRM_SKY$)/ },
-  { id: 'carros', pt: 'Carros (neon e faróis)', en: 'Cars (neon and headlights)', re: /(^[0-9A-Z]+_NEON$|^HEADLIGHTGLOW$|^CARBONFIBRE$)/ },
+  { id: 'carros', pt: 'Carros (neon, faróis e sombra)', en: 'Cars (neon, headlights and shadow)', re: /(^[0-9A-Z]+_NEON$|^[0-9A-Z]+_SHADOW(FE|IG)$|^NEONBLUR$|^HEADLIGHTGLOW$|^CARBONFIBRE$)/ },
   { id: 'efeitos', pt: 'Efeitos (fogo, fumaça e brilhos)', en: 'Effects (fire, smoke and glows)', re: /^SFX_/ },
   { id: 'menus', pt: 'Menus, HUD e mapa', en: 'Menus, HUD and map', re: /./ },
 ]);
@@ -96,8 +99,8 @@ function partsAvailable(sources) {
   return out;
 }
 
-// Escolha que vale de fato: a do jogador, se aquele mod existe na parte; senão o primeiro que existe (Redux, Definitive,
-// NextGen); "original" sempre vale. Parte sem nenhum mod: "original".
+// Escolha que vale de fato: a do jogador, se aquele mod existe na parte; senão o primeiro que existe (TexWizard, Redux,
+// Definitive, NextGen); "original" sempre vale. Parte sem nenhum mod: "original".
 function effectiveChoice(choice, avail) {
   const c = choice && typeof choice === 'object' ? choice : {};
   const out = {};

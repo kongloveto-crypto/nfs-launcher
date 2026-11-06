@@ -4,7 +4,7 @@ const path = require('path');
 const combo = require('./combo');
 
 const DEFAULTS = Object.freeze({
-  version: 7,
+  version: 8,
   startFullscreen: false,   // iniciar direto em tela cheia
   showHome: true,           // mostrar tela inicial antes do jogo
   protectFullscreen: true,  // tela cheia = modo protegido
@@ -78,6 +78,9 @@ function sanitize(raw) {
   // Antes da versão 6, o arquivo guardava Graphite e Delegated separados, ou desligados só por serem o padrão antigo:
   // a opção única passa a ligada uma vez. Depois disso, quem desmarcar continua desmarcado.
   if (!(Number(r.version) >= 6)) out.newDrawing = true;
+  // Versão 8 (pedido do Bruno, 06/11): o TexWizard vira o padrão de cada parte que ele tem. Quem tinha aplicado uma
+  // escolha (a janela guarda todas as partes, mesmo sem mudar nada) volta ao padrão uma vez; depois, o que escolher fica.
+  if (!(Number(r.version) >= 8)) out.texParts = {};
   // Versão 7: quem já estava no modo DirectX 11 passa uma vez para o jogo "cru" (dx11Basic). Depois, o que religar fica.
   if (!(Number(r.version) >= 7) && out.unblockGpu) return dx11Basic(out);
   return out;

@@ -59,6 +59,7 @@ Automatizados: `npm test` (136 testes) e `npm run verify` (27 verificações). C
 | 46b | Pasta `%APPDATA%\NFS Launcher Mods\NFSU2` com um arquivo do mesmo caminho | Vale o da pasta do jogador; com o app aberto, trocar o arquivo só vale ao reabrir. |
 | 46c | (3.0.0) Texturas HD ligada: andar no free roam por avenidas com faixa amarela, calçadas, ruas de paralelepípedo, a pista de drift e o aeroporto; olhar o neon do 240SX, 350Z ou Escalade | Faixas, asfalto, calçadas e pistas com detalhe (antes ficavam as originais, borradas); neon do carro mais nítido. Com o HUD HD (`uhud`), os ícones de menu e o HUD são sempre os do HUD HD, iguais a cada abertura. |
 | 46d | Na janela "Texturas HD" (também por Configurações > Texturas > Escolher as partes…), trocar várias partes de uma vez (ex.: Asfalto e pistas = Definitive, Céu = Original) e Aplicar, com o NFSU2 aberto | Só aparecem os mods instalados que têm aquela parte. Uma pergunta só para reiniciar; reiniciando, as partes mudam (Original = como no jogo). Aberta pelas Configurações, volta para elas. Voltar à escolha anterior não baixa nada de novo. |
+| 46e | (3.0.3) Instalar por cima com o TexWizard marcado; abrir a janela "Texturas HD"; depois trocar Asfalto e pistas para Redux, Aplicar e reabrir o app | Asfalto, calçadas, grama e terra, sombra e neon dos carros com o TexWizard por padrão (mesmo quem já tinha aplicado uma escolha na 3.0.1/3.0.2). Depois da troca, o Redux continua ao reabrir. Os mapas das 23 corridas que faltavam aparecem detalhados. |
 
 ## Celular (Android)
 

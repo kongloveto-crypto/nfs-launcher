@@ -70,7 +70,7 @@ test('modo DirectX 11: entrar nele desliga texturas HD e opções extras; quem j
   assert.equal(on.highPriority, true, 'prioridade não mexe na placa: fica');
   const antigo = s.sanitize({ ...tudo, version: 6, unblockGpu: true });
   for (const k of s.DX11_OFF) assert.equal(antigo[k], false, `migração: ${k}`);
-  assert.equal(antigo.version, 7);
+  assert.equal(antigo.version, 8);
   const fora = s.sanitize({ ...tudo, version: 6, unblockGpu: false });
   assert.equal(fora.hdTextures, true, 'quem não está no DX11 não muda');
   const religou = s.sanitize(s.applyChange({ ...antigo }, 'hdTextures', true).cfg);

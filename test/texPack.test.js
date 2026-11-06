@@ -136,5 +136,27 @@ test('texturas por partes: escolha guardada só com partes e mods conhecidos', (
   assert.deepEqual(tp.sanitizeChoice({ asfalto: 'redux', ceu: 'original', x: 'redux', menus: 'outro' }), { asfalto: 'redux', ceu: 'original' });
   assert.deepEqual(tp.sanitizeChoice(null), {});
   const s = require('../src/main/settings');
-  assert.deepEqual(s.sanitize({ texParts: { asfalto: 'definitive', y: 1 } }).texParts, { asfalto: 'definitive' });
+  assert.deepEqual(s.sanitize({ version: 8, texParts: { asfalto: 'definitive', y: 1 } }).texParts, { asfalto: 'definitive' });
+});
+
+test('texturas por partes: TexWizard é o padrão onde tem; a escolha do jogador fica, e a antiga volta ao padrão uma vez', () => {
+  const dir = fixture();
+  writePak(path.join(dir, 'texwizard.pak'), [
+    { crc: 10, w: 256, name: 'RDP_ROADSTRIP_MA', data: d('T-ASFALTO') },
+    { crc: 30, w: 256, name: 'ECLIPSE_SHADOWFE', data: d('T-SOMBRA') },
+  ]);
+  const src = tp.findSources(dir);
+  const v = tp.virtualMod(src, {});
+  assert.equal(v.virtual.eff.asfalto, 'texwizard');
+  assert.equal(v.virtual.eff.carros, 'texwizard', 'a sombra dos carros fica em Carros');
+  assert.equal(v.virtual.eff.ceu, 'nextgen', 'onde o TexWizard não tem, segue a ordem antiga');
+  const got = unpack(v);
+  assert.equal(got.RDP_ROADSTRIP_MA.data, 'T-ASFALTO', 'TexWizard vence mesmo menor');
+  assert.equal(got.ARC_SIDEWALK_A.data, 'R-CALCADA', 'parte que ele não tem: o Redux');
+  assert.equal(got.RDP_LANEA_YS_AA_KT.data, 'D-FAIXA', 'o que ele não tem na parte: os outros completam');
+  const s = require('../src/main/settings');
+  const saved = s.sanitize({ version: 8, texParts: { asfalto: 'redux' } });
+  assert.equal(saved.texParts.asfalto, 'redux', 'quem escolheu depois continua com a escolha ao reiniciar');
+  assert.equal(unpack(tp.virtualMod(src, saved.texParts)).RDP_ROADSTRIP_MA.data, 'R-ASFALTO');
+  assert.deepEqual(s.sanitize({ version: 7, texParts: { asfalto: 'redux' } }).texParts, {}, 'escolha de antes do TexWizard: volta ao padrão uma vez');
 });

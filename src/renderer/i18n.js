@@ -21,7 +21,7 @@ const EN = {
   texChoose: 'Choose the parts…',
   texChooseNote: 'Asphalt, sky, buildings and more: which mod each one comes from.',
   texPartsNote:'Choose which mod each part comes from. If the chosen mod lacks a texture of that part, the others fill it in. “Original” leaves the part as in the game.',
-  sHdTextures: 'Better textures <small>(more detailed asphalt, buildings, trees and sky, from the Redux, Definitive Edition and NextGen mods, together with the detailed map. The app turns on the game\'s detailed map when it opens; the HUD stays as you left it. Applies when the game starts or reloads)</small>',
+  sHdTextures: 'Better textures <small>(more detailed asphalt, buildings, trees and sky, from the TexWizard, Redux, Definitive Edition and NextGen mods, together with the detailed map. The app turns on the game\'s detailed map when it opens; the HUD stays as you left it. Applies when the game starts or reloads)</small>',
   sUnblock: 'DirectX 11 mode (Dawn D3D11) <small>(for graphics without DirectX 12. Starts the game without HD textures and without the extra picture and performance options; you can turn them back on later. It may cause picture errors or freezes)</small>',
   sLighter: 'Ease the processor (Dawn skip_validation) <small>(stops checking each graphics command. Small gain, ~0.1 ms per frame. If the game has a graphics error, it may freeze)</small>',
   sNewDrawing: 'Draw the screen the new way (Graphite + Delegated Compositing) <small>(another way of drawing the picture, and Windows assembles the final picture. While playing on an RTX 4060: frames 3% to 10% faster and up to 30% fewer missed frames)</small>',

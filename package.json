@@ -1,8 +1,8 @@
 {
   "name": "nfsu2-launcher",
   "productName": "NFS Launcher",
-  "version": "3.0.2",
-  "versaoLeve": "2.0.8",
+  "version": "3.0.3",
+  "versaoLeve": "2.0.9",
   "description": "Cliente dedicado (não oficial) para NFSU2 (nfsu2.xyz), NFSMW (web.nfsmwo.com) e NFSC (nfscrb.xyz) com WebGPU, tela cheia protegida e instalador para Windows 11",
   "main": "src/main/main.js",
   "author": "NFS Launcher",
@@ -43,6 +43,7 @@
         "to": "texturas",
         "filter": [
           "site.pak",
+          "texwizard.pak",
           "redux.pak",
           "definitive.pak",
           "nextgen.pak"
