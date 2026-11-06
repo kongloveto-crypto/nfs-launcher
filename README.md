@@ -94,3 +94,7 @@ docs/          TESTES.md, post-divulgacao.md, relatos
 ```
 
 Checklist de testes manuais: [`docs/TESTES.md`](docs/TESTES.md).
+
+## Licença
+
+O código está sob a licença MIT ([`LICENSE`](LICENSE)). Need for Speed e a arte dos jogos (capas e CDs) pertencem aos seus donos e não entram na licença. Este app não é oficial e não tem ligação com a EA nem com os autores dos sites.
