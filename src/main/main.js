@@ -264,12 +264,15 @@ async function copySaveAtStart() {
 }
 
 // ───────────────────────── Mods de textura do NFSU2 (modFiles.js) ─────────────────────────
-// Pasta com a mesma árvore do jogo (ex.: NFSU2\TEXPACKS\meu.pak). Vazia ou ausente: nada muda, nenhum pedido passa pelo app.
-// Com mods, os pedidos do site passam pelo app só enquanto o NFSU2 está aberto (openSite). Lida ao abrir o app.
+// Duas pastas com a mesma árvore do jogo (ex.: NFSU2\TEXPACKS\detailed.pak): a que vem no instalador
+// (resources\mods\NFSU2, desde a 2.0.8: o pacote de texturas junto com o mapa detalhado do site) e a do jogador
+// (%APPDATA%\NFS Launcher Mods\NFSU2), que vale por cima. Sem nenhuma: nada muda, nenhum pedido passa pelo app.
+// Com mods, os pedidos do site passam pelo app só enquanto o NFSU2 está aberto (openSite). Lidas ao abrir o app.
 const modsDir = () => path.join(app.getPath('appData'), 'NFS Launcher Mods', 'NFSU2');
+const bundledModsDir = () => path.join(process.resourcesPath, 'mods', 'NFSU2');
 let modsOn = null; // resultado de modFiles.install (null = sem mods)
-// Registro curto do que houve com os mods (refeito a cada abertura, no máximo 300 linhas): NFS Launcher Mods\registro.txt.
-// Se a pasta de mods não aceitar gravação, o registro vai para a pasta temporária (nfs-mods-registro.txt).
+// Registro curto do que houve com os mods (refeito a cada abertura, no máximo 300 linhas): NFS Launcher Mods\registro.txt
+// para quem tem a pasta; senão (ou se ela não aceitar gravação), na pasta temporária (nfs-mods-registro.txt).
 let modLogLines = 0;
 let modLogFile = null;
 function modLog(text) {
@@ -277,15 +280,16 @@ function modLog(text) {
   try { fs.appendFileSync(modLogFile, `${new Date().toLocaleTimeString()} ${text}\r\n`); } catch { /* sem como gravar: segue */ }
 }
 function setupMods(ses) {
-  const dir = modsDir();
-  if (!fs.existsSync(path.dirname(dir))) return; // sem a pasta "NFS Launcher Mods": nada a fazer nem a registrar
+  const dir = modsDir(), bundled = bundledModsDir();
+  const userHas = fs.existsSync(path.dirname(dir));
+  if (!userHas && !fs.existsSync(bundled)) return; // nada a fazer nem a registrar
   const head = `NFS Launcher ${app.getVersion()}, aberto ${new Date().toLocaleString()}\r\n`;
-  for (const f of [path.join(dir, '..', 'registro.txt'), path.join(os.tmpdir(), 'nfs-mods-registro.txt')]) {
+  for (const f of [userHas && path.join(dir, '..', 'registro.txt'), path.join(os.tmpdir(), 'nfs-mods-registro.txt')].filter(Boolean)) {
     try { fs.writeFileSync(f, head); modLogFile = f; break; } catch { /* tenta o próximo */ }
   }
   if (SAFE_MODE) { modLog('modo seguro: mods desligados'); return; }
-  const mods = modFiles.scan(dir);
-  modLog(`pasta ${dir}: ${mods.length} arquivo(s)`);
+  const mods = modFiles.scanAll([bundled, dir]);
+  modLog(`do instalador ${bundled}, do jogador ${dir}: ${mods.length} arquivo(s)`);
   if (!mods.length) return;
   modsOn = modFiles.install(ses, { mods, allowed: (u) => isAllowedUrl(u, 'nfsu2'), log: modLog });
 }

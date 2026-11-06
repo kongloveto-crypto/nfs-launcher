@@ -7,7 +7,7 @@ App que abre **só** os jogos do catálogo (`src/main/config.js`), numa janela p
 
 No PC é Electron 45.1.0 / Chromium 156, com motor próprio. No Android é Chromium 156 compilado, em `android-motor/`.
 
-Os sites carregam pela internet, sem cópia nem alteração, e nenhum script é injetado (a única exceção são os mods de textura que o próprio jogador põe na pasta de mods, abaixo). Cada jogo só navega no próprio site.
+Os sites carregam pela internet, sem cópia nem alteração, e nenhum script é injetado (a única exceção são os mods de textura do NFSU2, abaixo). Cada jogo só navega no próprio site.
 
 Download, novidades e SHA-256 de cada versão: <https://claude.ai/artifact/RKw9JHnui62my5XSLXEZGB>.
 
@@ -18,7 +18,7 @@ Rode um comando por vez:
 ```powershell
 npm install        # também baixa o Electron
 npm start          # abre o app com o motor oficial do Electron
-npm test           # 121 testes
+npm test           # 123 testes
 npm run verify     # 27 verificações estáticas (travam erros já corrigidos)
 npm run pack       # monta dist\win-unpacked para examinar, sem instalador
 npm run dist       # instalador dist\NFS-Launcher-Setup-<versão>.exe, com o motor próprio de C:\e\motor-final
@@ -67,8 +67,9 @@ node node_modules\electron\install.js
   - Com `NFS-Launcher-Setup-<versão>.exe` mais novo, o botão Baixar fica na tela inicial e abre a pasta no navegador.
 - **Discord:** "Jogando NFS Launcher", só pelo canal local do PC.
 - **Mods de textura (NFSU2, só PC, `modFiles.js`):**
-  - Arquivos em `%APPDATA%\NFS Launcher Mods\NFSU2`, com a mesma árvore do jogo (ex.: `TEXPACKS\meu.pak`), entram na lista de arquivos que o jogo recebe do site e são entregues pelo app.
-  - Com mods e o NFSU2 aberto, os pedidos do site passam pelo app: a lista e os arquivos dos mods são respondidos por ele, o resto segue para o site sem mudança. Sem script na página. Vale ao abrir o app e só no PC de quem instalou.
+  - Duas pastas com a mesma árvore do jogo: a que vem no instalador (`resources\mods\NFSU2`) e a do jogador (`%APPDATA%\NFS Launcher Mods\NFSU2`), que vale por cima. Os arquivos delas entram na lista de arquivos que o jogo recebe do site e são entregues pelo app.
+  - O instalador traz `TEXPACKS\detailed.pak`: o mapa detalhado do site junto com texturas de mods da comunidade, montado fora do repositório (os arquivos dos mods não entram aqui). O jogo já carrega esse pacote com o HUD melhorado, sem mudar o `settings.ini`.
+  - Com mods e o NFSU2 aberto, os pedidos do site passam pelo app: a lista e os arquivos dos mods são respondidos por ele, o resto segue para o site sem mudança. Sem script na página. Vale ao abrir o app e só no PC.
 
 ## Dicas para o jogador
 

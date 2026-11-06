@@ -34,6 +34,16 @@ test('scan: árvore do jogo, sem pastas vazias, nomes estranhos ou arquivo vazio
   assert.deepStrictEqual(mf.scan(path.join(d, 'nao-existe')), []);
 });
 
+test('scanAll: a pasta do jogador vale por cima da do instalador, sem diferenciar maiúsculas', () => {
+  const inst = tmp(), user = tmp();
+  put(inst, 'TEXPACKS/detailed.pak', 'instalador');
+  put(inst, 'TRACKS/LOC4DYNTEX.BIN', 'ceu');
+  put(user, 'texpacks/DETAILED.pak', 'meu');
+  const got = mf.scanAll([inst, user, path.join(user, 'nao-existe')]).map((x) => [x.p, x.s]).sort();
+  assert.deepStrictEqual(got, [['TRACKS/LOC4DYNTEX.BIN', 3], ['texpacks/DETAILED.pak', 3]]);
+  assert.strictEqual(mf.scanAll([inst, user]).find((x) => /detailed/i.test(x.p)).file, path.join(user, 'texpacks', 'DETAILED.pak'));
+});
+
 test('patchManifest: troca arquivo do site (mantém o nome dele) e acrescenta novo com as pastas', () => {
   const mods = [
     { p: 'CARS/240SX/textures.bin', file: 'a', s: 4, m: 50 },

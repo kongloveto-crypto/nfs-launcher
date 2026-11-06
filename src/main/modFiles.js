@@ -37,6 +37,14 @@ function scan(root) {
   return out;
 }
 
+// Várias pastas de mods (a que vem no instalador e a do jogador): mesmo caminho em duas, vale a da pasta que vem
+// depois na lista (sem diferenciar maiúsculas).
+function scanAll(roots) {
+  const by = new Map();
+  for (const root of roots) for (const m of scan(root)) by.set(m.p.toLowerCase(), m);
+  return [...by.values()].slice(0, MAX_FILES);
+}
+
 // Lista do site com os mods: arquivo que já existe (sem diferenciar maiúsculas) troca de tamanho e data e mantém o
 // nome do site; arquivo novo entra com as pastas que faltarem. Devolve a lista e o caminho final de cada mod.
 function patchManifest(manifest, mods) {
@@ -184,4 +192,4 @@ function install(ses, { mods, allowed, log = () => {} }) {
   };
 }
 
-module.exports = { BLOCK, scan, patchManifest, route, blockSpan, rangeSpan, readSpan, encodePath, install };
+module.exports = { BLOCK, scan, scanAll, patchManifest, route, blockSpan, rangeSpan, readSpan, encodePath, install };
