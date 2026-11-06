@@ -6,5 +6,6 @@ const pkg = require('../package.json');
 module.exports = {
   ...pkg.build,
   extraResources: [],
+  nsis: { ...pkg.build.nsis, artifactName: 'NFS-Launcher-Setup-${version}-sem-texturas.exe' },
   extraMetadata: { version: pkg.versaoLeve },
 };

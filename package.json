@@ -92,7 +92,7 @@
       ],
       "language": "1046",
       "include": "build/installer.nsh",
-      "artifactName": "NFS-Launcher-Setup-${version}.exe"
+      "artifactName": "NFS-Launcher-Setup-${version}-com-texturas.exe"
     }
   }
 }
