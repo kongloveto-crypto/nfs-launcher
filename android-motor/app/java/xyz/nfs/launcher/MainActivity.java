@@ -116,7 +116,7 @@ public class MainActivity extends Activity {
             GAMES = new Game[]{ new Game("nfsu2", "NFSU2", "Need for Speed: Underground 2", "https://nfsu2.xyz", "https://nfsu2.xyz/#crew=U2BR", "games/nfsu2.png", true) };
         }
     }
-    static final String VERSION = "1.6.3"; // também dá o nome do APK (quick.sh/build.sh leem daqui)
+    static final String VERSION = "1.6.4"; // também dá o nome do APK (quick.sh/build.sh leem daqui)
     static final long LOW_DISK_BYTES = 3L * 1024 * 1024 * 1024; // o maior jogo baixa cerca de 3 GB
     // Tela de entrada do motor (o mesmo pacote deste app). Pelo nome exato: o motor não recebe links de fora.
     static final String MOTOR_ENTRY = "com.google.android.apps.chrome.IntentDispatcher";
@@ -547,6 +547,8 @@ public class MainActivity extends Activity {
             o.put("bubble", prefs.getBoolean("bubble", true));
             o.put("sounds", true); // sempre ligados, como no PC, mesmo para quem tinha desligado
             o.put("prepareGame", prefs.getBoolean("prepareGame", false));
+            o.put("hdTextures", prefs.getBoolean("hdTextures", true));
+            o.put("texAvail", texturesInApk());
             if (error != null) {
                 o.put("error", error);
                 o.put("dnsFailed", dnsFailed);
@@ -588,7 +590,7 @@ public class MainActivity extends Activity {
             runOnUiThread(() -> home.evaluateJavascript("window.refresh && refresh()", null));
         }
         @JavascriptInterface public void setOption(String key, boolean on) {
-            if (!"bubble".equals(key) && !"prepareGame".equals(key)) return;
+            if (!"bubble".equals(key) && !"prepareGame".equals(key) && !"hdTextures".equals(key)) return;
             prefs.edit().putBoolean(key, on).commit(); // commit: o processo do jogo lê este arquivo ao abrir
             runOnUiThread(MainActivity.this::refreshHome);
         }
@@ -675,8 +677,19 @@ public class MainActivity extends Activity {
             if (prefs.getBoolean("bubble", true) && Settings.canDrawOverlays(this)) {
                 startService(new Intent(this, BubbleService.class).putExtra(BubbleService.EXTRA_TIPS, g.tips));
             }
-            launchInMotor(g);
+            if (!"nfsu2".equals(g.id)) { launchInMotor(g); return; }
+            // Texturas HD (1.6.4): com o jogo fechado, liga (ou desfaz) o mapa detalhado no settings.ini, por onde elas entram.
+            Context app = getApplicationContext();
+            boolean on = prefs.getBoolean("hdTextures", true) && texturesInApk();
+            new Thread(() -> { GameSettings.run(app, on); ui.post(() -> launchInMotor(g)); }).start();
         }, wasOpen ? 500 : 0);
+    }
+
+    /** O APK traz o pacote de texturas (assets/nfs/texturas.ntxp, guardado sem compressão para o motor ler por partes). */
+    private boolean texturesInApk() {
+        try (android.content.res.AssetFileDescriptor fd = getAssets().openFd(ASSETS + "texturas.ntxp")) {
+            return fd.getLength() > 0;
+        } catch (IOException e) { return false; }
     }
 
     /**

@@ -156,6 +156,11 @@
     $('s-prepareGame').checked = !!st.prepareGame;
     $('s-prepareGame-l').textContent = t('Preparar o jogo ao carregar: otimiza o jogo todo no início, não durante a corrida. Pesa mais nos primeiros segundos e pode reduzir engasgos depois',
       'Prepare the game while loading: optimizes the whole game at the start, not during the race. Heavier in the first seconds and may reduce stutters later');
+    $('tex-sec').hidden = !st.texAvail;
+    $('set-tex-h').textContent = t('Texturas (NFSU2)', 'Textures (NFSU2)');
+    $('s-hdTextures').checked = !!st.hdTextures;
+    $('s-hdTextures-l').textContent = t('Texturas melhores: asfalto, prédios, árvores e céu dos mods Redux e NextGen, com até 2x o tamanho das originais. Em celular fraco, desligue se o jogo ficar lento. O app liga o mapa detalhado do jogo, por onde elas entram. Vale na próxima vez que o jogo abrir',
+      'Better textures: asphalt, buildings, trees and sky from the Redux and NextGen mods, up to 2x the size of the originals. On a weak phone, turn it off if the game gets slow. The app turns on the game\'s detailed map, which is how they come in. Applies the next time the game opens');
     $('set-maint-h').textContent = t('Manutenção', 'Maintenance');
     $('maint-note').textContent = t('Limpar o cache fica nos ajustes do Android, em Armazenamento, e não toca nos seus saves. Atenção: nunca use “Limpar dados” ali: ele apaga o login, as configurações e os saves do jogo neste app.',
       'Clearing the cache is in the Android settings, under Storage, and does not touch your saves. Warning: never use “Clear data” there: it erases the login, settings and game saves in this app.');
@@ -284,10 +289,10 @@
   $('e-retry').onclick = () => api.retry();
   $('e-dns').onclick = () => api.trySecureDns();
   $('e-home').onclick = () => api.clearError();
-  for (const key of ['bubble', 'prepareGame']) {
+  for (const key of ['bubble', 'prepareGame', 'hdTextures']) {
     $(`s-${key}`).onchange = (e) => {
       api.setOption(key, e.target.checked);
-      if (key === 'prepareGame') toast(t('Vale na próxima vez que o jogo abrir.', 'Applies the next time the game opens.'));
+      if (key !== 'bubble') toast(t('Vale na próxima vez que o jogo abrir.', 'Applies the next time the game opens.'));
     };
   }
   // A letra vale para as dicas daqui e para o guia nativo (bolha), que lê a preferência do app.

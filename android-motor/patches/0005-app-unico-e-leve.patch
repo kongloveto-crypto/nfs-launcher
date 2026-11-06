@@ -41,7 +41,7 @@ index 6b9413f634e59..182ed6c30115f 100644
        asset_deps += invoker.asset_deps
      }
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/base/SplitCompatApplication.java b/chrome/android/java/src/org/chromium/chrome/browser/base/SplitCompatApplication.java
-index b2eff462cf575..d061e11b90de1 100644
+index b2eff462cf575..11d586bbe05f1 100644
 --- a/chrome/android/java/src/org/chromium/chrome/browser/base/SplitCompatApplication.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/base/SplitCompatApplication.java
 @@ -221,7 +221,7 @@ public class SplitCompatApplication extends Application {
@@ -53,7 +53,7 @@ index b2eff462cf575..d061e11b90de1 100644
  
          if (isBrowserProcess) {
              // Renderer and GPU processes have command line passed to them via IPC
-@@ -229,6 +229,25 @@ public class SplitCompatApplication extends Application {
+@@ -229,6 +229,29 @@ public class SplitCompatApplication extends Application {
              CommandLineInitUtil.initCommandLine(
                      COMMAND_LINE_FILE, SplitCompatApplication::shouldUseDebugFlags);
              PathUtils.setPrivateDataDirectorySuffix(PRIVATE_DATA_DIRECTORY_SUFFIX);
@@ -75,6 +75,10 @@ index b2eff462cf575..d061e11b90de1 100644
 +                        .appendSwitchWithValue(
 +                                "js-flags",
 +                                "--no-wasm-lazy-compilation --no-wasm-dynamic-tiering");
++            }
++            // NFS Launcher: "Texturas HD" desligada (Configurações): o motor não entrega o pacote (patch 0007).
++            if (!context.getSharedPreferences("nfs", 0).getBoolean("hdTextures", true)) {
++                org.chromium.base.CommandLine.getInstance().appendSwitch("nfs-sem-texturas");
 +            }
              // Register for activity lifecycle callbacks. Must be done before any activities are
              // created and is needed only by processes that use the ApplicationStatus api (which

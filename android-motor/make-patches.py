@@ -217,7 +217,28 @@ def patch_app_startup(t):
                         .appendSwitchWithValue(
                                 "js-flags",
                                 "--no-wasm-lazy-compilation --no-wasm-dynamic-tiering");
+            }
+            // NFS Launcher: "Texturas HD" desligada (Configurações): o motor não entrega o pacote (patch 0007).
+            if (!context.getSharedPreferences("nfs", 0).getBoolean("hdTextures", true)) {
+                org.chromium.base.CommandLine.getInstance().appendSwitch("nfs-sem-texturas");
             }\n''')
+
+
+def patch_textures(t):
+    # Texturas HD do NFSU2 (1.6.4): a lista do site e o pacote passam pelo motor (android-motor/nfs_texturas.cc).
+    code = (pathlib.Path(__file__).resolve().parent / 'nfs_texturas.cc').read_text()
+    t = sub1(t, '''void ChromeContentBrowserClient::WillCreateURLLoaderFactory(''',
+             code + '''void ChromeContentBrowserClient::WillCreateURLLoaderFactory(''')
+    return sub1(t, '''    bool is_for_network_service) {
+#if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
+  auto* web_request_api =''', '''    bool is_for_network_service) {
+  // NFS Launcher: texturas HD do NFSU2, só nas páginas e workers do site do jogo.
+  if (nfs_tex::Wanted(request_initiator)) {
+    auto [nfs_receiver, nfs_target] = factory_builder.Append();
+    new nfs_tex::Factory(std::move(nfs_receiver), std::move(nfs_target));
+  }
+#if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
+  auto* web_request_api =''')
 
 
 def patch_game_activity(t):
@@ -603,6 +624,8 @@ PATCHES = [
         ('components/background_task_scheduler/internal/android/java/src/org/chromium/components/'
          'background_task_scheduler/internal/BackgroundTaskSchedulerJobService.java', patch_no_jobs),
         ('components/translate/core/browser/translate_prefs.cc', patch_no_translate)]),
+    ('0007-texturas-hd-do-nfsu2.patch', [
+        ('chrome/browser/chrome_content_browser_client.cc', patch_textures)]),
 ]
 
 
