@@ -266,19 +266,22 @@ check('Abrir o jogo: carga normal, sem recarga sem cache e sem apagar dados', ()
   const open = m.slice(m.indexOf('function openSite'), m.indexOf('// START com o jogo'));
   assert(!/clearCache|clearStorageData/.test(open), 'abrir o jogo apaga dados');
 });
-check('Opções novas: "preparar o jogo" desligada por padrão e Discord só no canal local', () => {
+check('Opções de desempenho ligadas por padrão (DX12), desligadas no DX11, e Discord só no canal local', () => {
   const m = read('src/main/main.js');
   const s = require('../src/main/settings').DEFAULTS;
-  assert(s.prepareGame === false, 'preparar o jogo ligado por padrão');
+  // Pedido do Bruno (06/11): todas ligadas por padrão no DirectX 12; o modo DirectX 11 desmarca todas.
+  assert(s.prepareGame === true && s.highPriority === true, 'preparar o jogo ou prioridade desligados por padrão');
+  const st = require('../src/main/settings');
+  for (const k of ['highPriority', 'prepareGame', 'lighterGpu', 'newDrawing', 'antiAlias']) assert(st.DX11_OFF.includes(k), k + ' continua ligado no modo DirectX 11');
   assert((m.match(/sw\('js-flags'/g) || []).length === 1 && /if \(PREPARE_ON\) sw\('js-flags'/.test(m), 'js-flags fora da opção');
-  assert(s.lighterGpu === false, 'aliviar o processador ligado por padrão');
+  assert(s.lighterGpu === true, 'aliviar o processador desligado por padrão');
   assert((m.match(/sw\('enable-dawn-features'/g) || []).length === 1 && /if \(LIGHTER_ON\) sw\('enable-dawn-features', 'skip_validation'\)/.test(m), 'opção do motor gráfico fora do teste');
   assert(s.unblockGpu === false, 'liberar a placa ligado por padrão');
   assert((m.match(/sw\('disable-dawn-features'/g) || []).length === 1 && /if \(UNBLOCK_ON\) sw\('disable-dawn-features', 'adapter_blocklist'\)/.test(m), 'liberar a placa fora da opção');
   assert((m.match(/sw\('use-webgpu-adapter'/g) || []).length === 1 && /if \(UNBLOCK_ON\) sw\('use-webgpu-adapter', 'd3d11'\)/.test(m), 'DirectX 11 fora da opção');
   assert(s.newDrawing === true, 'Graphite e Delegated deveriam vir ligados por padrão');
   assert(/NEW_DRAWING_ON && '[^']*SkiaGraphite[^']*DelegatedCompositing'/.test(m), 'Graphite e Delegated deveriam ligar juntos, na mesma opção');
-  assert(s.antiAlias === false && s.imageFilter === false, 'anti-serrilhado ou filtro ligado por padrão');
+  assert(s.antiAlias === true && s.imageFilter === false, 'anti-serrilhado desligado ou filtro ligado por padrão');
   assert((m.match(/insertCSS\(/g) || []).length === 1 && /imageFilter\.css\(cfg\.imageFilter, cfg\.imageMode\)/.test(m), 'CSS no jogo fora do filtro de imagem');
   assert((m.match(/sw\('enable-features'/g) || []).length === 1 && /if \(NEW_DRAWING_ON \|\| ANTI_ALIAS_ON\) sw\('enable-features', DRAW_FEATURES\)/.test(m), 'desenho da tela fora da opção');
   assert(/ANTI_ALIAS_ON && 'NfsAntiAlias'/.test(m) && /BASE_FEATURE\(kNfsAntiAlias, base::FEATURE_DISABLED_BY_DEFAULT\)/.test(read('pc-motor/aplicar-correcoes.py')), 'anti-serrilhado fora da opção');

@@ -47,12 +47,9 @@ node node_modules\electron\install.js
   - Desligar o Windows nunca é bloqueado.
 - **Gráficos iguais ao Chrome:** nenhuma flag que mude a composição dos quadros.
   - Avançado tem:
-    - Graphite + Delegated, ligados por padrão;
-    - "Preparar o jogo ao carregar";
-    - "Aliviar o processador";
-    - FXAA do motor próprio;
+    - Prioridade "acima do normal", "Preparar o jogo ao carregar", "Aliviar o processador", Graphite + Delegated e FXAA do motor próprio, todos ligados por padrão (no modo DirectX 11, todos desligados);
     - filtro de imagem com 5 modos.
-  - Placa sem DirectX 12: liga sozinho o modo DirectX 11, inclusive no nível 11_0, com "Desfazer e reabrir". Nesse modo o jogo começa "cru": sem texturas HD, filtro de imagem, anti-serrilhado, "Preparar o jogo" e "Aliviar o processador" (dá para religar).
+  - Placa sem DirectX 12: liga sozinho o modo DirectX 11, inclusive no nível 11_0, com "Desfazer e reabrir". Nesse modo o jogo começa "cru": sem texturas HD, filtro de imagem e nenhuma opção de Desempenho (dá para religar).
 - **Saves:**
   - Nada apaga a pasta de dados nem os saves.
   - `profileLock.js` evita a perda ao fechar e abrir rápido.

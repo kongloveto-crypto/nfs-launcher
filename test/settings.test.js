@@ -43,7 +43,9 @@ test('padrões: modo janela, tela inicial, proteção e prioridade ativas', () =
   assert.equal(d.showHome, true);
   assert.equal(d.protectFullscreen, true);
   assert.equal(d.blockAltSpace, true);
-  assert.equal(d.highPriority, false);
+  assert.equal(d.highPriority, true);
+  for (const k of ['prepareGame', 'lighterGpu', 'newDrawing', 'antiAlias']) assert.equal(d[k], true, k);
+  assert.equal(d.imageFilter, false);
   assert.equal(d.showCorner, true);
   assert.equal('lowLatency' in d, false, 'o app não mexe no VSync');
 });
@@ -67,7 +69,13 @@ test('modo DirectX 11: entrar nele desliga texturas HD e opções extras; quem j
   const on = s.applyChange(s.sanitize({ ...tudo, version: 7 }), 'unblockGpu', true).cfg;
   assert.equal(on.unblockGpu, true);
   for (const k of s.DX11_OFF) assert.equal(on[k], false, k);
-  assert.equal(on.highPriority, true, 'prioridade não mexe na placa: fica');
+  assert.equal(on.highPriority, false, 'no DX11, tudo desmarcado (pedido do Bruno, 06/11)');
+  const v7 = s.sanitize({ version: 7, prepareGame: false, antiAlias: false, highPriority: false });
+  for (const k of ['highPriority', 'prepareGame', 'lighterGpu', 'newDrawing', 'antiAlias']) assert.equal(v7[k], true, `quem tinha o app passa a ligado: ${k}`);
+  const v7dx = s.sanitize({ version: 7, unblockGpu: true, prepareGame: true });
+  for (const k of s.DX11_OFF) assert.equal(v7dx[k], false, `DX11 continua desligado: ${k}`);
+  const desmarcou = s.sanitize(s.applyChange(v7, 'antiAlias', false).cfg);
+  assert.equal(desmarcou.antiAlias, false, 'desmarcar depois fica');
   const antigo = s.sanitize({ ...tudo, version: 6, unblockGpu: true });
   for (const k of s.DX11_OFF) assert.equal(antigo[k], false, `migração: ${k}`);
   assert.equal(antigo.version, 8);
@@ -101,7 +109,7 @@ test('preferências da versão anterior continuam válidas', () => {
   const c = s.sanitize({ version: 1, startFullscreen: true, exitCombo: 'Ctrl+Alt+K' });
   assert.equal(c.startFullscreen, true);
   assert.equal(c.exitCombo, 'Ctrl+Alt+K');
-  assert.equal(c.highPriority, false);
+  assert.equal(c.highPriority, true);
 });
 test('atalhos iguais voltam ao padrão (evita ficar sem saída)', () => {
   const c = s.sanitize({ toggleCombo: 'Ctrl+Alt+K', exitCombo: 'Ctrl+Alt+K' });

@@ -9,15 +9,15 @@ const DEFAULTS = Object.freeze({
   showHome: true,           // mostrar tela inicial antes do jogo
   protectFullscreen: true,  // tela cheia = modo protegido
   blockAltSpace: true,      // engole Alt+Espaço durante o jogo (menu do Windows)
-  highPriority: false,      // prioridade "acima do normal" para o jogo e a GPU (opcional)
+  highPriority: true,       // prioridade "acima do normal" para o jogo e a GPU. Ligadas por padrão, menos no DX11 (pedido do Bruno, 06/11)
   showCorner: true,         // botão discreto (semitransparente) sobre o jogo
-  prepareGame: false,       // prepara todo o código do jogo ao carregar, em vez de aos poucos na corrida. Vale ao reabrir
-  lighterGpu: false,        // tira as checagens de cada comando gráfico (teste; o Chrome não faz isso). Vale ao reabrir
+  prepareGame: true,        // prepara todo o código do jogo ao carregar, em vez de aos poucos na corrida. Vale ao reabrir
+  lighterGpu: true,         // tira as checagens de cada comando gráfico (teste; o Chrome não faz isso). Vale ao reabrir
   unblockGpu: false,        // modo DirectX 11, para placa sem DirectX 12. Só oferecido a quem tem erro de WebGPU. Vale ao reabrir
   unblockTried: false,      // o app já tentou o modo DirectX 11 sozinho (tenta uma vez só)
   newDrawing: true,         // Skia Graphite + Delegated Compositing, juntos e ligados por padrão (decisão do Bruno, depois dos logs jogando). Vale ao reabrir
   secureDns: 'off',         // DNS seguro que fez o jogo abrir: fica ligado nas próximas aberturas (fora das configurações)
-  antiAlias: false,         // anti-serrilhado do nosso motor (teste). Vale ao reabrir
+  antiAlias: true,          // anti-serrilhado do nosso motor (teste). Vale ao reabrir
   imageFilter: false,       // filtro de cor e nitidez sobre a imagem do jogo. Vale na hora
   imageMode: 'vivido',      // modo do filtro (imageFilter.js)
   hdTextures: true,         // texturas melhores do NFSU2 (pacote do instalador e pasta de mods). Vale ao iniciar ou recarregar o jogo
@@ -81,14 +81,21 @@ function sanitize(raw) {
   // Versão 8 (pedido do Bruno, 06/11): o TexWizard vira o padrão de cada parte que ele tem. Quem tinha aplicado uma
   // escolha (a janela guarda todas as partes, mesmo sem mudar nada) volta ao padrão uma vez; depois, o que escolher fica.
   if (!(Number(r.version) >= 8)) out.texParts = {};
+  // Versão 8 (pedido do Bruno, 06/11): Prioridade, Preparar o jogo, Aliviar o processador, desenho novo e FXAA ligados
+  // por padrão no DirectX 12; quem tinha o app passa uma vez. No modo DirectX 11, tudo desligado (dx11Basic).
+  if (!(Number(r.version) >= 8)) {
+    if (out.unblockGpu) return dx11Basic(out);
+    for (const k of PERF_ON) out[k] = true;
+  }
   // Versão 7: quem já estava no modo DirectX 11 passa uma vez para o jogo "cru" (dx11Basic). Depois, o que religar fica.
   if (!(Number(r.version) >= 7) && out.unblockGpu) return dx11Basic(out);
   return out;
 }
 // Modo DirectX 11 = placa fraca ou antiga (pedido do Bruno, 06/11, depois da tela preta numa Intel gen-7): ao entrar
-// nele, o jogo roda "cru", sem texturas HD e sem as opções extras de imagem e desempenho. Graphite e Delegated o
-// próprio modo já ignora. Quem quiser pode religar cada uma depois; sair do modo não as liga de volta.
-const DX11_OFF = ['hdTextures', 'prepareGame', 'lighterGpu', 'antiAlias', 'imageFilter'];
+// nele, o jogo roda "cru", sem texturas HD e com todas as opções de imagem e desempenho desmarcadas (Graphite e
+// Delegated o próprio modo já ignorava). Quem quiser pode religar cada uma depois; sair do modo não as liga de volta.
+const PERF_ON = ['highPriority', 'prepareGame', 'lighterGpu', 'newDrawing', 'antiAlias'];
+const DX11_OFF = ['hdTextures', 'highPriority', 'prepareGame', 'lighterGpu', 'newDrawing', 'antiAlias', 'imageFilter'];
 function dx11Basic(cfg) {
   const out = { ...cfg, unblockGpu: true };
   for (const k of DX11_OFF) out[k] = false;
