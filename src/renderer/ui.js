@@ -257,17 +257,23 @@
     }));
   }
 
-  // Texturas por partes (texPack.js): para cada parte, os mods que a têm e "Original"; o que vale fica marcado.
-  let texKey = '';
-  function renderTexParts(s) {
+  // Janela de texturas (texPack.js): rascunho local com a opção geral e o mod de cada parte; nada vale até "Aplicar",
+  // que grava tudo de uma vez e só então pergunta se reinicia o jogo (pedido do Bruno: trocar várias antes do aviso).
+  let texDraft = null;
+  function texDraftFrom(s) {
+    return { on: !!s.settings.hdTextures, parts: { ...((s.texParts && s.texParts.choice) || {}) } };
+  }
+  function renderTexScreen(s) {
     const tp = s.texParts;
-    $('tex-box').hidden = !tp;
+    if (!texDraft) texDraft = texDraftFrom(s);
+    $('x-on').checked = texDraft.on;
+    $('x-box').hidden = !tp;
+    $('x-box').classList.toggle('dim', !texDraft.on);
+    const now = texDraftFrom(s);
+    $('x-apply').disabled = JSON.stringify(now) === JSON.stringify(texDraft);
     if (!tp) return;
-    const key = `${lang}|${JSON.stringify(tp)}`;
-    if (key === texKey) return;
-    texKey = key;
     const names = Object.fromEntries(tp.mods.map((m) => [m.id, m.name]));
-    $('tex-parts').replaceChildren(...tp.parts.map((p) => {
+    $('x-parts').replaceChildren(...tp.parts.map((p) => {
       const row = el('div', 'tex-row');
       row.append(el('b', '', t(p.pt, p.en)));
       const group = el('div', 'lang');
@@ -275,18 +281,22 @@
       group.setAttribute('aria-label', t(p.pt, p.en));
       for (const id of [...p.mods, 'original']) {
         const b = el('button', '', id === 'original' ? t('Original', 'Original') : names[id] || id);
-        b.setAttribute('aria-pressed', String(tp.choice[p.id] === id));
-        b.onclick = async () => {
-          if (tp.choice[p.id] === id) return;
-          const r = await api.setTexturePart(p.id, id);
-          if (!(r && r.ok)) toast((r && r.error) || '', true);
-        };
+        b.setAttribute('aria-pressed', String(texDraft.parts[p.id] === id));
+        b.onclick = () => { texDraft.parts[p.id] = id; renderTexScreen(state); };
         group.append(b);
       }
       row.append(group);
       return row;
     }));
   }
+  $('x-on').onchange = () => { if (texDraft) { texDraft.on = $('x-on').checked; renderTexScreen(state); } };
+  $('x-cancel').onclick = () => api.back();
+  $('x-apply').onclick = async () => {
+    if (!texDraft) return;
+    const r = await api.applyTextures(texDraft);
+    if (!(r && r.ok)) toast((r && r.error) || '', true);
+  };
+  $('b-tex-parts').onclick = () => api.openTextures();
 
   // Atualizações: o botão fica na tela inicial sempre que a pasta de versões tem um instalador mais novo.
   function renderUpdate(s) {
@@ -391,10 +401,12 @@
         `To leave fullscreen: ${s.settings.toggleCombo} (or the ⛶ button up here)`);
     }
     const was = document.body.dataset.shown;
-    for (const id of ['launcher', 'settings', 'error', 'loading', 'tips']) $(id).hidden = s.screen !== id;
+    for (const id of ['launcher', 'settings', 'error', 'loading', 'tips', 'textures']) $(id).hidden = s.screen !== id;
     if (s.screen === 'tips') {
       if (was !== 'tips') renderTips();
     }
+    // Janela de texturas: rascunho novo a cada vez que abre (o que não foi aplicado some ao voltar).
+    if (s.screen === 'textures') { if (was !== 'textures') texDraft = null; renderTexScreen(s); } else texDraft = null;
     document.body.dataset.shown = s.screen;
     // Foco no botão principal de cada tela: Enter já funciona sem usar o mouse.
     if (was !== s.screen) {
@@ -416,8 +428,8 @@
     // Texturas melhores: só com o NFSU2 aberto e o pacote presente. Colorido quando ligado.
     $('c-tex').hidden = !(s.gameStarted && s.game === 'nfsu2' && s.texturesAvail);
     $('c-tex').classList.toggle('on', !!s.settings.hdTextures);
-    const texTip = s.settings.hdTextures ? t('Texturas melhores: ligadas. Clique para desligar', 'Better textures: on. Click to turn off')
-      : t('Texturas melhores: desligadas. Clique para ligar', 'Better textures: off. Click to turn on');
+    const texTip = s.settings.hdTextures ? t('Texturas HD: ligadas. Clique para escolher', 'HD textures: on. Click to choose')
+      : t('Texturas HD: desligadas. Clique para escolher', 'HD textures: off. Click to choose');
     $('c-tex').title = texTip;
     $('c-tex').setAttribute('aria-label', texTip);
     $('loading-note').textContent = t('Na primeira vez os arquivos do jogo são baixados; depois ficam guardados neste PC.',
@@ -445,7 +457,8 @@
     renderChip();
     renderUpdate(s);
     renderSaves(s);
-    if (s.screen === 'settings') { renderCustom(s); renderTexParts(s); }
+    if (s.screen === 'settings') renderCustom(s);
+    $('tex-box').hidden = !s.texParts;
     loadCustom(s);
     $('e-exit').hidden = !s.locked;
     $('e-settings').hidden = s.locked;
@@ -455,7 +468,7 @@
   window.addEventListener('keydown', async (e) => {
     if (!capturingFor) {
       // Esc nas configurações volta (para o jogo, se ele já foi iniciado).
-      if (e.code === 'Escape' && state && (state.screen === 'settings' || state.screen === 'tips') && !e.ctrlKey && !e.altKey) { e.preventDefault(); api.back(); }
+      if (e.code === 'Escape' && state && ['settings', 'tips', 'textures'].includes(state.screen) && !e.ctrlKey && !e.altKey) { e.preventDefault(); api.back(); }
       return;
     }
     e.preventDefault(); e.stopPropagation();
@@ -477,7 +490,7 @@
   $('c-set').onclick = () => api.openSettings();
   $('c-image').onclick = () => api.nextImageMode();
   $('c-tips').onclick = () => api.openTips();
-  $('c-tex').onclick = () => api.toggleTextures();
+  $('c-tex').onclick = () => api.openTextures();
   $('c-home').onclick = () => api.goHome(); // fecha o jogo aberto e volta aos CDs
   $('c-reload').onclick = () => api.reloadAsk(); // só por clique: as teclas são do jogo
   $('btn-tips').onclick = () => api.openTips();

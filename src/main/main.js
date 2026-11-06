@@ -328,6 +328,7 @@ function allMods() {
   return [...by.values()];
 }
 let modsOn = null; // resultado de modFiles.install (null = sem mods)
+let texReturn = null; // tela de onde a janela de texturas foi aberta (Voltar/Aplicar voltam para ela)
 // Registro curto do que houve com os mods (refeito a cada abertura, no máximo 300 linhas): NFS Launcher Mods\registro.txt
 // para quem tem a pasta; senão (ou se ela não aceitar gravação), na pasta temporária (nfs-mods-registro.txt).
 let modLogLines = 0;
@@ -520,6 +521,8 @@ function openTips() {
   if (!cfg.tipsDiscovered) { cfg.tipsDiscovered = true; saveCfg(); }
   setScreen('tips');
 }
+// Janela de texturas aberta pelas Configurações volta para elas; pelo botão da barra, para o jogo.
+const texBackScreen = () => (texReturn === 'settings' ? 'settings' : backScreen());
 // Para onde "Voltar" leva: o jogo (ou o erro/carregamento dele) se já foi iniciado, senão a tela inicial.
 function backScreen() {
   if (!gameStarted) return 'launcher';
@@ -1245,7 +1248,7 @@ function registerIpc() {
   handle('window:toggle-fullscreen', () => { if (!locked()) toggleFullscreen(); return { ok: true }; });
   handle('window:exit-protected', () => { exitProtected(); return { ok: true }; });
   handle('screen:settings', () => { if (!locked()) setScreen('settings'); return { ok: true }; });
-  handle('screen:back', () => { setScreen(backScreen()); return { ok: true }; });
+  handle('screen:back', () => { setScreen(screen === 'textures' ? texBackScreen() : backScreen()); return { ok: true }; });
   handle('capture:set', (on) => { capturing = !!on; syncAltSpaceCatch(); return { ok: true }; });
   handle('settings:set', (key, value) => {
     const r = settings.applyChange(cfg, key, value);
@@ -1258,22 +1261,28 @@ function registerIpc() {
     if (key === 'hdTextures') askTexturesRestart();
     return { ok: true };
   });
-  // Mod de uma parte das texturas (texPack.js): troca o pacote virtual na hora; vale quando o jogo carregar de novo.
-  handle('textures:part', (part, mod) => {
-    if (!texSources || !texPack.PART_IDS.includes(part)) return { ok: false, error: tr('Parte inválida.', 'Invalid part.') };
-    if (mod !== texPack.ORIGINAL && !(texAvail[part] || []).includes(mod)) return { ok: false, error: tr('Esse pacote não tem essa parte.', 'That pack does not have this part.') };
-    cfg = { ...cfg, texParts: texPack.sanitizeChoice({ ...cfg.texParts, [part]: mod }) };
-    saveCfg();
-    if (modsOn) modsOn.setMods(allMods());
-    refresh();
-    askTexturesRestart(true);
+  // Janela de texturas (botão "Texturas HD" da barra e Configurações > Texturas): volta para onde estava.
+  handle('screen:textures', () => {
+    if (NO_UI || !modsOn) return { ok: false };
+    if (screen !== 'textures') texReturn = screen;
+    setScreen('textures');
     return { ok: true };
   });
-  handle('textures:toggle', () => {
-    cfg = { ...cfg, hdTextures: !cfg.hdTextures };
+  // "Aplicar" da janela: a opção geral e o mod de cada parte de uma vez (texPack.js); só então pergunta se reinicia.
+  handle('textures:apply', (draft) => {
+    if (!draft || typeof draft !== 'object' || typeof draft.on !== 'boolean') return { ok: false, error: tr('Escolha inválida.', 'Invalid choice.') };
+    const parts = texSources ? texPack.sanitizeChoice(draft.parts) : cfg.texParts;
+    for (const [p, mod] of Object.entries(parts)) {
+      if (mod !== texPack.ORIGINAL && !(texAvail[p] || []).includes(mod)) return { ok: false, error: tr('Esse pacote não tem essa parte.', 'That pack does not have this part.') };
+    }
+    const onChanged = draft.on !== cfg.hdTextures;
+    const before = JSON.stringify(texPack.effectiveChoice(cfg.texParts, texAvail));
+    cfg = { ...cfg, hdTextures: draft.on, texParts: parts };
     saveCfg();
-    refresh();
-    askTexturesRestart();
+    const partsChanged = JSON.stringify(texPack.effectiveChoice(cfg.texParts, texAvail)) !== before;
+    if (partsChanged && modsOn) modsOn.setMods(allMods());
+    setScreen(texBackScreen());
+    if (onChanged || (partsChanged && cfg.hdTextures)) askTexturesRestart(!onChanged);
     return { ok: true };
   });
   handle('image:next', () => {

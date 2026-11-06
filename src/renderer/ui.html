@@ -93,9 +93,9 @@
       <section>
         <h3 data-t="hTextures">Texturas (NFSU2)</h3>
         <label class="switch"><input type="checkbox" id="s-hdTextures"><span data-t="sHdTextures">Texturas melhores <small>(asfalto, prédios, árvores e céu com mais detalhe, dos mods Redux, Definitive Edition e NextGen, junto com o mapa detalhado. O app liga o mapa detalhado do jogo ao abrir; o HUD fica como você deixou. Vale ao iniciar ou recarregar o jogo)</small></span></label>
-        <div id="tex-box" hidden>
-          <p class="muted small" data-t="texPartsNote">Escolha de qual mod vem cada parte. Se o mod escolhido não tem alguma textura daquela parte, os outros completam. “Original” deixa a parte como no jogo.</p>
-          <div id="tex-parts" class="tex-parts"></div>
+        <div id="tex-box" class="row left" hidden>
+          <button id="b-tex-parts" class="small" data-t="texChoose">Escolher as partes…</button>
+          <span class="muted small" data-t="texChooseNote">Asfalto, céu, prédios e mais: de qual mod vem cada um.</span>
         </div>
       </section>
       <section>
@@ -184,6 +184,23 @@
       <div class="row right footer">
         <span id="tips-hint" class="muted small">Ctrl+Alt+I abre e fecha · Esc volta</span>
         <button id="t-back" class="primary small">Voltar</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Texturas HD (NFSU2): janela de sistema como a das dicas. Várias trocas, depois "Aplicar" pede para reiniciar. -->
+  <main id="textures" class="screen" hidden>
+    <div class="panel">
+      <div class="tips-head"><h2 data-t="texTitle">Texturas HD</h2></div>
+      <label class="switch"><input type="checkbox" id="x-on"><span data-t="texOn">Texturas melhores <small>(desligadas, o jogo fica com as texturas originais)</small></span></label>
+      <div id="x-box">
+        <p class="muted small" data-t="texPartsNote">Escolha de qual mod vem cada parte. Se o mod escolhido não tem alguma textura daquela parte, os outros completam. “Original” deixa a parte como no jogo.</p>
+        <div id="x-parts" class="tex-parts"></div>
+      </div>
+      <div class="row right footer">
+        <span id="x-hint" class="muted small" data-t="texHint">Nada muda até você aplicar · Esc volta</span>
+        <button id="x-cancel" class="small" data-t="texCancel">Voltar</button>
+        <button id="x-apply" class="primary small" data-t="texApply">Aplicar</button>
       </div>
     </div>
   </main>
