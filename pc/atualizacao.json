@@ -1,10 +1,10 @@
 {
-  "versao": "3.0.4",
-  "arquivo": "https://github.com/vtrspeedman-cell/nfs-launcher/releases/download/pc-3.0.4/NFS-Launcher-Setup-3.0.4.exe",
-  "tamanho": 106471113,
-  "sha256": "f9c1c358f70da7f528d7d24042e6cf29ec7fa8a059f5aaea0a62da7e99e0e46f",
+  "versao": "3.0.5",
+  "arquivo": "https://github.com/vtrspeedman-cell/nfs-launcher/releases/download/pc-3.0.5/NFS-Launcher-Setup-3.0.5.exe",
+  "tamanho": 106472634,
+  "sha256": "ff841be490a23b1bb180792539c51ddf30592032990cae1b8da3bc39941ba41b",
   "novidades": {
-    "pt": "O app se atualiza sozinho. Texturas HD baixadas pelo próprio app (botão Texturas HD), fora do instalador. Opções de desempenho e qualidade ligadas. Em placa só com DirectX 11, o app desliga o que pesa e põe os gráficos do jogo no mínimo.",
-    "en": "The app updates itself. HD textures are downloaded by the app (HD Textures button), not in the installer. Performance and quality options on. On DirectX 11-only cards, the app turns off what is heavy and sets the game graphics to minimum."
+    "pt": "Texturas HD: em cada parte, você escolhe a ordem dos mods (1ª, 2ª, 3ª...). O que a 1ª não tiver vem da 2ª, e assim por diante; o que nenhum escolhido tiver fica original.",
+    "en": "HD textures: for each part, you choose the order of the mods (1st, 2nd, 3rd...). What the 1st lacks comes from the 2nd, and so on; what none of the chosen ones has stays original."
   }
 }
