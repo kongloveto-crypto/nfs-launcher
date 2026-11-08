@@ -19,6 +19,7 @@ const dock = require('./dock');
 const { mayBeShortcut, decideKey, shouldCancelClose, wantAltSpaceCatch, ALT_SPACE_ACCELS } = require('./lockPolicy');
 const { allowPermission } = require('./permissions');
 const diagnostics = require('./diagnostics');
+const crashLog = require('./crashLog');
 const custom = require('./custom');
 const github = require('./github');
 const downloader = require('./downloader');
@@ -128,6 +129,17 @@ let updateInfo = { status: 'idle', version: null }; // 'idle' | 'checking' | 'ne
 let saveCopyInfo = { count: 0, last: 0 };
 let playingSince = 0;            // hora em que o jogo aberto começou (aparece no Discord)
 const presence = new Presence();
+// Registro de quedas (crashLog.js): só no PC, sai no relatório de diagnóstico, nunca é enviado.
+const crashFile = () => path.join(app.getPath('userData'), 'quedas.json');
+function logCrash(kind, details = {}) {
+  try {
+    const e = crashLog.entry({
+      kind, reason: details.reason, exitCode: details.exitCode, game: currentGame, dx11: UNBLOCK_ON,
+      playedMs: gameStarted && playingSince ? Date.now() - playingSince : null,
+    });
+    crashLog.save(crashFile(), crashLog.add(crashLog.load(crashFile()), e));
+  } catch { /* o registro nunca atrapalha o jogo */ }
+}
 
 const gameUrl = () => gameOf(currentGame || cfg.game).url;
 // Dicas e guias são do NFSU2: com outro jogo aberto, ficam fora (botão, atalho e janelas).
@@ -1321,6 +1333,7 @@ function wireGameContents(wc) {
 
   wc.on('render-process-gone', (_e, details) => {
     if (quitting || details.reason === 'clean-exit') return;
+    logCrash('jogo', details);
     const now = Date.now();
     crashes = crashes.filter((t) => now - t < 60000);
     crashes.push(now);
@@ -1328,6 +1341,7 @@ function wireGameContents(wc) {
     else showConnError(-1);
   });
   wc.on('unresponsive', () => {
+    if (gameStarted && !quitting) logCrash('jogo', { reason: 'unresponsive' });
     if (locked()) { exitProtected(); notify(tr('O jogo parou de responder. Modo protegido desativado.', 'The game stopped responding. Protected mode turned off.')); }
   });
 }
@@ -1367,6 +1381,7 @@ async function collectDiagnostics() {
     ramGB: Math.round(os.totalmem() / 2 ** 30),
     onBattery: powerMonitor.isOnBatteryPower(),
     tools: diagnostics.detectTools(names),
+    crashes: crashLog.load(crashFile()),
     flags: { uncapped: VSYNC_OFF, prepareGame: PREPARE_ON, lighterGpu: LIGHTER_ON, unblockGpu: UNBLOCK_ON, newDrawing: NEW_DRAWING_ON, antiAlias: ANTI_ALIAS_ON, imageFilter: cfg.imageFilter ? cfg.imageMode : false, unsafeWebgpu: argv.includes('--unsafe-webgpu'), safeMode: SAFE_MODE, noUi: NO_UI, dev: DEV },
     settings: settingsShown,
     window: {
@@ -1566,6 +1581,10 @@ if (gotLock) {
 
   // Se o processo de GPU cair (contexto WebGPU perdido), recarrega o jogo.
   app.on('child-process-gone', (_e, details) => {
+    if (!quitting && details.reason !== 'clean-exit') {
+      const net = /network/i.test(`${details.serviceName || ''} ${details.name || ''}`);
+      logCrash(details.type === 'GPU' ? 'GPU' : net ? 'rede' : String(details.name || details.type), details);
+    }
     if (details.type !== 'GPU' || !gameStarted || quitting) return;
     const now = Date.now();
     if (now - lastGpuReload < 30000) return;

@@ -4,6 +4,8 @@
 // O arquivo é salvo onde o usuário escolher e nunca é enviado a lugar nenhum (sem telemetria).
 // Não inclui nome de usuário, nome do PC nem caminhos de pastas.
 
+const crashLog = require('./crashLog');
+
 const VENDORS = { 0x10de: 'NVIDIA', 0x1002: 'AMD', 0x8086: 'Intel', 0x1414: 'Microsoft (adaptador básico)' };
 const vendorName = (id) => VENDORS[id] || `0x${(id || 0).toString(16)}`;
 // Onde cada fabricante distribui o driver (o app não abre links: só o nome do programa).
@@ -58,6 +60,7 @@ function findIssues(d) {
     out.push(`Só ${d.ramGB} GB de memória: o jogo reserva até 4 GB. Feche outros programas (principalmente navegadores) antes de jogar.`);
   }
   for (const exe of d.tools || []) if (KNOWN_TOOLS[exe]) out.push(KNOWN_TOOLS[exe]);
+  if (d.crashes) out.push(...crashLog.issues(d.crashes, { now: Date.parse(d.when) || Date.now(), driver: driverHint(active && active.vendorId) }));
   if (d.settings && d.settings.highPriority) {
     out.push('Prioridade "acima do normal" ligada: o processo do jogo fica acima do normal, o que o Chrome não faz (a GPU o próprio Chromium já sobe). Se engasgar, teste com ela desligada.');
   }
@@ -112,6 +115,9 @@ function formatReport(d) {
   L.push(...Object.entries(d.gpuFeatures || {}).map(([k, v]) => line(k, v)));
   const aux = scalarEntries(d.gpuAux);
   if (aux.length) { L.push(''); L.push('-- Detalhes do Chromium (compare com chrome://gpu no Chrome) --'); L.push(...aux); }
+  L.push('');
+  L.push('== Quedas recentes (jogo, placa de vídeo, rede) ==');
+  L.push(...crashLog.lines(d.crashes));
   L.push('');
   L.push('== Processos do app (CPU medida durante 1 segundo) ==');
   for (const m of d.metrics || []) {
