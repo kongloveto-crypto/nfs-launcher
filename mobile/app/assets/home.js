@@ -257,6 +257,14 @@
     $('maint-note').textContent = t('Limpar o cache fica nos ajustes do Android, em Armazenamento, e não toca nos seus saves. Atenção: nunca use “Limpar dados” ali: ele apaga o login, as configurações e os saves do jogo neste app.',
       'Clearing the cache is in the Android settings, under Storage, and does not touch your saves. Warning: never use “Clear data” there: it erases the login, settings and game saves in this app.');
     $('b-app-settings').textContent = t('Abrir os ajustes do app', 'Open app settings');
+    $('set-crash-h').textContent = t('Quedas recentes', 'Recent crashes');
+    $('crash-note').textContent = t('Quando o jogo cai ou volta para cá com erro, o app anota só o motivo e a hora. Fica neste celular e nada é enviado. Para pedir ajuda, copie e cole no Discord.',
+      'When the game crashes or comes back here with an error, the app writes down only the reason and the time. It stays on this phone and nothing is sent. To ask for help, copy and paste it on Discord.');
+    const crashes = st.crashes || [];
+    $('crash-list').replaceChildren(...(crashes.length ? crashes : [t('Nenhuma queda registrada.', 'No crashes recorded.')])
+      .map((x) => { const li = document.createElement('li'); li.textContent = x; return li; }));
+    $('b-crash-copy').textContent = t('Copiar', 'Copy');
+    $('b-crash-copy').hidden = !crashes.length;
     $('s-back').textContent = t('Voltar', 'Back');
     renderCustom();
     renderUpdate();
@@ -382,6 +390,7 @@
   $('b-update').onclick = () => api.checkUpdate();
   $('b-update-open').onclick = () => api.openUpdates();
   $('b-app-settings').onclick = () => api.openAppSettings();
+  $('b-crash-copy').onclick = () => api.copyCrashes();
   $('e-retry').onclick = () => api.retry();
   $('e-dns').onclick = () => api.trySecureDns();
   $('e-home').onclick = () => api.clearError();

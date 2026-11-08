@@ -16,6 +16,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -30,6 +31,7 @@ import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
+import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
@@ -130,6 +132,7 @@ public class MainActivity extends Activity {
     private SharedPreferences prefs;
     private FrameLayout root;
     private WebView home;
+    private boolean homeGone;          // a página da tela inicial foi fechada pelo Android e precisa ser refeita
     private GuideView guide;           // guia aberto dentro do app (fora do jogo)
     private String pendingGame = null; // START esperando a volta da tela de permissão
     private final Handler ui = new Handler(Looper.getMainLooper());
@@ -207,8 +210,10 @@ public class MainActivity extends Activity {
         if (i == null) return;
         if (AppUpdate.ACTION_INSTALLED.equals(i.getAction())) { installResult(i); i.setAction(null); return; }
         if (i.hasExtra("error")) {
-            String kind = errorKind(i.getIntExtra("error", 0));
+            int code = i.getIntExtra("error", 0);
+            String kind = errorKind(code);
             i.removeExtra("error");
+            CrashLog.gameError(this, code, prefs.getString("game", DEFAULT_GAME));
             error = kind;
             // Falhou com DNS seguro: tenta o próximo; se nenhum abrir, volta ao DNS normal e pede para conferir a rede.
             String active = offersDns(kind) ? activeDns() : "";
@@ -313,6 +318,10 @@ public class MainActivity extends Activity {
         }
         if (pendingGame != null) { String g = pendingGame; pendingGame = null; launchGame(g); }
         refreshHome();
+        // Quedas que o Android anotou enquanto o jogo rodava (CrashLog): lidas fora da tela, sem atrasar a volta.
+        Context app = getApplicationContext();
+        String game = prefs.getString("game", DEFAULT_GAME);
+        new Thread(() -> { CrashLog.readExits(app, prefs, game); ui.post(this::refreshHome); }).start();
         // Versão nova: ao abrir, ao voltar à tela inicial e de hora em hora com ela na frente (durante o jogo, nada).
         if (SystemClock.uptimeMillis() - updateCheckedAt > 60000 || updateCheckedAt == 0) checkUpdate();
         ui.removeCallbacks(hourlyCheck);
@@ -329,6 +338,21 @@ public class MainActivity extends Activity {
         // Saiu da tela inicial: sem áudio local e sem a página rodando por baixo do jogo.
         home.evaluateJavascript("window.audioOn && audioOn(false)", null);
         home.onPause();
+    }
+
+    // Com o jogo na frente, a tela inicial não roda nada: relógios do JavaScript parados (só existe esta página no
+    // processo ":nfs") e, pela regra de newLocalView, o Android pode liberar a memória dela antes da do jogo.
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (home != null) home.resumeTimers();
+        if (homeGone) rebuildHome();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (home != null) home.pauseTimers();
     }
 
     private void refreshHome() { if (home != null) home.evaluateJavascript("window.refresh && refresh()", null); }
@@ -772,11 +796,37 @@ public class MainActivity extends Activity {
         w.addJavascriptInterface(new HomeBridge(), "launcher");
         w.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) { return true; }
+            // A página da tela inicial foi fechada (o Android liberou memória para o jogo, ou ela caiu). Sem isto o
+            // Android fecharia o app inteiro. Fora da tela ela fica vazia e só é refeita quando o jogador voltar.
+            @Override public boolean onRenderProcessGone(WebView v, RenderProcessGoneDetail d) {
+                if (v != home) return true; // página velha, já trocada
+                if (d.didCrash()) CrashLog.add(getApplicationContext(), System.currentTimeMillis(), "tela", "crash", 0, "");
+                homeGone = true;
+                if (resumed) rebuildHome(); else blankHome();
+                return true;
+            }
         });
+        // Fora da tela, a página da tela inicial perde a prioridade: com pouca memória, o Android fecha ela antes do jogo.
+        w.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, true);
         w.setWebChromeClient(new WebChromeClient());
         w.setOverScrollMode(View.OVER_SCROLL_NEVER);
         w.setBackgroundColor(Color.parseColor("#0B0D17"));
         return w;
+    }
+
+    /** Troca a página da tela inicial por uma nova, vazia (sem página carregada não há processo gastando memória). */
+    private void swapHome() {
+        WebView old = home;
+        home = newLocalView();
+        root.addView(home, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        if (old != null) { root.removeView(old); old.destroy(); }
+    }
+    private void blankHome() { swapHome(); home.onPause(); home.pauseTimers(); }
+    private void rebuildHome() {
+        homeGone = false;
+        if (home == null || home.getUrl() != null) swapHome();
+        home.resumeTimers();
+        home.loadUrl("file:///android_asset/" + ASSETS + "home.html");
     }
 
     private JSONObject state() {
@@ -789,6 +839,7 @@ public class MainActivity extends Activity {
             o.put("prepareGame", prefs.getBoolean("prepareGame", true));
             o.put("hdTextures", prefs.getBoolean("hdTextures", true));
             o.put("tex", texState());
+            o.put("crashes", new JSONArray(CrashLog.lines(this, "en".equals(lang()))));
             if (error != null) {
                 o.put("error", error);
                 o.put("dnsFailed", dnsFailed);
@@ -851,6 +902,16 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public void texScale(String s) { runOnUiThread(() -> MainActivity.this.texScale(s)); }
         @JavascriptInterface public void texChoose(String part, String value) { runOnUiThread(() -> MainActivity.this.texChoose(part, value)); }
+        @JavascriptInterface public void copyCrashes() {
+            runOnUiThread(() -> {
+                List<String> l = CrashLog.lines(MainActivity.this, "en".equals(lang()));
+                android.content.ClipboardManager cm = getSystemService(android.content.ClipboardManager.class);
+                if (cm == null || l.isEmpty()) return;
+                String head = "NFS Launcher " + VERSION + " · Android " + Build.VERSION.RELEASE + " · " + Build.MANUFACTURER + " " + Build.MODEL;
+                cm.setPrimaryClip(android.content.ClipData.newPlainText("NFS Launcher", head + "\n" + String.join("\n", l)));
+                toast(tr("Copiado: cole no Discord para quem for ajudar.", "Copied: paste it on Discord for whoever is helping."));
+            });
+        }
         @JavascriptInterface public void openSaves() { runOnUiThread(MainActivity.this::openSaves); }
         @JavascriptInterface public void openAppSettings() {
             runOnUiThread(() -> {
