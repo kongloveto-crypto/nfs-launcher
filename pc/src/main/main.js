@@ -1574,7 +1574,9 @@ if (gotLock) {
   });
 
   app.whenReady().then(async () => {
-    app.setAppUserModelId('xyz.nfsu2.launcher');
+    // Identidade da barra de tarefas só no app instalado: testes com electron.exe usando a mesma identidade fazem o
+    // Windows mostrar o app instalado como "Electron", sem ícone (PC do Bruno, 08/11).
+    if (app.isPackaged) app.setAppUserModelId('xyz.nfsu2.launcher');
     // O site detecta o navegador pelo User-Agent: o app se apresenta exatamente como o Chrome equivalente.
     app.userAgentFallback = toChromeUA(app.userAgentFallback);
 
