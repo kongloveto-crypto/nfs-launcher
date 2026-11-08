@@ -17,7 +17,8 @@
     "test": "node --test \"test/**/*.test.js\"",
     "verify": "node scripts/verify.js",
     "pack": "electron-builder --win --dir",
-    "dist": "npm run verify && electron-builder --win nsis --x64"
+    "dist": "npm run verify && electron-builder --win nsis --x64",
+    "manifestos": "node scripts/manifestos.js"
   },
   "devDependencies": {
     "electron": "^45.1.0",

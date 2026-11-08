@@ -295,7 +295,8 @@ final class Textures {
         long pos = dataAt;
         long siteShift = 0;
         if (useSite) { siteShift = pos - site.dataStart; pos += site.size - site.dataStart; }
-        long[] offs = new long[n];
+        Map<String, Long> placed = new HashMap<>(); // a mesma imagem de um mod (ex.: sombra de vários carros) vai uma vez só
+        List<Pick> copies = new ArrayList<>();
         int nameOff = namesAt;
         for (int i = 0; i < n; i++) {
             Entry e = list.get(i).e;
@@ -303,9 +304,13 @@ final class Textures {
             if (SITE.equals(list.get(i).src)) {
                 off = e.off + siteShift;
                 if (e.bsize > 0) { boff = e.boff + siteShift; bsize = e.bsize; }
-            } else { off = pos; pos += e.size; }
+            } else {
+                String k = list.get(i).src + ":" + e.off + ":" + e.size;
+                Long at = placed.get(k);
+                if (at == null) { at = pos; placed.put(k, at); copies.add(list.get(i)); pos += e.size; }
+                off = at;
+            }
             if (pos > 0xffffffffL) throw new IOException("pacote grande demais");
-            offs[i] = off;
             int o = 16 + 40 * i, bo = 16 + 40 * n + 8 * i;
             head.putInt(o, (int) e.crc).putInt(o + 4, (int) e.adler).putShort(o + 8, (short) e.ow).putShort(o + 10, (short) e.oh)
                 .putInt(o + 12, (int) e.ofmt).putShort(o + 16, (short) e.w).putShort(o + 18, (short) e.h).putInt(o + 20, (int) e.fmt)
@@ -320,7 +325,7 @@ final class Textures {
             head.position(0);
             while (head.hasRemaining()) to.write(head);
             if (useSite) copy(open, site.file, site.dataStart, site.size - site.dataStart, to);
-            for (Pick x : list) if (!SITE.equals(x.src)) copy(open, src.get(x.src).file, x.e.off, x.e.size, to);
+            for (Pick x : copies) copy(open, src.get(x.src).file, x.e.off, x.e.size, to);
             if (to.position() != pos) throw new IOException("tamanho errado");
             fo.getFD().sync();
         } finally {

@@ -1,0 +1,34 @@
+{
+  "arquivos": [
+    {
+      "id": "site",
+      "arquivo": "https://github.com/vtrspeedman-cell/nfs-launcher/releases/download/texturas-1/site.pak",
+      "tamanho": 19476336,
+      "sha256": "87af5388b3fd0ddc9a91a37986157e0cf0669166fadbc8169c326c095d9e8ea5"
+    },
+    {
+      "id": "texwizard",
+      "arquivo": "https://github.com/vtrspeedman-cell/nfs-launcher/releases/download/texturas-1/texwizard.pak",
+      "tamanho": 37421172,
+      "sha256": "537a4512e2936ffa9eb86d403c80c562a0ba427d045a5fae685821208f33113a"
+    },
+    {
+      "id": "redux",
+      "arquivo": "https://github.com/vtrspeedman-cell/nfs-launcher/releases/download/texturas-1/redux.pak",
+      "tamanho": 409914708,
+      "sha256": "4e25456fdd812bdd87cc698a09fb978caf435d97606e0e3bb8587e639e1232ef"
+    },
+    {
+      "id": "definitive",
+      "arquivo": "https://github.com/vtrspeedman-cell/nfs-launcher/releases/download/texturas-1/definitive.pak",
+      "tamanho": 341218382,
+      "sha256": "9f85aaabdb82fec3b52a2c5ed38e3891a1b85a1c02b35f7510ffed186c964e9b"
+    },
+    {
+      "id": "nextgen",
+      "arquivo": "https://github.com/vtrspeedman-cell/nfs-launcher/releases/download/texturas-1/nextgen.pak",
+      "tamanho": 259222686,
+      "sha256": "7197ac67656f814a35e53a3db9e4f029f1278c65556e396f7d45cb4de48c61e2"
+    }
+  ]
+}

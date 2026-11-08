@@ -1,11 +1,11 @@
 # NFS Launcher — Windows 10/11 e Android
 
-App que abre **só** os jogos do catálogo (`src/main/config.js`), numa janela própria com cara de jogo instalado:
+App que abre **só** os jogos do catálogo (`pc/src/main/config.js`), numa janela própria com cara de jogo instalado:
 - **NFSU2** em <https://nfsu2.xyz> (com dicas e guias);
 - **Most Wanted** em <https://web.nfsmwo.com>;
 - **Carbon** em <https://nfscrb.xyz>.
 
-No PC é Electron 45.1.0 / Chromium 156, com motor próprio. No Android é Chromium 156 compilado, em `android-motor/`.
+No PC (pasta `pc/`) é Electron 45.1.0 / Chromium 156, com motor próprio. No Android (pasta `mobile/`) é Chromium 156 compilado.
 
 Os sites carregam pela internet, sem cópia nem alteração, e nenhum script é injetado (a única exceção são os mods de textura do NFSU2, abaixo). Cada jogo só navega no próprio site.
 
@@ -13,15 +13,16 @@ Download, novidades e SHA-256 de cada versão: <https://claude.ai/artifact/RKw9J
 
 ## Comandos (PC)
 
-Rode um comando por vez:
+Na pasta `pc`, um comando por vez:
 
 ```powershell
 npm install        # também baixa o Electron
 npm start          # abre o app com o motor oficial do Electron
-npm test           # 136 testes
+npm test           # 141 testes
 npm run verify     # 27 verificações estáticas (travam erros já corrigidos)
 npm run pack       # monta dist\win-unpacked para examinar, sem instalador
-npm run dist       # instalador dist\NFS-Launcher-Setup-<versão>.exe, com o motor próprio de C:\e\motor-final
+npm run dist       # instalador dist\NFS-Launcher-Setup-<versão>.exe (na raiz), com o motor próprio de C:\e\motor-final
+npm run manifestos # tamanho e SHA-256 nas listas que os apps leem no GitHub (pc/ e mobile/)
 ```
 
 Se o download do Electron travar:
@@ -49,7 +50,7 @@ node node_modules\electron\install.js
   - Avançado tem:
     - Prioridade "acima do normal", "Preparar o jogo ao carregar", "Aliviar o processador", Graphite + Delegated e FXAA do motor próprio, todos ligados por padrão (no modo DirectX 11, todos desligados);
     - filtro de imagem com 5 modos.
-  - Placa sem DirectX 12: liga sozinho o modo DirectX 11, inclusive no nível 11_0, com "Desfazer e reabrir". Nesse modo o jogo começa "cru": sem texturas HD, filtro de imagem e nenhuma opção de Desempenho (dá para religar).
+  - Placa sem DirectX 12: liga sozinho o modo DirectX 11, inclusive no nível 11_0, com "Desfazer e reabrir". Nesse modo sai o que pesa na placa (texturas HD, desenho novo, FXAA e filtro de imagem; Prioridade, Preparar o jogo e Aliviar o processador ficam), e os gráficos do próprio jogo vão ao mínimo uma vez (`registry.txt`, com cópia antes). Um aviso explica: com tela preta, baixe os gráficos do jogo até a imagem aparecer. Dá para religar tudo.
 - **Saves:**
   - Nada apaga a pasta de dados nem os saves.
   - `profileLock.js` evita a perda ao fechar e abrir rápido.
@@ -59,22 +60,30 @@ node node_modules\electron\install.js
   - O jogo abre com carga normal, como no Chrome (sem recarga sem cache), mantendo login e saves.
   - A tela de erro tem um botão de DNS seguro (Cloudflare, depois Google).
 - **Convite da equipe:** o START do NFSU2, com o app em português, abre `#crew=U2BR`. O site pergunta antes de entrar.
-- **Atualizações:**
-  - O app lê só a lista de nomes da pasta pública do Drive.
-  - Com `NFS-Launcher-Setup-<versão>.exe` mais novo, o botão Baixar fica na tela inicial e abre a pasta no navegador.
+- **Atualizações (GitHub):**
+  - O app lê `pc/atualizacao.json` deste repositório e baixa o instalador só das releases dele, conferindo o tamanho e o SHA-256 (`github.js`, `downloader.js`). Baixa fora do jogo e continua de onde parou.
+  - Pronto, a tela inicial mostra "Atualizar agora" (instala e reabre). Ao fechar o app, a versão baixada se instala sozinha, sem janela.
 - **Discord:** "Jogando NFS Launcher", só pelo canal local do PC.
 - **Mods de textura (NFSU2, PC, `modFiles.js`; Android abaixo):**
-  - O pacote do app (abaixo) e a pasta do jogador, com a mesma árvore do jogo (`%APPDATA%\NFS Launcher Mods\NFSU2`), que vale por cima. Os arquivos delas entram na lista de arquivos que o jogo recebe do site e são entregues pelo app.
-  - O instalador traz, em `resources\texturas`, um pacote de cada mod da comunidade (`texwizard.pak`, o padrão de cada parte que ele tem; `redux.pak`, `definitive.pak`, `nextgen.pak`) e o mapa detalhado do site (`site.pak`), montados fora do repositório (os arquivos dos mods não entram aqui). Uma página do instalador (`build/installer.nsh`) tem uma caixa por mod: os desmarcados são apagados depois de copiar, e a escolha fica em `HKCU\Software\NFS Launcher` para a próxima instalação. Sem nenhum mod, o app desfaz a linha `ui_textures` que tinha gravado.
-  - **Partes (`texPack.js`):** na janela "Texturas HD", cada parte (asfalto, calçadas, prédios, árvores, céu, carros, efeitos, menus) vem do mod escolhido, ou "Original"; os outros mods completam o que faltar naquela parte. O app não grava pacote novo: monta `TEXPACKS\detailed.pak` virtual (cabeçalho em memória e trechos dos pacotes de origem, lidos quando o jogo pede), com uma data própria para cada escolha (o jogo guarda cópia por tamanho e data). Mesma textura no site e num mod: fica a maior (empate: a do site). O jogo já carrega esse pacote com o HUD melhorado, sem mudar o `settings.ini`.
-  - Desde a 3.0.0, o pacote também tem as texturas de rua, calçada e pista guardadas com paleta de cores (o jogo as envia em 32 bits) e as que ficam em blocos comprimidos (HUFF e JDLZ) dos carros e do céu. As que o HUD melhorado do site também troca ficam fora: com ele ligado, vale sempre o do site.
-  - Com mods e o NFSU2 aberto, os pedidos do site passam pelo app: a lista e os arquivos dos mods são respondidos por ele, o resto segue para o site sem mudança. Sem script na página. Vale ao abrir o app.
-  - O jogo só carrega o pacote com `ui_textures` em `map` ou `uhud` no `settings.ini` dele. Com Texturas HD ligada, o app troca só essa linha para `ui_textures = map` (mapa detalhado; menus e HUD continuam), ao abrir e antes de o navegador abrir os dados (`gameSettings.js`). Só mexe se estiver em `original` ou ausente, nunca com `NFSU2_MAP_TEXTURES` escrito pelo jogador, guarda cópia em `%APPDATA%\NFS Launcher Saves` e, com a opção desligada, desfaz só o que ele trocou. É a única escrita do app nos dados do jogo.
-  - O botão "Texturas HD" da barra (na tela cheia, só o ícone, ao lado de Dicas) e "Escolher as partes…" em Configurações > Texturas abrem a janela "Texturas HD", no estilo das Dicas: liga e desliga as texturas e escolhe o mod de cada parte, tudo de uma vez; nada muda até "Aplicar" (Voltar ou Esc descartam). O botão só aparece com o NFSU2 aberto e o pacote presente. A troca vale quando o jogo carrega de novo: ao aplicar, o app pergunta uma vez só se reinicia o jogo agora, lembrando de salvar na garagem.
-- **Texturas HD no Android (1.6.4):**
-  - Um pacote só, `assets/nfs/texturas.ntxp` no APK, sem compressão (25 MB): o mapa detalhado do site, inteiro e sem mudança, mais o pack "02 - Optional - Texture" do TexWizard, que refaz em alta resolução o asfalto, as faixas, as calçadas, a grama, a terra e a sombra e o neon dos carros do próprio jogo. Cada textura desce até no máximo 2x o lado da original, pelos níveis que o pack já traz.
-  - O motor (patch `0007`, código em `android-motor/nfs_texturas.cc`) responde, só para o site do NFSU2, a lista de arquivos (com o pacote acrescentado) e os pedidos dele; o resto segue para o site sem mudança.
-  - Antes de abrir o jogo, `GameSettings.java` faz o mesmo que o `gameSettings.js` do PC (`ui_textures = map`). A opção Configurações > Texturas HD desligada passa `--nfs-sem-texturas` ao motor e desfaz a linha.
+  - Não vêm no instalador. Na janela "Texturas HD", cada mod da comunidade (TexWizard, o padrão de cada parte que ele tem; Redux; Definitive Edition; NextGen) tem Baixar, Atualizar e Remover. Os pacotes vêm das releases deste repositório (`pc/texturas.json`), com o mapa detalhado do site (`site.pak`) junto do primeiro, e ficam em `%APPDATA%\NFSU2 Launcher\texturas`. São montados fora do repositório (os arquivos dos mods não entram no código).
+  - A pasta do jogador, com a mesma árvore do jogo (`%APPDATA%\NFS Launcher Mods\NFSU2`), vale por cima. Os arquivos entram na lista de arquivos que o jogo recebe do site e são entregues pelo app.
+  - **Partes (`texPack.js`):** cada parte (asfalto, calçadas, prédios, árvores, céu, carros, efeitos, menus) vem do mod escolhido, ou "Original"; os outros mods completam o que faltar naquela parte. O app não grava pacote novo: monta `TEXPACKS\detailed.pak` virtual (cabeçalho em memória e trechos dos pacotes, lidos quando o jogo pede), com uma data própria para cada escolha (o jogo guarda cópia por tamanho e data). Mesma textura no site e num mod: fica a maior (empate: a do site).
+  - Os pacotes têm também as texturas de rua, calçada e pista guardadas com paleta de cores e as que ficam em blocos comprimidos (HUFF e JDLZ) dos carros e do céu. As que o HUD melhorado do site também troca ficam fora: com ele ligado, vale sempre o do site.
+  - Com mods e o NFSU2 aberto, os pedidos do site passam pelo app: a lista e os arquivos dos mods são respondidos por ele, o resto segue para o site sem mudança. Sem script na página.
+  - O jogo só carrega o pacote com `ui_textures` em `map` ou `uhud` no `settings.ini` dele. Com Texturas HD ligada, o app troca só essa linha para `ui_textures = map` (mapa detalhado; menus e HUD continuam), ao abrir e antes de o navegador abrir os dados (`gameSettings.js`). Só mexe se estiver em `original` ou ausente, nunca com `NFSU2_MAP_TEXTURES` escrito pelo jogador, guarda cópia em `%APPDATA%\NFS Launcher Saves` e, com a opção desligada, desfaz só o que ele trocou.
+  - O botão "Texturas HD" da barra (com o NFSU2 aberto) e "Texturas HD…" em Configurações abrem a janela. Escolhas de parte valem ao "Aplicar"; a troca vale quando o jogo carrega de novo (o app pergunta se reinicia, lembrando de salvar na garagem).
+- **Android (1.6.4):**
+  - **Texturas HD:** nada vem no APK. Em Configurações > Texturas HD o jogador baixa o TexWizard e o NextGen (`mobile/texturas.json`) em "1x" (o tamanho das texturas originais, mais leve) ou "Até 2x" (até 2x o lado delas), e escolhe o mod de cada parte, como no PC. O mapa do site vem junto com o primeiro. Trocar o tamanho baixa de novo os mods no outro tamanho. Antes do START, com o jogo fechado, `Textures.java` grava `files/texturas/texturas.ntxp` com a escolha (só se mudou). O motor recebe o caminho em `--nfs-texturas` (patch `0005`) e responde, só para o site do NFSU2, a lista de arquivos e os pedidos do pacote (patch `0007`, `mobile/nfs_texturas.cc`). `GameSettings.java` faz o mesmo que o `gameSettings.js` do PC.
+  - **Atualizações:** `mobile/atualizacao.json`; no Wi-Fi o APK baixa sozinho (dados móveis: só pelo botão), e "Atualizar agora" o entrega ao instalador do Android (`AppUpdate.java`).
+  - **Ligado por padrão:** "Preparar o jogo ao carregar" (para todos, uma vez).
+  - **START:** lembra de pôr o app no modo jogo do celular (Game Turbo, Game Booster, Game Space) e de baixar o jogo inteiro antes (no NFSU2, aba Game > "Game data on this device"), com "Não lembrar mais".
+  - **Bolha:** opcional, desligada por padrão; a permissão de sobrepor só é pedida ao ligá-la (Configurações ou Dicas).
+
+## Publicar uma versão
+
+1. Montar (`npm run dist` no PC; `mobile/quick.sh` no WSL) e rodar `npm run manifestos` na pasta `pc`.
+2. Criar a release no GitHub com o arquivo (`pc-<versão>`: `NFS-Launcher-Setup-<versão>.exe`; `android-<versão>`: `NFS-Launcher-Android-<versão>.apk`; texturas: `texturas-1`).
+3. Enviar as listas (`pc/*.json`, `mobile/*.json`) ao ramo `main`. Só depois disso os apps veem a versão nova.
 
 ## Dicas para o jogador
 
@@ -92,13 +101,15 @@ node node_modules\electron\install.js
 ## Estrutura
 
 ```
-src/main/      main.js e a lógica pura coberta por testes (config, settings, profileLock, saveCopy, gpuFallback, imageFilter, discord…)
-src/renderer/  ui.html/css/js, i18n.js (inglês), tips.js (dicas), guide.* e panel.* (guia flutuante), bg/ e games/ (fundos e CDs)
-build/         ícones, installer.nsh e imagens do instalador
-scripts/       verify.js, export-guides.js, make-discs.ps1, make-icons.ps1, make-installer-art.ps1
-pc-motor/      compilação do motor próprio do PC (código em C:\e)
-android-motor/ compilação do app Android (WSL NFSMotor; a chave de assinatura não vai para o repositório)
-test/          testes (node:test)
+pc/src/main/   main.js e a lógica pura coberta por testes (config, settings, profileLock, saveCopy, gpuFallback, imageFilter, discord…)
+pc/src/renderer/  ui.html/css/js, i18n.js (inglês), tips.js (dicas), guide.* e panel.* (guia flutuante), bg/ e games/ (fundos e CDs)
+pc/build/      ícones, installer.nsh e imagens do instalador
+pc/scripts/    verify.js, manifestos.js, export-guides.js, make-discs.ps1, make-icons.ps1, make-installer-art.ps1
+pc/arte/       imagens de origem dos CDs e do fundo
+pc/motor/      compilação do motor próprio do PC (código em C:\e)
+pc/test/       testes (node:test)
+pc/*.json      atualizacao.json e texturas.json, lidos pelo app no GitHub
+mobile/        app Android: app/ (Java e telas), patches/ do Chromium, scripts de montagem (WSL NFSMotor), *.json
 docs/          TESTES.md, post-divulgacao.md, relatos
 ```
 

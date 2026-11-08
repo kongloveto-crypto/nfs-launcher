@@ -1,6 +1,6 @@
 # Checklist de testes (Windows 11)
 
-Automatizados: `npm test` (136 testes) e `npm run verify` (27 verificações). Conferir a montagem: `"NFS Launcher.exe" --conferir` sai com 73.
+Automatizados, na pasta `pc`: `npm test` (141 testes) e `npm run verify` (27 verificações). Conferir a montagem: `"NFS Launcher.exe" --conferir` sai com 73.
 
 ## PC
 
@@ -31,9 +31,9 @@ Automatizados: `npm test` (136 testes) e `npm run verify` (27 verificações). C
 | 23 | Configurações | Idioma, Desempenho, atalhos e Personalização; o resto em "Avançado". Sem Qualidade, VSync, modo leve, mapa nem doação. |
 | 24 | Trocar Português/English | Tela inicial, configurações, avisos e guias mudam. |
 | 25 | Avançado > Desenhar a tela do jeito novo (Graphite + Delegated), desmarcar e reabrir | O app abre normalmente (erro da 2.0.4). Ligado por padrão. |
-| 26 | Avançado > Preparar o jogo ao carregar / Aliviar o processador / Anti-serrilhado (FXAA) | Pedem para reabrir; comparar no F8 com a opção ligada e desligada. Sem travamento nem erro de gráficos. |
+| 26 | Avançado > Preparar o jogo ao carregar / Aliviar o processador / Anti-serrilhado (FXAA) / filtro de imagem | Todos ligados por padrão (no DirectX 12). Pedem para reabrir; comparar no F8 com a opção ligada e desligada. Sem travamento nem erro de gráficos. |
 | 27 | Botão de filtro na barra e no topo da tela cheia | Cada clique troca o modo (Suave, Vívido, Intenso, Nítido, Vívido e nítido) e por fim desliga; o nome do modo aparece ao lado. Vale nos 3 jogos. |
-| 28 | PC sem DirectX 12 (ou lista de bloqueio simulada: `--enable-features=WebGPUService:AdapterBlockList/%2A`) | Na tela inicial, o app liga o modo DirectX 11 e reabre sozinho, uma vez, com Texturas HD, filtro, FXAA, "Preparar o jogo" e "Aliviar o processador" desmarcados (Prioridade não muda; religar alguma fica). Quem já estava no modo e atualiza: os mesmos desmarcados, uma vez. Funcionando: aviso com "Desfazer e reabrir". Falhando: desliga e mostra o erro com tentar de novo. |
+| 28 | PC sem DirectX 12 (ou lista de bloqueio simulada: `--enable-features=WebGPUService:AdapterBlockList/%2A`) | Na tela inicial, o app liga o modo DirectX 11 e reabre sozinho, uma vez, com Texturas HD, desenho novo, FXAA e filtro desmarcados (Prioridade, Preparar o jogo e Aliviar o processador ligados). Ao abrir, um aviso explica que os gráficos do jogo foram ao mínimo e que, com tela preta, é para baixar os gráficos até a imagem aparecer; o `registry.txt` do jogo fica com as opções de Options > Display no mínimo (cópia em `%APPDATA%\NFS Launcher Saves\registry.txt-antes-do-DirectX-11.txt`), uma vez só. Funcionando: aviso com "Desfazer e reabrir". Falhando: desliga e mostra o erro com tentar de novo. |
 | 29 | Placa de nível 11_0 (ex.: GTX 550 Ti) | No modo DirectX 11, o jogo abre e roda. Comparar o FPS no F8. |
 | 30 | Ctrl+Alt+I / lâmpada no topo | Abre as Dicas (só NFSU2); Esc ou Ctrl+Alt+I voltam ao jogo. |
 | 31 | Dicas > abrir um passo a passo | Janela flutuante dentro da área do jogo; Feito/Anterior/Ver tudo; as teclas continuam indo para o jogo; 75% de opacidade; a altura segue o texto. |
@@ -42,7 +42,7 @@ Automatizados: `npm test` (136 testes) e `npm run verify` (27 verificações). C
 | 34 | Dicas > Outros carros | Aviso "não oficial e não testado" e fonte em cada carro; funciona em EN. |
 | 35 | Glitches com o Toyota Corolla | Aviso no início para ir direto às 3 barras. |
 | 36 | Discord aberto, jogar cada jogo | "Jogando NFS Launcher", o nome curto do jogo embaixo, o tempo e o botão "Baixar o NFS Launcher" (conferir pelo perfil visto por outra pessoa). Ao voltar ao início, some. |
-| 37 | Versão nova na pasta do Drive | Botão Baixar na tela inicial, sem como esconder; abre a pasta no navegador. Um APK mais novo sozinho não mostra nada. |
+| 37 | Versão nova publicada (release no GitHub e `pc/atualizacao.json` no `main`) | Com a tela inicial aberta, o app baixa sozinho (nunca durante o jogo; continua de onde parou) e mostra "Atualizar agora": instala e reabre, com login e saves. Sem clicar, fechar o app instala sem janela. |
 | 38 | Configurações > Personalização: trocar fundo e capa | PNG ou JPG; aparece na tela inicial e no carregamento; "Padrão" volta. |
 | 39 | Limpar cache | Limpa sem perder saves. Não existe botão de apagar dados do jogo. |
 | 40 | Salvar relatório de diagnóstico | Pede onde salvar; o .txt tem monitores, GPU, driver e "Pontos de atenção" (RivaTuner e Lossless Scaling, se abertos). |
@@ -50,16 +50,16 @@ Automatizados: `npm test` (136 testes) e `npm run verify` (27 verificações). C
 | 42 | Minimizar com o jogo rodando | Com `background = pause`, o jogo pausa e continua ao voltar. |
 | 43 | Gerenciador de Tarefas > Detalhes | GPU "Acima do normal" (o Chromium faz). Com Prioridade ligada, o jogo também; desligando, volta a Normal. |
 | 44 | Mesmo trecho no Chrome e no app, F8 detalhado | Tempo de quadro e FPS iguais ou melhores; sem quadros misturados. |
-| 45 | Instalar por cima da versão anterior | Sem admin, imagem própria na lateral; login e saves continuam. Desinstala limpo. |
-| 45b | Instalador: página "Texturas HD" depois da pasta | Uma caixa por mod (Redux, Definitive Edition, NextGen), todas marcadas por padrão. Desmarcados não ficam em `resources\texturas`; sem nenhum, a pasta some, o botão "Texturas HD" não aparece e a linha `ui_textures` que o app gravou volta ao que era. A próxima instalação já vem com a última escolha. |
-| 46 | App instalado, `settings.ini` sem `NFSU2_MAP_TEXTURES`, HUD melhorado ligado (`ui_textures = uhud`) | Texturas do pacote (asfalto, pátio de pedra, árvores, céu) e o mapa detalhado aparecem; o log do F9 mostra `TEXPACKS/detailed.pak: 346 textures`. Saves continuam. |
+| 45 | Instalar por cima da versão anterior | Sem admin, imagem própria na lateral, sem página de texturas; login, saves e texturas baixadas continuam. Desinstala limpo. |
+| 45b | Abrir a janela "Texturas HD" sem nenhum mod baixado | Uma linha por mod (TexWizard, Redux, Definitive Edition, NextGen) com o tamanho e "Baixar"; o primeiro traz o mapa do site junto. Baixando: porcentagem e "Parar"; parar e baixar de novo continua de onde parou. Baixado: "Remover" (vai para a Lixeira; sem nenhum mod, o mapa do site também sai). |
+| 46 | Com os mods baixados, `settings.ini` sem `NFSU2_MAP_TEXTURES`, HUD melhorado ligado (`ui_textures = uhud`) | Texturas dos mods (asfalto, pátio de pedra, árvores, céu) e o mapa detalhado aparecem; o log do F9 mostra `TEXPACKS/detailed.pak` com as texturas. Saves continuam. |
 | 45c | Jogo com `ui_textures = original` (ou sem a linha), Texturas HD ligada, abrir o app | O `settings.ini` passa a ter `ui_textures = map` e as texturas entram; cópia em `%APPDATA%\NFS Launcher Saves\settings.ini-antes-das-texturas-HD.txt`; o registro dos mods diz "gravada". Com `uhud`, nada muda. Desligar Texturas HD e reabrir: a linha volta a `original`, e o HUD HD de quem usa `uhud` continua. |
 | 45d | Com Texturas HD ligada e uma frase da nuvem salva, abrir o NFSU2 na aba Jogos salvos | "Jogos salvos na nuvem" aparece igual ao de Texturas HD desligada, com "Sincronizado". |
-| 46a | Com o NFSU2 aberto, clicar em "Texturas HD" na barra (em janela) ou no ícone ao lado de Dicas (tela cheia) | Abre a janela "Texturas HD" no estilo das Dicas, com a caixa de ligar e uma linha por parte; "Aplicar" fica apagado até mudar algo. Desmarcar a caixa deixa as partes mais escuras. Voltar ou Esc: volta ao jogo sem mudar nada e sem pergunta. Aplicar: volta ao jogo e pergunta uma vez "Reinicie o jogo para valer" com Depois e Reiniciar o jogo; Reiniciar recarrega e as texturas mudam. Ícone colorido quando ligado. Com Most Wanted ou Carbon, o botão não aparece. |
+| 46a | Com o NFSU2 aberto, clicar em "Texturas HD" na barra (em janela) ou no ícone ao lado de Dicas (tela cheia) | Abre a janela "Texturas HD" no estilo das Dicas, com os downloads, a caixa de ligar e uma linha por parte; "Aplicar" fica apagado até mudar algo. Desmarcar a caixa deixa as partes mais escuras. Voltar ou Esc: volta ao jogo sem mudar nada e sem pergunta. Aplicar: volta ao jogo e pergunta uma vez "Reinicie o jogo para valer" com Depois e Reiniciar o jogo; Reiniciar recarrega e as texturas mudam. Ícone colorido quando ligado. Com Most Wanted ou Carbon, o botão não aparece. |
 | 46b | Pasta `%APPDATA%\NFS Launcher Mods\NFSU2` com um arquivo do mesmo caminho | Vale o da pasta do jogador; com o app aberto, trocar o arquivo só vale ao reabrir. |
-| 46c | (3.0.0) Texturas HD ligada: andar no free roam por avenidas com faixa amarela, calçadas, ruas de paralelepípedo, a pista de drift e o aeroporto; olhar o neon do 240SX, 350Z ou Escalade | Faixas, asfalto, calçadas e pistas com detalhe (antes ficavam as originais, borradas); neon do carro mais nítido. Com o HUD HD (`uhud`), os ícones de menu e o HUD são sempre os do HUD HD, iguais a cada abertura. |
-| 46d | Na janela "Texturas HD" (também por Configurações > Texturas > Escolher as partes…), trocar várias partes de uma vez (ex.: Asfalto e pistas = Definitive, Céu = Original) e Aplicar, com o NFSU2 aberto | Só aparecem os mods instalados que têm aquela parte. Uma pergunta só para reiniciar; reiniciando, as partes mudam (Original = como no jogo). Aberta pelas Configurações, volta para elas. Voltar à escolha anterior não baixa nada de novo. |
-| 46e | (3.0.3) Instalar por cima com o TexWizard marcado; abrir a janela "Texturas HD"; depois trocar Asfalto e pistas para Redux, Aplicar e reabrir o app | Asfalto, calçadas, grama e terra, sombra e neon dos carros com o TexWizard por padrão (mesmo quem já tinha aplicado uma escolha na 3.0.1/3.0.2). Depois da troca, o Redux continua ao reabrir. Os mapas das 23 corridas que faltavam aparecem detalhados. |
+| 46c | Texturas HD ligada, com os mods baixados: andar no free roam por avenidas com faixa amarela, calçadas, ruas de paralelepípedo, a pista de drift e o aeroporto; olhar o neon do 240SX, 350Z ou Escalade | Faixas, asfalto, calçadas e pistas com detalhe (antes ficavam as originais, borradas); neon do carro mais nítido. Com o HUD HD (`uhud`), os ícones de menu e o HUD são sempre os do HUD HD, iguais a cada abertura. |
+| 46d | Na janela "Texturas HD" (também por Configurações > Texturas HD…), trocar várias partes de uma vez (ex.: Asfalto e pistas = Definitive, Céu = Original) e Aplicar, com o NFSU2 aberto | Só aparecem os mods instalados que têm aquela parte. Uma pergunta só para reiniciar; reiniciando, as partes mudam (Original = como no jogo). Aberta pelas Configurações, volta para elas. Voltar à escolha anterior não baixa nada de novo. |
+| 46e | Baixar o TexWizard; abrir a janela "Texturas HD"; depois baixar o Redux, trocar Asfalto e pistas para Redux, Aplicar e reabrir o app | Asfalto, calçadas, grama e terra, sombra e neon dos carros com o TexWizard por padrão. Depois da troca, o Redux continua ao reabrir. Os mapas das corridas aparecem detalhados. |
 
 ## Celular (Android)
 
@@ -72,12 +72,13 @@ Automatizados: `npm test` (136 testes) e `npm run verify` (27 verificações). C
 | A5 | Abrir sem internet | Frase simples; ao voltar a internet, abre sozinho em até ~5 s. |
 | A6 | Erro de conexão com rede ruim | Botão de DNS seguro, como no PC. |
 | A7 | NFSU2 com save | Zip do save em Download/NFS Launcher (2 últimas versões); botão "Meus saves". |
-| A8 | Pasta do Drive com APK mais novo | Botão Baixar, sem como esconder. Um .exe mais novo sozinho não mostra nada. |
+| A8 | Versão nova publicada (release no GitHub e `mobile/atualizacao.json` no `main`) | No Wi-Fi, baixa sozinho com a tela inicial aberta; nos dados móveis, botão "Baixar (N MB)". Pronta: "Atualizar agora", o Android confirma, o app fecha e a versão nova entra por cima com login, saves e texturas. Na primeira vez, o Android pede para permitir instalar apps do NFS Launcher. |
 | A9 | Configurações > Trocar fundo e capa | Aparece na tela inicial e no carregamento; "Padrão" volta. |
-| A10 | Bolha: arrastar; guia: arrastar e A+ | Nada sai da tela. |
+| A10 | Bolha: ligar em Configurações (ou "Ver os guias durante o jogo" nas Dicas) | Só aí o Android pede "Sobrepor a outros apps"; sem a permissão, a bolha fica desligada com aviso. Arrastar a bolha e o guia, A+: nada sai da tela. O START nunca pede a permissão. |
 | A11 | Bolha: Reiniciar e Voltar ao início | Pedem um segundo toque; Reiniciar abre o mesmo jogo. |
 | A12 | Dicas > Outros carros, com um guia aberto | O guia aberto troca para o novo. |
 | A13 | Samsung A56 (Xclipse) | Sem GPU-ADAPTER-ANDROID; o jogo abre e roda. |
-| A14 | Avançado > Preparar o jogo ao carregar | Vale na próxima abertura; comparar ligado e desligado. |
-| A15 | (1.6.4) NFSU2 com Configurações > Texturas HD ligada: free roam por avenidas com faixa, calçadas e grama; olhar a sombra e o neon do carro | Asfalto, faixas, calçadas e grama mais nítidos que no Chrome, com o mesmo visual do jogo; o jogo não fica mais lento nem fecha sozinho. |
-| A16 | (1.6.4) Desligar Texturas HD e abrir o NFSU2 de novo | Texturas originais; o mapa do jogo volta ao que era antes. Quem usa HUD HD continua com ele. |
+| A14 | Configurações > Desempenho > Preparar o jogo ao carregar | Ligada por padrão, inclusive para quem tinha desligado (uma vez). Vale na próxima abertura. |
+| A15 | Configurações > Texturas HD: baixar TexWizard e NextGen em "Até 2x"; free roam por avenidas com faixa, calçadas e grama; olhar a sombra e o neon do carro | Mapa do site baixa junto com o primeiro. Asfalto, faixas, calçadas e grama mais nítidos que no Chrome; cada parte pode vir do TexWizard, do NextGen ou ser "Original". O jogo não fica mais lento nem fecha sozinho. Trocar para "1x": os mods baixam de novo no tamanho original (mais leves). |
+| A16 | Desligar Texturas HD (ou remover os mods) e abrir o NFSU2 de novo | Texturas originais; o mapa do jogo volta ao que era antes. Quem usa HUD HD continua com ele. |
+| A17 | START | Antes de abrir: lembrete de pôr o app no modo jogo do celular e de baixar o jogo inteiro (no NFSU2, aba Game > "Game data on this device"). "Jogar" abre; "Não lembrar mais" abre e não mostra de novo. |
