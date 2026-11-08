@@ -87,38 +87,52 @@ test('texturas por partes: classificação pelo nome do jogo', () => {
   assert.equal(tp.partOf('TRACKMAP4000'), 'menus');
 });
 
-test('texturas por partes: padrão = primeiro mod de cada parte, os outros completam; mapa do site maior vence', () => {
+test('texturas por partes: padrão = só o primeiro mod de cada parte, nada completa sozinho; mapa do site maior vence', () => {
   const src = tp.findSources(fixture());
   const v = tp.virtualMod(src, {});
-  assert.equal(v.virtual.eff.asfalto, 'redux');
-  assert.equal(v.virtual.eff.ceu, 'nextgen', 'o Redux não tem céu');
+  assert.deepEqual(v.virtual.eff.asfalto, ['redux']);
+  assert.deepEqual(v.virtual.eff.ceu, ['nextgen'], 'o Redux não tem céu');
   const got = unpack(v);
   assert.equal(got.RDP_ROADSTRIP_MA.data, 'R-ASFALTO', 'Redux vence mesmo menor');
-  assert.equal(got.RDP_LANEA_YS_AA_KT.data, 'D-FAIXA', 'o Redux não tem: completa o próximo da ordem (Definitive)');
+  assert.equal(got.RDP_LANEA_YS_AA_KT, undefined, 'o Redux não tem e não há 2ª escolha: fica a original');
   assert.equal(got.SKY_NIGHT_A.data, 'N-CEU');
   assert.equal(got['TRACKS/TRACKMAP4000'].data, 'SITE-MAPA-0', 'mapa do site maior');
   assert.equal(got['TRACKS/TRACKMAP4001'].base, 'SITE-MAPA-0', 'a base do site continua apontando certo');
   assert.equal(got.TRACKS_PEQUENA.data, 'R-PEQ', 'textura do mod maior que a do site');
-  assert.equal(Object.keys(got).length, 7);
+  assert.equal(Object.keys(got).length, 6);
 });
 
-test('texturas por partes: escolher outro mod e "original"', () => {
+test('texturas por partes: ordem do jogador (1ª, 2ª, 3ª), "original" e escolha da 3.0.4', () => {
   const src = tp.findSources(fixture());
-  const a = unpack(tp.virtualMod(src, { asfalto: 'nextgen' }));
-  assert.equal(a.RDP_LANEA_YS_AA_KT.data, 'N-FAIXA');
-  assert.equal(a.RDP_ROADSTRIP_MA.data, 'R-ASFALTO', 'o NextGen não tem: completa o Redux');
-  const o = unpack(tp.virtualMod(src, { asfalto: 'original', calcadas: 'original' }));
-  assert.equal(o.RDP_ROADSTRIP_MA, undefined);
-  assert.equal(o.ARC_SIDEWALK_A, undefined);
-  assert.equal(o.SKY_NIGHT_A.data, 'N-CEU');
-  // Mod que não tem a parte: vale o primeiro que tem (a tela nem oferece).
-  assert.equal(tp.effectiveChoice({ ceu: 'redux' }, tp.partsAvailable(src)).ceu, 'nextgen');
+  const a = unpack(tp.virtualMod(src, { asfalto: ['nextgen', 'redux'] }));
+  assert.equal(a.RDP_LANEA_YS_AA_KT.data, 'N-FAIXA', '1ª escolha');
+  assert.equal(a.RDP_ROADSTRIP_MA.data, 'R-ASFALTO', 'o NextGen não tem: vem da 2ª');
+  const b = unpack(tp.virtualMod(src, { asfalto: ['nextgen', 'definitive', 'redux'] }));
+  assert.equal(b.RDP_ROADSTRIP_MA.data, 'D-ASFALTO-MOLHADO', 'a 2ª vem antes da 3ª');
+  const c = unpack(tp.virtualMod(src, { asfalto: ['definitive', 'nextgen'] }));
+  assert.equal(c.RDP_LANEA_YS_AA_KT.data, 'D-FAIXA', 'a 1ª vence mesmo menor');
+  const so = unpack(tp.virtualMod(src, { asfalto: ['nextgen'] }));
+  assert.equal(so.RDP_ROADSTRIP_MA, undefined, 'sem 2ª escolha: o que falta fica original');
+  const leg = unpack(tp.virtualMod(src, { asfalto: 'nextgen' }));
+  assert.equal(leg.RDP_LANEA_YS_AA_KT.data, 'N-FAIXA', 'escolha da 3.0.4 vira a 1ª');
+  assert.equal(leg.RDP_ROADSTRIP_MA, undefined, 'e não ganha 2ª sozinha');
+  for (const orig of ['original', []]) {
+    const o = unpack(tp.virtualMod(src, { asfalto: orig, calcadas: orig }));
+    assert.equal(o.RDP_ROADSTRIP_MA, undefined);
+    assert.equal(o.ARC_SIDEWALK_A, undefined);
+    assert.equal(o.SKY_NIGHT_A.data, 'N-CEU');
+  }
+  const avail = tp.partsAvailable(src);
+  // Mod que não tem a parte (a tela nem oferece): escolha antiga vai ao primeiro que tem; na lista, sai dela.
+  assert.deepEqual(tp.effectiveChoice({ ceu: 'redux' }, avail).ceu, ['nextgen']);
+  assert.deepEqual(tp.effectiveChoice({ ceu: ['redux'] }, avail).ceu, []);
+  assert.deepEqual(tp.effectiveChoice({ asfalto: ['nextgen', 'nextgen', 'redux'] }, avail).asfalto, ['nextgen', 'redux']);
 });
 
 test('texturas por partes: data própria para cada escolha, sem o mod desmarcado no instalador', () => {
   const dir = fixture();
   const src = tp.findSources(dir);
-  const a = tp.virtualMod(src, {}), b = tp.virtualMod(src, { asfalto: 'definitive' });
+  const a = tp.virtualMod(src, {}), b = tp.virtualMod(src, { asfalto: ['definitive'] });
   assert.notEqual(a.m, b.m, 'escolhas diferentes: o jogo não pode usar a cópia da outra');
   assert.equal(a.m, tp.virtualMod(src, {}).m, 'a mesma escolha: a mesma data');
   assert.equal(a.check(), true);
@@ -135,8 +149,10 @@ test('texturas por partes: data própria para cada escolha, sem o mod desmarcado
 test('texturas por partes: escolha guardada só com partes e mods conhecidos', () => {
   assert.deepEqual(tp.sanitizeChoice({ asfalto: 'redux', ceu: 'original', x: 'redux', menus: 'outro' }), { asfalto: 'redux', ceu: 'original' });
   assert.deepEqual(tp.sanitizeChoice(null), {});
+  assert.deepEqual(tp.sanitizeChoice({ asfalto: ['nextgen', 'x', 'nextgen', 'redux'], ceu: [], carros: [1] }), { asfalto: ['nextgen', 'redux'], ceu: [], carros: [] });
   const s = require('../src/main/settings');
   assert.deepEqual(s.sanitize({ version: 8, texParts: { asfalto: 'definitive', y: 1 } }).texParts, { asfalto: 'definitive' });
+  assert.deepEqual(s.sanitize({ version: 9, texParts: { asfalto: ['nextgen', 'definitive'] } }).texParts, { asfalto: ['nextgen', 'definitive'] });
 });
 
 test('texturas por partes: TexWizard é o padrão onde tem; a escolha do jogador fica, e a antiga volta ao padrão uma vez', () => {
@@ -147,13 +163,13 @@ test('texturas por partes: TexWizard é o padrão onde tem; a escolha do jogador
   ]);
   const src = tp.findSources(dir);
   const v = tp.virtualMod(src, {});
-  assert.equal(v.virtual.eff.asfalto, 'texwizard');
-  assert.equal(v.virtual.eff.carros, 'texwizard', 'a sombra dos carros fica em Carros');
-  assert.equal(v.virtual.eff.ceu, 'nextgen', 'onde o TexWizard não tem, segue a ordem antiga');
+  assert.deepEqual(v.virtual.eff.asfalto, ['texwizard']);
+  assert.deepEqual(v.virtual.eff.carros, ['texwizard'], 'a sombra dos carros fica em Carros');
+  assert.deepEqual(v.virtual.eff.ceu, ['nextgen'], 'onde o TexWizard não tem: o primeiro que tem');
   const got = unpack(v);
   assert.equal(got.RDP_ROADSTRIP_MA.data, 'T-ASFALTO', 'TexWizard vence mesmo menor');
   assert.equal(got.ARC_SIDEWALK_A.data, 'R-CALCADA', 'parte que ele não tem: o Redux');
-  assert.equal(got.RDP_LANEA_YS_AA_KT.data, 'D-FAIXA', 'o que ele não tem na parte: os outros completam');
+  assert.equal(got.RDP_LANEA_YS_AA_KT, undefined, 'o que ele não tem na parte: fica original (sem 2ª escolha)');
   const s = require('../src/main/settings');
   const saved = s.sanitize({ version: 8, texParts: { asfalto: 'redux' } });
   assert.equal(saved.texParts.asfalto, 'redux', 'quem escolheu depois continua com a escolha ao reiniciar');

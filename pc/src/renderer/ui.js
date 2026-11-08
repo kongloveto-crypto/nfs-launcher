@@ -257,11 +257,12 @@
     }));
   }
 
-  // Janela de texturas (texPack.js): rascunho local com a opção geral e o mod de cada parte; nada vale até "Aplicar",
-  // que grava tudo de uma vez e só então pergunta se reinicia o jogo (pedido do Bruno: trocar várias antes do aviso).
+  // Janela de texturas (texPack.js): rascunho local com a opção geral e a ordem dos mods de cada parte; nada vale até
+  // "Aplicar", que grava tudo de uma vez e só então pergunta se reinicia o jogo (pedido do Bruno: trocar várias antes do aviso).
   let texDraft = null;
   function texDraftFrom(s) {
-    return { on: !!s.settings.hdTextures, parts: { ...((s.texParts && s.texParts.choice) || {}) } };
+    const choice = (s.texParts && s.texParts.choice) || {};
+    return { on: !!s.settings.hdTextures, parts: Object.fromEntries(Object.entries(choice).map(([p, list]) => [p, [...list]])) };
   }
   // Mods para baixar (GitHub): tamanho, Baixar / Atualizar / Remover e o andamento do download.
   const mb = (n) => `${Math.max(1, Math.round(n / 1024 ** 2))} MB`;
@@ -321,12 +322,19 @@
       const group = el('div', 'lang');
       group.setAttribute('role', 'group');
       group.setAttribute('aria-label', t(p.pt, p.en));
-      for (const id of [...p.mods, 'original']) {
-        const b = el('button', '', id === 'original' ? t('Original', 'Original') : names[id] || id);
-        b.setAttribute('aria-pressed', String(texDraft.parts[p.id] === id));
-        b.onclick = () => { texDraft.parts[p.id] = id; renderTexScreen(state); };
+      // Clicar põe o mod no fim da ordem (1ª, 2ª...); clicar de novo tira. "Original" limpa a ordem.
+      const order = texDraft.parts[p.id] || [];
+      for (const id of p.mods) {
+        const at = order.indexOf(id);
+        const b = el('button', '', at >= 0 ? `${t(`${at + 1}ª`, ['1st', '2nd', '3rd'][at] || `${at + 1}th`)} ${names[id] || id}` : names[id] || id);
+        b.setAttribute('aria-pressed', String(at >= 0));
+        b.onclick = () => { texDraft.parts[p.id] = at >= 0 ? order.filter((m) => m !== id) : [...order, id]; renderTexScreen(state); };
         group.append(b);
       }
+      const o = el('button', '', t('Original', 'Original'));
+      o.setAttribute('aria-pressed', String(!order.length));
+      o.onclick = () => { texDraft.parts[p.id] = []; renderTexScreen(state); };
+      group.append(o);
       row.append(group);
       return row;
     }));

@@ -99,20 +99,27 @@ function partsAvailable(sources) {
   return out;
 }
 
-// Escolha que vale de fato: a do jogador, se aquele mod existe na parte; senão o primeiro que existe (TexWizard, Redux,
-// Definitive, NextGen); "original" sempre vale. Parte sem nenhum mod: "original".
+// Ordem que vale de fato em cada parte (pedido do Bruno, 08/11): uma lista com a 1ª escolha, a 2ª... Só entram os mods
+// que o jogador pôs na lista e que existem na parte; o que nenhum deles tiver fica original (nada é completado sozinho,
+// para não entrar textura "feia" de um mod que ele não quis). Lista vazia = "Original".
+// Sem escolha guardada: só a 1ª, o primeiro mod que tem a parte (TexWizard, Redux, Definitive, NextGen).
+// Escolha da 3.0.4 (um mod só, texto): vira a 1ª, sem 2ª.
 function effectiveChoice(choice, avail) {
   const c = choice && typeof choice === 'object' ? choice : {};
   const out = {};
   for (const p of PART_IDS) {
     const list = avail[p] || [];
-    out[p] = c[p] === ORIGINAL ? ORIGINAL : list.includes(c[p]) ? c[p] : (list[0] || ORIGINAL);
+    const v = c[p];
+    out[p] = Array.isArray(v) ? [...new Set(v)].filter((id) => list.includes(id))
+      : v === ORIGINAL ? []
+        : list.includes(v) ? [v]
+          : list.slice(0, 1);
   }
   return out;
 }
 
-// Escolhe as entradas. Mapa do site: sempre. Em cada parte, o mod escolhido vem primeiro e os outros só completam as
-// texturas que ele não tem ("encaixar todas"); "original" = nada daquela parte. Mesma textura no site e num mod:
+// Escolhe as entradas. Mapa do site: sempre. Em cada parte, a 1ª escolha vem primeiro e as seguintes só completam as
+// texturas que as anteriores não têm; lista vazia = nada daquela parte. Mesma textura no site e num mod:
 // fica a de maior resolução (empate: a do site), como na 3.0.0.
 function choose(sources, choice) {
   const eff = effectiveChoice(choice, partsAvailable(sources));
@@ -120,9 +127,7 @@ function choose(sources, choice) {
   for (const e of (sources[SITE] && sources[SITE].entries) || []) picked.set(e.key, { e, src: SITE });
   const fromMods = new Map();
   for (const p of PART_IDS) {
-    if (eff[p] === ORIGINAL) continue;
-    const order = [eff[p], ...MOD_IDS.filter((m) => m !== eff[p])];
-    for (const id of order) {
+    for (const id of eff[p]) {
       if (!sources[id]) continue;
       for (const e of sources[id].entries) {
         if (partOf(e.name) !== p || fromMods.has(e.key)) continue;
@@ -222,11 +227,16 @@ function virtualMod(sources, choice, p = 'TEXPACKS/detailed.pak') {
   };
 }
 
-// Escolha guardada nas configurações: só partes e valores conhecidos.
+// Escolha guardada nas configurações: só partes e mods conhecidos, sem repetir. Lista (ordem do jogador) ou, da 3.0.4,
+// um mod só ou "original" (effectiveChoice entende os dois).
 function sanitizeChoice(raw) {
   const out = {};
   if (!raw || typeof raw !== 'object') return out;
-  for (const p of PART_IDS) if ([ORIGINAL, ...MOD_IDS].includes(raw[p])) out[p] = raw[p];
+  for (const p of PART_IDS) {
+    const v = raw[p];
+    if (Array.isArray(v)) out[p] = [...new Set(v)].filter((id) => MOD_IDS.includes(id));
+    else if ([ORIGINAL, ...MOD_IDS].includes(v)) out[p] = v;
+  }
   return out;
 }
 

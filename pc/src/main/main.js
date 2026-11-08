@@ -1439,8 +1439,8 @@ function registerIpc() {
   handle('textures:apply', (draft) => {
     if (!draft || typeof draft !== 'object' || typeof draft.on !== 'boolean') return { ok: false, error: tr('Escolha inválida.', 'Invalid choice.') };
     const parts = texSources ? texPack.sanitizeChoice(draft.parts) : cfg.texParts;
-    for (const [p, mod] of Object.entries(parts)) {
-      if (mod !== texPack.ORIGINAL && !(texAvail[p] || []).includes(mod)) return { ok: false, error: tr('Esse pacote não tem essa parte.', 'That pack does not have this part.') };
+    for (const [p, list] of Object.entries(parts)) {
+      if (!Array.isArray(list) || list.some((mod) => !(texAvail[p] || []).includes(mod))) return { ok: false, error: tr('Esse pacote não tem essa parte.', 'That pack does not have this part.') };
     }
     const onChanged = draft.on !== cfg.hdTextures;
     const before = JSON.stringify(texPack.effectiveChoice(cfg.texParts, texAvail));

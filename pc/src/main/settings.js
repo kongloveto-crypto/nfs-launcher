@@ -22,7 +22,7 @@ const DEFAULTS = Object.freeze({
   imageMode: 'vivido',      // modo do filtro (imageFilter.js)
   hdTextures: true,         // texturas melhores do NFSU2 (pacote do instalador e pasta de mods). Vale ao iniciar ou recarregar o jogo
   texUiPrev: null,          // linha "ui_textures" que o app trocou no settings.ini do jogo (gameSettings.js); null = não trocou
-  texParts: {},             // mod de cada parte das texturas (texPack.js), ex.: { asfalto: 'redux', ceu: 'nextgen' }; vazio = padrão
+  texParts: {},             // ordem dos mods de cada parte das texturas (texPack.js), ex.: { asfalto: ['nextgen', 'redux'], ceu: [] }; vazio = padrão
   dx11GameMin: false,       // gráficos do jogo no mínimo ainda por fazer (entrou no modo DirectX 11; gameSettings.minGraphics)
   sounds: true,             // sons nas telas do app (nunca durante o jogo)
   discord: true,            // mostra "Jogando NFS Launcher" no Discord aberto neste PC

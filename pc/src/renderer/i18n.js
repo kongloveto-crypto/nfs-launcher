@@ -21,7 +21,7 @@ const EN = {
   texChoose: 'HD textures…',
   texChooseNote: 'Download the mods and choose which one each part comes from (asphalt, sky, buildings and more).',
   texDlNote: 'The mods stay on your PC after downloading. The site\'s detailed map comes with the first one.',
-  texPartsNote:'Choose which mod each part comes from. If the chosen mod lacks a texture of that part, the others fill it in. “Original” leaves the part as in the game.',
+  texPartsNote:'Click the mods in the order you want: the 1st choice comes first; what it lacks comes from the 2nd, then the 3rd. What none of the chosen ones has stays original. Click again to remove. “Original” leaves the whole part as in the game.',
   sHdTextures: 'Better textures <small>(more detailed asphalt, buildings, trees and sky, from the TexWizard, Redux, Definitive Edition and NextGen mods, together with the detailed map. Download the mods in “HD textures…”. The app turns on the game\'s detailed map when it opens; the HUD stays as you left it. Applies when the game starts or reloads)</small>',
   sUnblock: 'DirectX 11 mode (Dawn D3D11) <small>(for graphics without DirectX 12. Turns off HD textures, the new drawing, FXAA and the image filter and sets the game graphics to the minimum; you can turn them back on later. If the screen goes black, lower the game graphics. It may cause picture errors or freezes)</small>',
   sLighter: 'Ease the processor (Dawn skip_validation) <small>(stops checking each graphics command. Small gain, ~0.1 ms per frame. If the game has a graphics error, it may freeze)</small>',
