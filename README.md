@@ -82,7 +82,7 @@ node node_modules\electron\install.js
 ## Publicar uma versão
 
 1. Montar (`npm run dist` no PC; `mobile/quick.sh` no WSL) e rodar `npm run manifestos` na pasta `pc`.
-2. Criar a release no GitHub com o arquivo (`pc-<versão>`: `NFS-Launcher-Setup-<versão>.exe`; `android-<versão>`: `NFS-Launcher-Android-<versão>.apk`; texturas: `texturas-1`).
+2. Criar a release no GitHub com o arquivo (`pc-<versão>`: `NFS-Launcher-Setup-<versão>.exe`; `android-<versão>`: `NFS-Launcher-Android-<versão>.apk`; texturas: `texturas-1`). Em `pc`: `node scripts/releases.js pc android` (usa o login do git) e, depois do passo 3, `node scripts/conferir-github.js`.
 3. Enviar as listas (`pc/*.json`, `mobile/*.json`) ao ramo `main`. Só depois disso os apps veem a versão nova.
 
 ## Dicas para o jogador
@@ -104,7 +104,7 @@ node node_modules\electron\install.js
 pc/src/main/   main.js e a lógica pura coberta por testes (config, settings, profileLock, saveCopy, gpuFallback, imageFilter, discord…)
 pc/src/renderer/  ui.html/css/js, i18n.js (inglês), tips.js (dicas), guide.* e panel.* (guia flutuante), bg/ e games/ (fundos e CDs)
 pc/build/      ícones, installer.nsh e imagens do instalador
-pc/scripts/    verify.js, manifestos.js, export-guides.js, make-discs.ps1, make-icons.ps1, make-installer-art.ps1
+pc/scripts/    verify.js, manifestos.js, releases.js e conferir-github.js (publicar no GitHub), export-guides.js, make-discs.ps1, make-icons.ps1, make-installer-art.ps1
 pc/arte/       imagens de origem dos CDs e do fundo
 pc/motor/      compilação do motor próprio do PC (código em C:\e)
 pc/test/       testes (node:test)
