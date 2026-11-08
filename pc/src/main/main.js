@@ -604,7 +604,8 @@ function pauseUpdateDownload() { if (updateCtl) updateCtl.abort(); }
 // Roda o instalador baixado sem janelas (/S). --updated: o instalador espera o app fechar (installer.nsh);
 // --force-run: abre o app de novo no fim (só no "Atualizar agora").
 function installUpdate(reopen) {
-  if (!updateFile || updateSpawned || !fs.existsSync(updateFile)) return false;
+  // Só o app instalado se atualiza: npm start e o motor de treino nunca instalam por cima do app do Bruno.
+  if (!app.isPackaged || !updateFile || updateSpawned || !fs.existsSync(updateFile)) return false;
   try {
     const { spawn } = require('child_process');
     spawn(updateFile, ['/S', '--updated', ...(reopen ? ['--force-run'] : [])], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
