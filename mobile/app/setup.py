@@ -2,7 +2,7 @@
 """Coloca o NFS Launcher (tela inicial, bolha e guia) dentro do código do Chromium, em chrome/android/nfs/.
 
 Uso (no Linux do WSL, depois dos patches):  python3 setup.py
-- Java de android-motor/app/java; telas de android-motor/app/assets (home.*);
+- Java de mobile/app/java; telas de mobile/app/assets (home.*);
 - dicas, sons, ícone, CDs e fundos do app de PC (src/renderer: tips.js, sounds.js, icon.png, games/, bg/);
 - guias e catálogo de jogos em JSON (scripts/export-guides.js, com o Node que vem no Chromium).
 Tudo vai para assets/nfs/ no APK. O BUILD.gn é gerado com a lista exata dos arquivos.
@@ -28,13 +28,13 @@ for f in sorted((HERE / 'java' / 'xyz' / 'nfs' / 'launcher').glob('*.java')):
     shutil.copy(f, java_dir / f.name)
 for f in sorted((HERE / 'assets').glob('home.*')):
     shutil.copy(f, assets / f.name)
-renderer = PROJ / 'src' / 'renderer'
+renderer = PROJ / 'pc' / 'src' / 'renderer'
 for name in ('tips.js', 'sounds.js', 'icon.png'):
     shutil.copy(renderer / name, assets / name)
 shutil.copytree(renderer / 'games', assets / 'games')
 shutil.copytree(renderer / 'bg', assets / 'bg')
 shutil.copytree(HERE / 'res', DEST / 'res')  # res/xml/nfs_game_mode_config.xml (modo de jogo do Android)
-subprocess.run([str(NODE), str(PROJ / 'scripts' / 'export-guides.js'),
+subprocess.run([str(NODE), str(PROJ / 'pc' / 'scripts' / 'export-guides.js'),
                 str(assets / 'guides.json'), str(assets / 'catalog.json')], check=True)
 
 # Texturas HD do NFSU2 (1.6.4): pack "02 - Optional - Texture" do TexWizard (o visual do próprio jogo em alta resolução),
@@ -55,7 +55,7 @@ q = lambda xs: '\n'.join(f'    "{x}",' for x in xs)
 (DEST / 'proguard.flags').write_text(
     '# NFS Launcher: classes pequenas, chamadas pelo manifesto e pela página local (JavascriptInterface).\n'
     '-keep class xyz.nfs.launcher.** { *; }\n')
-(DEST / 'BUILD.gn').write_text(f'''# Gerado por android-motor/app/setup.py (NFS Launcher dentro do motor). Não editar aqui.
+(DEST / 'BUILD.gn').write_text(f'''# Gerado por mobile/app/setup.py (NFS Launcher dentro do motor). Não editar aqui.
 import("//build/config/android/rules.gni")
 
 android_library("java") {{

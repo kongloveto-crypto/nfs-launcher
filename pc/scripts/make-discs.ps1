@@ -1,7 +1,7 @@
 param([string]$Root)
 # Discos do catálogo (src/renderer/games/<id>.png, 320 px) e ícone do app = colagem dos três CDs
 # (build/icon.ico 16–256 px, build/icon.png e src/renderer/icon.png 512 px).
-# Entradas na raiz do projeto: iconenovo.png (NFSU2, fundo transparente), mostwanted.png (NFSMW, fundo branco) e
+# Entradas em pc\arte: iconenovo.png (NFSU2, fundo transparente), mostwanted.png (NFSMW, fundo branco) e
 # "nfs carbon.jpg" (NFSC, fundo branco).
 # Cada CD vira um CÍRCULO PERFEITO e centralizado: acha o contorno do disco (ignorando sobras do fundo), estica o
 # recorte para quadrado (a foto do NFSU2 é um pouco oval) e apaga tudo fora do círculo e o furo do meio.
@@ -48,8 +48,8 @@ public static class Disc {
 function Png($bmp, $path) { $bmp.Save($path, [System.Drawing.Imaging.ImageFormat]::Png) }
 function PngBytes($bmp) { $ms = New-Object System.IO.MemoryStream; $bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png); return ,$ms.ToArray() }
 
-$s = New-Object System.Drawing.Bitmap (Join-Path $Root 'iconenovo.png'); $u2 = [Disc]::Normalize($s, $false, 1024); $s.Dispose()
-$s = New-Object System.Drawing.Bitmap (Join-Path $Root 'mostwanted.png'); $mw = [Disc]::Normalize($s, $true, 1024); $s.Dispose()
+$s = New-Object System.Drawing.Bitmap (Join-Path $Root 'arte\iconenovo.png'); $u2 = [Disc]::Normalize($s, $false, 1024); $s.Dispose()
+$s = New-Object System.Drawing.Bitmap (Join-Path $Root 'arte\mostwanted.png'); $mw = [Disc]::Normalize($s, $true, 1024); $s.Dispose()
 
 function Scaled($img, [int]$size) {
   $b = New-Object System.Drawing.Bitmap $size, $size, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
@@ -62,7 +62,7 @@ New-Item -ItemType Directory -Force $games | Out-Null
 $b = Scaled $u2 320; Png $b (Join-Path $games 'nfsu2.png'); $b.Dispose()
 $b = Scaled $mw 320; Png $b (Join-Path $games 'nfsmw.png'); $b.Dispose()
 # Carbon (foto do CD em fundo branco).
-$s = New-Object System.Drawing.Bitmap (Join-Path $Root 'nfs carbon.jpg'); $nc = [Disc]::Normalize($s, $true, 1024); $s.Dispose()
+$s = New-Object System.Drawing.Bitmap (Join-Path $Root 'arte\nfs carbon.jpg'); $nc = [Disc]::Normalize($s, $true, 1024); $s.Dispose()
 $b = Scaled $nc 320; Png $b (Join-Path $games 'nfsc.png'); $b.Dispose()
 
 # Colagem dos 3 CDs espalhados, como capas jogadas na mesa (pedido do Bruno, 05/11): NFSU2 atrás (em cima, à esquerda),

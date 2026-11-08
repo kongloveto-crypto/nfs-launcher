@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Roda o build.sh e, se a compilação falhar (por exemplo, falta de memória), tenta de novo com menos
 # tarefas ao mesmo tempo, do ponto onde parou. Registro em ~/motor-build.log; última linha "FIM codigo=N".
-# Uso (do Windows): wsl -d NFSMotor -u builder -- bash /mnt/c/Users/bruno/Desktop/nfsu2-launcher/android-motor/watch.sh
+# Uso (do Windows): wsl -d NFSMotor -u builder -- bash /mnt/c/Users/bruno/Desktop/nfsu2-launcher/mobile/watch.sh
 HERE="$(cd "$(dirname "$0")" && pwd)"
 LOG="$HOME/motor-build.log"
 export PATH="$HOME/depot_tools:$PATH" DEPOT_TOOLS_UPDATE=0

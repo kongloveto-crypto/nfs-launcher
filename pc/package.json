@@ -30,7 +30,7 @@
     "productName": "NFS Launcher",
     "electronDist": "C:/e/motor-final",
     "directories": {
-      "output": "dist",
+      "output": "../dist",
       "buildResources": "build"
     },
     "files": [

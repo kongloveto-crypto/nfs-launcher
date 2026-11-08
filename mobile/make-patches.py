@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gera android-motor/patches/*.patch a partir do código do Chromium (~/chromium/src, sem mudanças).
+"""Gera mobile/patches/*.patch a partir do código do Chromium (~/chromium/src, sem mudanças).
 
 Uso (no Linux do WSL):  python3 make-patches.py
 Cada mudança é feita por busca de texto; se o Chromium mudar e um trecho não for achado, o script para
@@ -225,7 +225,7 @@ def patch_app_startup(t):
 
 
 def patch_textures(t):
-    # Texturas HD do NFSU2 (1.6.4): a lista do site e o pacote passam pelo motor (android-motor/nfs_texturas.cc).
+    # Texturas HD do NFSU2 (1.6.4): a lista do site e o pacote passam pelo motor (mobile/nfs_texturas.cc).
     code = (pathlib.Path(__file__).resolve().parent / 'nfs_texturas.cc').read_text()
     t = sub1(t, '''void ChromeContentBrowserClient::WillCreateURLLoaderFactory(''',
              code + '''void ChromeContentBrowserClient::WillCreateURLLoaderFactory(''')

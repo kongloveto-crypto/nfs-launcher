@@ -15,7 +15,7 @@ Jogo novo no catálogo **não** exige recompilar o Motor: basta atualizar o laun
 
 ## Como montar (no PC do Bruno)
 1. Linux do Windows (WSL2 + Ubuntu 24.04), já instalado pelo app.
-2. No Ubuntu: `bash /mnt/c/Users/bruno/Desktop/nfsu2-launcher/android-motor/build.sh`
+2. No Ubuntu: `bash /mnt/c/Users/bruno/Desktop/nfsu2-launcher/mobile/build.sh`
    - a primeira vez baixa ~40–60 GB e compila por 6–10 h;
    - o resultado sai em `dist/NFS-Motor-<versão>-arm64.apk`, assinado com a mesma chave do launcher
      (`android/nfs-launcher.jks`; NUNCA apagar).

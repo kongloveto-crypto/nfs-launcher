@@ -2,7 +2,7 @@ param([string]$Root)
 # Gera os ícones do app a partir de iconenovo.png (quadrado, fundo transparente):
 # build/icon.png e src/renderer/icon.png (512 px) e build/icon.ico (16–256 px, entradas PNG).
 Add-Type -AssemblyName System.Drawing
-$src = [System.Drawing.Image]::FromFile((Join-Path $Root 'iconenovo.png'))
+$src = [System.Drawing.Image]::FromFile((Join-Path $Root 'arte\iconenovo.png'))
 $side = [Math]::Max($src.Width, $src.Height)
 
 function Render([int]$size) {

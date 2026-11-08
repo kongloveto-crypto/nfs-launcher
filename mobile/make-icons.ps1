@@ -1,5 +1,5 @@
 # Gera os ícones do NFS Motor (colagem dos CDs, build/icon.png) nos tamanhos do Android.
-# Saída: android-motor/res/mipmap-<densidade>/ — o build.sh copia por cima dos ícones do Chromium.
+# Saída: mobile/res/mipmap-<densidade>/ — o build.sh copia por cima dos ícones do Chromium.
 #   app_icon.png                  ícone comum (48 dp)
 #   layered_app_icon.png          frente do ícone adaptável (108 dp; o desenho fica no círculo seguro de 66 dp)
 #   layered_app_icon_background.png  fundo do ícone adaptável (azul-escuro do app)

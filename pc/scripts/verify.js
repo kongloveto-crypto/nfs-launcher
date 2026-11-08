@@ -284,7 +284,7 @@ check('Opções de desempenho ligadas por padrão (DX12), desligadas no DX11, e 
   assert(s.antiAlias === true && s.imageFilter === false, 'anti-serrilhado desligado ou filtro ligado por padrão');
   assert((m.match(/insertCSS\(/g) || []).length === 1 && /imageFilter\.css\(cfg\.imageFilter, cfg\.imageMode\)/.test(m), 'CSS no jogo fora do filtro de imagem');
   assert((m.match(/sw\('enable-features'/g) || []).length === 1 && /if \(NEW_DRAWING_ON \|\| ANTI_ALIAS_ON\) sw\('enable-features', DRAW_FEATURES\)/.test(m), 'desenho da tela fora da opção');
-  assert(/ANTI_ALIAS_ON && 'NfsAntiAlias'/.test(m) && /BASE_FEATURE\(kNfsAntiAlias, base::FEATURE_DISABLED_BY_DEFAULT\)/.test(read('pc-motor/aplicar-correcoes.py')), 'anti-serrilhado fora da opção');
+  assert(/ANTI_ALIAS_ON && 'NfsAntiAlias'/.test(m) && /BASE_FEATURE\(kNfsAntiAlias, base::FEATURE_DISABLED_BY_DEFAULT\)/.test(read('motor/aplicar-correcoes.py')), 'anti-serrilhado fora da opção');
   const d = read('src/main/discord.js');
   assert(/\\\\\\\\\?\\\\pipe\\\\discord-ipc-/.test(d) && !/https?:|require\('(http|https|tls|dns)'\)/.test(d), 'Discord fora do canal local');
   assert(/s\.settings\.sounds && s\.screen !== 'none'/.test(read('src/renderer/ui.js')), 'sons ligados durante o jogo');

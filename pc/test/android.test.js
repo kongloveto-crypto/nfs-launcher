@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 
-const motor = (...p) => fs.readFileSync(path.join(__dirname, '../android-motor', ...p), 'utf8');
+const motor = (...p) => fs.readFileSync(path.join(__dirname, '../../mobile', ...p), 'utf8');
 const main = motor('app/java/xyz/nfs/launcher/MainActivity.java');
 
 test('celular: o aviso de versão nova só olha o APK, e o do PC só olha o instalador', () => {

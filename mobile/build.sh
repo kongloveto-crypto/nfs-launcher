@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Monta o NFS Motor (Chromium para Android) dentro do Linux do Windows (WSL2).
-# Uso:  bash /mnt/c/Users/bruno/Desktop/nfsu2-launcher/android-motor/build.sh
+# Uso:  bash /mnt/c/Users/bruno/Desktop/nfsu2-launcher/mobile/build.sh
 # Etapas (cada uma pula sozinha se já foi feita): ferramentas -> código -> patches -> compilação -> assinatura -> dist.
 # O código do Chromium fica em ~/chromium (disco do Linux; NUNCA em /mnt/c, que é lento demais).
 set -euo pipefail
 
 TAG="${CHROMIUM_TAG:-156.0.8078.49}"          # mesma família do Electron 45 do app de PC
-HERE="$(cd "$(dirname "$0")" && pwd)"         # .../android-motor
+HERE="$(cd "$(dirname "$0")" && pwd)"         # .../mobile
 PROJ="$(dirname "$HERE")"                     # pasta do projeto no Windows
 WORK="$HOME/chromium"
 OUT="out/Motor"

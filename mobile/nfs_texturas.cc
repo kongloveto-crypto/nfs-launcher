@@ -5,7 +5,7 @@
 // (assets/nfs/texturas.ntxp, sem compressão) no lugar de TEXPACKS/detailed.pak, e os pedidos desse arquivo saem do APK.
 // Todo o resto segue para o site sem mudança. Sem script na página. Com "--nfs-sem-texturas" (opção desligada no
 // app) ou sem o pacote, nada passa por aqui. Qualquer falha: a lista do site segue como veio.
-// Inserido em chrome/browser/chrome_content_browser_client.cc por android-motor/make-patches.py (patch 0007).
+// Inserido em chrome/browser/chrome_content_browser_client.cc por mobile/make-patches.py (patch 0007).
 #include <unistd.h>
 
 #include "base/android/apk_assets.h"

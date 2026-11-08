@@ -78,7 +78,7 @@ if (UNBLOCK_ON) sw('use-webgpu-adapter', 'd3d11');
 // Um único switch: appendSwitch repetido sobrescreve o anterior, inclusive o que veio na linha de comando.
 // No modo DirectX 11 fica desligado: placa antiga, e esse desenho só foi medido numa RTX 4060.
 const NEW_DRAWING_ON = savedAtStart.newDrawing && !SAFE_MODE && !UNBLOCK_ON;
-// Anti-serrilhado: filtro do nosso motor (pc-motor/aplicar-correcoes.py), sobre a imagem pronta. O motor oficial do `npm start` ignora.
+// Anti-serrilhado: filtro do nosso motor (motor/aplicar-correcoes.py), sobre a imagem pronta. O motor oficial do `npm start` ignora.
 const ANTI_ALIAS_ON = savedAtStart.antiAlias && !SAFE_MODE;
 const DRAW_FEATURES = [
   app.commandLine.getSwitchValue('enable-features'),
