@@ -58,7 +58,7 @@
     </div>
     <div id="update-box" class="update-box" role="status" hidden>
       <span id="update-text"></span>
-      <button id="update-get" class="primary small" data-t="updGet">Baixar</button>
+      <button id="update-get" class="primary small" data-t="updGet">Atualizar agora</button>
     </div>
     <div id="disk-box" class="update-box" role="status" hidden><span id="disk-text"></span></div>
     <div id="gpu-chip" class="chip" hidden><i></i><span>Verificando WebGPU…</span><button id="gpu-unblock" class="primary small" hidden></button></div>
@@ -84,7 +84,7 @@
         <label class="switch"><input type="checkbox" id="s-lighterGpu"><span data-t="sLighter">Aliviar o processador (Dawn skip_validation) <small>(deixa de conferir cada comando gráfico. Ganho pequeno, ~0,1 ms por quadro. Se o jogo der erro gráfico, pode travar)</small></span></label>
         <label class="switch"><input type="checkbox" id="s-newDrawing"><span data-t="sNewDrawing">Desenhar a tela do jeito novo (Graphite + Delegated Compositing) <small>(outro método de desenhar a imagem, e o Windows monta a imagem final. Jogando numa RTX 4060: quadros de 3% a 10% mais rápidos e até 30% menos quadros perdidos)</small></span></label>
         <label class="switch"><input type="checkbox" id="s-antiAlias"><span data-t="sAntiAlias">Anti-serrilhado (FXAA) <small>(deixa as bordas mais lisas. Custa ~0,27 ms por quadro e tira um pouco da nitidez de letras e detalhes)</small></span></label>
-        <label class="switch" id="unblock-row" hidden><input type="checkbox" id="s-unblockGpu"><span data-t="sUnblock">Modo DirectX 11 (Dawn D3D11) <small>(para placa sem DirectX 12. Liga o jogo sem texturas HD e sem as opções extras de imagem e desempenho; dá para religar depois. Pode dar erro de imagem ou travar)</small></span></label>
+        <label class="switch" id="unblock-row" hidden><input type="checkbox" id="s-unblockGpu"><span data-t="sUnblock">Modo DirectX 11 (Dawn D3D11) <small>(para placa sem DirectX 12. Desliga texturas HD, desenho novo, FXAA e filtro de imagem e coloca os gráficos do jogo no mínimo; dá para religar depois. Se a tela ficar preta, diminua os gráficos do jogo. Pode dar erro de imagem ou travar)</small></span></label>
       </section>
       <section>
         <h3 data-t="hWindow">Janela e tela cheia</h3>
@@ -92,10 +92,10 @@
       </section>
       <section id="tex-sec">
         <h3 data-t="hTextures">Texturas (NFSU2)</h3>
-        <label class="switch"><input type="checkbox" id="s-hdTextures"><span data-t="sHdTextures">Texturas melhores <small>(asfalto, prédios, árvores e céu com mais detalhe, dos mods TexWizard, Redux, Definitive Edition e NextGen, junto com o mapa detalhado. O app liga o mapa detalhado do jogo ao abrir; o HUD fica como você deixou. Vale ao iniciar ou recarregar o jogo)</small></span></label>
-        <div id="tex-box" class="row left" hidden>
-          <button id="b-tex-parts" class="small" data-t="texChoose">Escolher as partes…</button>
-          <span class="muted small" data-t="texChooseNote">Asfalto, céu, prédios e mais: de qual mod vem cada um.</span>
+        <label class="switch"><input type="checkbox" id="s-hdTextures"><span data-t="sHdTextures">Texturas melhores <small>(asfalto, prédios, árvores e céu com mais detalhe, dos mods TexWizard, Redux, Definitive Edition e NextGen, junto com o mapa detalhado. Baixe os mods em “Texturas HD…”. O app liga o mapa detalhado do jogo ao abrir; o HUD fica como você deixou. Vale ao iniciar ou recarregar o jogo)</small></span></label>
+        <div id="tex-box" class="row left">
+          <button id="b-tex-parts" class="small" data-t="texChoose">Texturas HD…</button>
+          <span class="muted small" data-t="texChooseNote">Baixar os mods e escolher de qual vem cada parte (asfalto, céu, prédios e mais).</span>
         </div>
       </section>
       <section>
@@ -105,10 +105,10 @@
       </section>
       <section>
         <h3 data-t="hUpdate">Atualizações</h3>
-        <p class="muted small" data-t="updNote">Quando houver versão nova, o botão de baixar aparece na tela inicial. Nada é baixado ou instalado sozinho e nada do seu PC é enviado.</p>
+        <p class="muted small" data-t="updNote">O app baixa as versões novas sozinho, fora do jogo, e confere o arquivo. Ela é instalada quando você clica em <b>Atualizar agora</b> na tela inicial ou quando fecha o app. Nada do seu PC é enviado.</p>
         <div class="row left">
           <button id="b-update" data-t="updCheck">Verificar agora</button>
-          <button id="b-update-open" data-t="updOpen">Abrir a pasta de versões</button>
+          <button id="b-update-open" data-t="updOpen">Abrir a página de versões</button>
           <span id="update-status" class="muted small"></span>
         </div>
       </section>
@@ -192,6 +192,9 @@
   <main id="textures" class="screen" hidden>
     <div class="panel">
       <div class="tips-head"><h2 data-t="texTitle">Texturas HD</h2></div>
+      <p class="muted small" data-t="texDlNote">Os mods ficam no seu PC depois de baixar. O mapa detalhado do site vem junto com o primeiro.</p>
+      <div id="x-dl" class="tex-parts"></div>
+      <p id="x-dl-status" class="muted small" hidden></p>
       <label class="switch"><input type="checkbox" id="x-on"><span data-t="texOn">Texturas melhores <small>(desligadas, o jogo fica com as texturas originais)</small></span></label>
       <div id="x-box">
         <p class="muted small" data-t="texPartsNote">Escolha de qual mod vem cada parte. Se o mod escolhido não tem alguma textura daquela parte, os outros completam. “Original” deixa a parte como no jogo.</p>

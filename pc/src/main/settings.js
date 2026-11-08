@@ -4,7 +4,7 @@ const path = require('path');
 const combo = require('./combo');
 
 const DEFAULTS = Object.freeze({
-  version: 8,
+  version: 9,
   startFullscreen: false,   // iniciar direto em tela cheia
   showHome: true,           // mostrar tela inicial antes do jogo
   protectFullscreen: true,  // tela cheia = modo protegido
@@ -18,11 +18,12 @@ const DEFAULTS = Object.freeze({
   newDrawing: true,         // Skia Graphite + Delegated Compositing, juntos e ligados por padrão (decisão do Bruno, depois dos logs jogando). Vale ao reabrir
   secureDns: 'off',         // DNS seguro que fez o jogo abrir: fica ligado nas próximas aberturas (fora das configurações)
   antiAlias: true,          // anti-serrilhado do nosso motor (teste). Vale ao reabrir
-  imageFilter: false,       // filtro de cor e nitidez sobre a imagem do jogo. Vale na hora
+  imageFilter: true,        // filtro de cor e nitidez sobre a imagem do jogo, ligado por padrão (pedido do Bruno, 08/11: tudo de qualidade ligado). Vale na hora
   imageMode: 'vivido',      // modo do filtro (imageFilter.js)
   hdTextures: true,         // texturas melhores do NFSU2 (pacote do instalador e pasta de mods). Vale ao iniciar ou recarregar o jogo
   texUiPrev: null,          // linha "ui_textures" que o app trocou no settings.ini do jogo (gameSettings.js); null = não trocou
   texParts: {},             // mod de cada parte das texturas (texPack.js), ex.: { asfalto: 'redux', ceu: 'nextgen' }; vazio = padrão
+  dx11GameMin: false,       // gráficos do jogo no mínimo ainda por fazer (entrou no modo DirectX 11; gameSettings.minGraphics)
   sounds: true,             // sons nas telas do app (nunca durante o jogo)
   discord: true,            // mostra "Jogando NFS Launcher" no Discord aberto neste PC
   toggleCombo: 'Ctrl+F',    // entra E sai da tela cheia (também sai do modo protegido)
@@ -41,7 +42,7 @@ const LANGS = ['pt', 'en'];
 const USER_BOOLS = ['startFullscreen', 'highPriority', 'prepareGame', 'lighterGpu', 'unblockGpu', 'newDrawing', 'antiAlias', 'imageFilter', 'hdTextures'];
 // Sempre ligadas e fora das configurações (pedido do Bruno): vale também para quem tinha desligado antes.
 const ALWAYS_ON = ['showHome', 'protectFullscreen', 'blockAltSpace', 'showCorner', 'sounds', 'discord'];
-const BOOLS = [...USER_BOOLS, 'maximized', 'tipsDiscovered', 'unblockTried'];
+const BOOLS = [...USER_BOOLS, 'maximized', 'tipsDiscovered', 'unblockTried', 'dx11GameMin'];
 const OPACITY = (v, d) => (Number.isFinite(v) && v >= 0.3 && v <= 1 ? Math.round(v * 100) / 100 : d);
 
 function sanitizeBounds(b, minW = 640, minH = 360) {
@@ -89,16 +90,27 @@ function sanitize(raw) {
   }
   // Versão 7: quem já estava no modo DirectX 11 passa uma vez para o jogo "cru" (dx11Basic). Depois, o que religar fica.
   if (!(Number(r.version) >= 7) && out.unblockGpu) return dx11Basic(out);
+  // Versão 9 (pedido do Bruno, 08/11): o filtro de imagem também vem ligado. No DirectX 11, só fica desligado o que
+  // costuma pesar numa placa fraca (dx11Basic), Prioridade, Preparar o jogo e Aliviar o processador voltam, e os gráficos
+  // do jogo vão ao mínimo uma vez. Quem já tinha a versão 9 fica com o que escolheu.
+  if (!(Number(r.version) >= 9)) {
+    if (out.unblockGpu) return dx11Basic(out);
+    out.imageFilter = true;
+  }
   return out;
 }
-// Modo DirectX 11 = placa fraca ou antiga (pedido do Bruno, 06/11, depois da tela preta numa Intel gen-7): ao entrar
-// nele, o jogo roda "cru", sem texturas HD e com todas as opções de imagem e desempenho desmarcadas (Graphite e
-// Delegated o próprio modo já ignorava). Quem quiser pode religar cada uma depois; sair do modo não as liga de volta.
+// Modo DirectX 11 = placa fraca ou antiga (depois da tela preta numa Intel gen-7). Pedido do Bruno (08/11): ao entrar
+// nele, desliga só o que provavelmente traz lag numa placa assim (texturas HD, desenho novo, FXAA e filtro de imagem,
+// que pesam na placa de vídeo); Prioridade, Preparar o jogo e Aliviar o processador aliviam o processador e ficam
+// ligadas. E os gráficos do próprio jogo vão ao mínimo uma vez (dx11GameMin, feito ao abrir o app). Quem quiser pode
+// religar cada opção depois; sair do modo não as liga de volta.
 const PERF_ON = ['highPriority', 'prepareGame', 'lighterGpu', 'newDrawing', 'antiAlias'];
-const DX11_OFF = ['hdTextures', 'highPriority', 'prepareGame', 'lighterGpu', 'newDrawing', 'antiAlias', 'imageFilter'];
+const DX11_KEEP = ['highPriority', 'prepareGame', 'lighterGpu'];
+const DX11_OFF = ['hdTextures', 'newDrawing', 'antiAlias', 'imageFilter'];
 function dx11Basic(cfg) {
-  const out = { ...cfg, unblockGpu: true };
+  const out = { ...cfg, unblockGpu: true, dx11GameMin: true };
   for (const k of DX11_OFF) out[k] = false;
+  for (const k of DX11_KEEP) out[k] = true;
   return out;
 }
 function load(file) {
@@ -136,4 +148,4 @@ function applyChange(cfg, key, value) {
   }
   return { ok: false, error: 'Configuração desconhecida.' };
 }
-module.exports = { DEFAULTS, LANGS, sanitize, load, save, applyChange, OPACITY, dx11Basic, DX11_OFF };
+module.exports = { DEFAULTS, LANGS, sanitize, load, save, applyChange, OPACITY, dx11Basic, DX11_OFF, DX11_KEEP, PERF_ON };

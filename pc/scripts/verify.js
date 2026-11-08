@@ -238,25 +238,30 @@ check('Domínios permitidos', () => {
   assert(/const gameUrl = \(\) => gameOf\(currentGame \|\| cfg\.game\)\.url;/.test(mainJs), 'Recarregar não pode usar o endereço com #');
   assert((mainJs.match(/openSite\(startUrlOf\(id, cfg\.lang\)\)/g) || []).length === 2, 'o START precisa respeitar o idioma');
 });
-check('Internet só para o jogo e para a pasta de versões; um único link externo fixo', () => {
+check('Internet só para o jogo e para o GitHub do app (atualização e texturas); um único link externo fixo', () => {
   const m = read('src/main/main.js');
   const opens = [...m.matchAll(/shell\.openExternal\(([^)]*)\)/g)].map((x) => x[1].trim());
-  assert(opens.length === 1 && opens[0] === 'update.FOLDER_URL', `openExternal inesperado: ${opens.join(', ')}`);
+  assert(opens.length === 1 && opens[0] === 'github.RELEASES_URL', `openExternal inesperado: ${opens.join(', ')}`);
   const fetches = [...m.matchAll(/net\.fetch\(([\w.]+(?:\(\))?)/g)].map((x) => x[1].trim());
-  assert(fetches.every((f) => ['gameUrl()', 'update.LIST_URL'].includes(f)), `net.fetch inesperado: ${fetches.join(', ')}`);
+  assert(fetches.every((f) => ['gameUrl()', 'url'].includes(f)), `net.fetch inesperado: ${fetches.join(', ')}`);
+  // net.fetch(url) só em fetchJson, e fetchJson só com os dois arquivos do repositório. Os downloads passam pelo
+  // downloader (endereços aprovados por github.okAsset, arquivo conferido pelo SHA-256).
+  const jsonCalls = [...m.matchAll(/fetchJson\(([^)]*)\)/g)].map((x) => x[1].trim()).filter((x) => x !== 'url');
+  assert(jsonCalls.length && jsonCalls.every((x) => ['github.UPDATE_URL', 'github.TEXTURES_URL'].includes(x)), `fetchJson inesperado: ${jsonCalls.join(', ')}`);
+  assert((m.match(/fetch: net\.fetch/g) || []).length === 2 && (m.match(/downloader\.download\(/g) || []).length === 2, 'download fora do downloader');
   // Mods (modFiles.js): o app só responde endereços do próprio NFSU2; o resto segue para o site sem mudança.
   const mods = read('src/main/modFiles.js');
   assert(/allowed: \(u\) => isAllowedUrl\(u, 'nfsu2'\)/.test(m) && /const r = allowed\(req\.url\) && route\(req\.url, served\);\s*if \(!r\) return pass\(req\);/.test(mods) &&
     /modsOn\.active\(cfg\.hdTextures && isAllowedUrl\(url, 'nfsu2'\)\)/.test(m), 'mods: só o NFSU2 pode passar pelo app, e só com "Texturas melhores" ligada');
-  const u = require('../src/main/update');
-  assert(/^https:\/\/drive\.google\.com\//.test(u.FOLDER_URL) && /^https:\/\/drive\.google\.com\//.test(u.LIST_URL), 'pasta de versões fora do Google Drive');
+  const g = require('../src/main/github');
+  assert(g.REPO === 'vtrspeedman-cell/nfs-launcher' && g.RELEASES_URL === `https://github.com/${g.REPO}/releases`, 'repositório do app trocado');
 });
 check('Botão de versão nova sempre na tela inicial (sem "Depois" e sem opção de desligar)', () => {
   const html = read('src/renderer/ui.html');
   assert(/id="update-box"/.test(html) && /id="update-get"/.test(html), 'botão de atualização ausente');
   assert(!/update-later|s-checkUpdates/.test(html), 'dá para esconder o aviso de versão nova');
   assert(!/cfg\.checkUpdates/.test(read('src/main/main.js')), 'verificação depende de uma opção');
-  assert(/\$\('update-box'\)\.hidden = u\.status !== 'new';/.test(read('src/renderer/ui.js')), 'aviso escondido mesmo com versão nova');
+  assert(/\$\('update-box'\)\.hidden = !found;/.test(read('src/renderer/ui.js')), 'aviso escondido mesmo com versão nova');
 });
 check('Abrir o jogo: carga normal, sem recarga sem cache e sem apagar dados', () => {
   const m = read('src/main/main.js');
@@ -266,13 +271,16 @@ check('Abrir o jogo: carga normal, sem recarga sem cache e sem apagar dados', ()
   const open = m.slice(m.indexOf('function openSite'), m.indexOf('// START com o jogo'));
   assert(!/clearCache|clearStorageData/.test(open), 'abrir o jogo apaga dados');
 });
-check('Opções de desempenho ligadas por padrão (DX12), desligadas no DX11, e Discord só no canal local', () => {
+check('Opções de desempenho e qualidade ligadas por padrão (DX12); no DX11 só sai o que pesa; Discord só no canal local', () => {
   const m = read('src/main/main.js');
   const s = require('../src/main/settings').DEFAULTS;
-  // Pedido do Bruno (06/11): todas ligadas por padrão no DirectX 12; o modo DirectX 11 desmarca todas.
-  assert(s.prepareGame === true && s.highPriority === true, 'preparar o jogo ou prioridade desligados por padrão');
+  // Pedido do Bruno (08/11): todas ligadas por padrão no DirectX 12 (também o filtro de imagem); o modo DirectX 11
+  // desmarca só as que pesam na placa de vídeo e põe os gráficos do jogo no mínimo.
+  assert(s.prepareGame === true && s.highPriority === true && s.imageFilter === true && s.antiAlias === true, 'opção de desempenho ou qualidade desligada por padrão');
   const st = require('../src/main/settings');
-  for (const k of ['highPriority', 'prepareGame', 'lighterGpu', 'newDrawing', 'antiAlias']) assert(st.DX11_OFF.includes(k), k + ' continua ligado no modo DirectX 11');
+  for (const k of ['hdTextures', 'newDrawing', 'antiAlias', 'imageFilter']) assert(st.DX11_OFF.includes(k), k + ' continua ligado no modo DirectX 11');
+  for (const k of ['highPriority', 'prepareGame', 'lighterGpu']) assert(st.DX11_KEEP.includes(k) && !st.DX11_OFF.includes(k), k + ' desligado no DirectX 11 (alivia o processador)');
+  assert(st.dx11Basic({}).dx11GameMin === true && /await dx11MinAtStart\(\)/.test(m), 'DirectX 11 sem os gráficos mínimos do jogo');
   assert((m.match(/sw\('js-flags'/g) || []).length === 1 && /if \(PREPARE_ON\) sw\('js-flags'/.test(m), 'js-flags fora da opção');
   assert(s.lighterGpu === true, 'aliviar o processador desligado por padrão');
   assert((m.match(/sw\('enable-dawn-features'/g) || []).length === 1 && /if \(LIGHTER_ON\) sw\('enable-dawn-features', 'skip_validation'\)/.test(m), 'opção do motor gráfico fora do teste');
@@ -281,7 +289,7 @@ check('Opções de desempenho ligadas por padrão (DX12), desligadas no DX11, e 
   assert((m.match(/sw\('use-webgpu-adapter'/g) || []).length === 1 && /if \(UNBLOCK_ON\) sw\('use-webgpu-adapter', 'd3d11'\)/.test(m), 'DirectX 11 fora da opção');
   assert(s.newDrawing === true, 'Graphite e Delegated deveriam vir ligados por padrão');
   assert(/NEW_DRAWING_ON && '[^']*SkiaGraphite[^']*DelegatedCompositing'/.test(m), 'Graphite e Delegated deveriam ligar juntos, na mesma opção');
-  assert(s.antiAlias === true && s.imageFilter === false, 'anti-serrilhado desligado ou filtro ligado por padrão');
+  assert(s.antiAlias === true && s.imageFilter === true, 'anti-serrilhado ou filtro de imagem desligado por padrão');
   assert((m.match(/insertCSS\(/g) || []).length === 1 && /imageFilter\.css\(cfg\.imageFilter, cfg\.imageMode\)/.test(m), 'CSS no jogo fora do filtro de imagem');
   assert((m.match(/sw\('enable-features'/g) || []).length === 1 && /if \(NEW_DRAWING_ON \|\| ANTI_ALIAS_ON\) sw\('enable-features', DRAW_FEATURES\)/.test(m), 'desenho da tela fora da opção');
   assert(/ANTI_ALIAS_ON && 'NfsAntiAlias'/.test(m) && /BASE_FEATURE\(kNfsAntiAlias, base::FEATURE_DISABLED_BY_DEFAULT\)/.test(read('motor/aplicar-correcoes.py')), 'anti-serrilhado fora da opção');

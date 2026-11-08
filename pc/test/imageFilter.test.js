@@ -6,8 +6,9 @@ const settings = require('../src/main/settings');
 
 test('filtro de imagem: desligado por padrão, sem CSS', () => {
   const d = settings.sanitize({});
-  assert.equal(d.imageFilter, false);
-  assert.equal(imageFilter.css(d.imageFilter, d.imageMode), null);
+  assert.equal(d.imageFilter, true);
+  assert.ok(imageFilter.css(d.imageFilter, d.imageMode), 'ligado por padrão (pedido do Bruno, 08/11)');
+  assert.equal(imageFilter.css(false, d.imageMode), null);
 });
 
 test('filtro de imagem: todo modo só altera o canvas dos dois jogos', () => {

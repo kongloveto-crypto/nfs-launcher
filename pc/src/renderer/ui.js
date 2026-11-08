@@ -84,7 +84,7 @@
     $('gpu-unblock').textContent = unblockOn ? t('Desfazer e reabrir', 'Undo and reopen') : t('Tentar modo DirectX 11', 'Try DirectX 11 mode');
     if (!gpuResult) { label.textContent = t('Verificando WebGPU…', 'Checking WebGPU…'); return; }
     if (!problem && unblockOn) {
-      chip.classList.add('caution'); label.textContent = t('Modo DirectX 11 ligado, para placa sem DirectX 12, sem texturas HD e sem opções extras. Se a imagem der erro, desfaça.', 'DirectX 11 mode is on, for graphics without DirectX 12, without HD textures or extra options. If the picture has errors, undo it.');
+      chip.classList.add('caution'); label.textContent = t('Modo DirectX 11 ligado, para placa sem DirectX 12: sem as opções que pesam e com os gráficos do jogo no mínimo. Se a tela do jogo ficar preta, diminua os gráficos do jogo (Options > Display) até a imagem carregar. Se a imagem der erro, desfaça.', 'DirectX 11 mode is on, for graphics without DirectX 12: without the heavy options and with the game graphics at the minimum. If the game screen goes black, lower the game graphics (Options > Display) until the picture loads. If the picture has errors, undo it.');
     } else if (gpuResult.supported && !gpuResult.software) {
       chip.classList.add('ok'); label.textContent = t(`WebGPU disponível — ${gpuResult.adapter}`, `WebGPU available — ${gpuResult.adapter}`);
     } else if (gpuResult.supported) {
@@ -263,8 +263,50 @@
   function texDraftFrom(s) {
     return { on: !!s.settings.hdTextures, parts: { ...((s.texParts && s.texParts.choice) || {}) } };
   }
+  // Mods para baixar (GitHub): tamanho, Baixar / Atualizar / Remover e o andamento do download.
+  const mb = (n) => `${Math.max(1, Math.round(n / 1024 ** 2))} MB`;
+  function renderTexDownloads(s) {
+    const d = s.texDl || { files: [], status: 'idle' };
+    const job = d.job;
+    $('x-dl').replaceChildren(...d.files.filter((f) => f.name).map((f) => {
+      const row = el('div', 'tex-row');
+      row.append(el('b', '', f.name));
+      const box = el('div', 'row left');
+      const busy = job && (job.id === f.id || (job.id === 'site' && !f.have));
+      if (busy) {
+        box.append(el('span', 'muted small', job.id === 'site' ? t(`Baixando o mapa do site… ${job.pct}%`, `Downloading the site map… ${job.pct}%`) : t(`Baixando… ${job.pct}%`, `Downloading… ${job.pct}%`)));
+        const c = el('button', 'small', t('Parar', 'Stop'));
+        c.onclick = () => api.cancelTextures();
+        box.append(c);
+      } else if (f.have) {
+        box.append(el('span', 'muted small', f.outdated ? t('Versão nova disponível', 'New version available') : t('No PC', 'On this PC')));
+        if (f.outdated) {
+          const u = el('button', 'small primary', t(`Atualizar (${mb(f.size)})`, `Update (${mb(f.size)})`));
+          u.disabled = !!job;
+          u.onclick = async () => { const r = await api.downloadTextures(f.id); if (!(r && r.ok) && r && r.error) toast(r.error, true); };
+          box.append(u);
+        }
+        const rm = el('button', 'small', t('Remover', 'Remove'));
+        rm.disabled = !!job;
+        rm.onclick = async () => { const r = await api.removeTextures(f.id); if (!(r && r.ok)) toast((r && r.error) || '', true); };
+        box.append(rm);
+      } else {
+        const b = el('button', 'small primary', f.size ? t(`Baixar (${mb(f.size)})`, `Download (${mb(f.size)})`) : t('Baixar', 'Download'));
+        b.disabled = !!job || (d.status === 'ok' && !f.offered);
+        b.onclick = async () => { const r = await api.downloadTextures(f.id); if (!(r && r.ok) && r && r.error) toast(r.error, true); };
+        box.append(b);
+      }
+      row.append(box);
+      return row;
+    }));
+    const msg = d.error || (d.status === 'checking' ? t('Procurando os mods…', 'Looking for the mods…')
+      : d.status === 'error' ? t('Não deu para ver os mods agora (sem internet?). Os que já estão no PC continuam valendo.', 'Could not see the mods now (no internet?). The ones already on this PC still work.') : '');
+    $('x-dl-status').hidden = !msg;
+    $('x-dl-status').textContent = msg;
+  }
   function renderTexScreen(s) {
     const tp = s.texParts;
+    renderTexDownloads(s);
     if (!texDraft) texDraft = texDraftFrom(s);
     $('x-on').checked = texDraft.on;
     $('x-box').hidden = !tp;
@@ -298,14 +340,25 @@
   };
   $('b-tex-parts').onclick = () => api.openTextures();
 
-  // Atualizações: o botão fica na tela inicial sempre que a pasta de versões tem um instalador mais novo.
+  // Atualização automática: com versão nova, a tela inicial mostra o download e, pronta, "Atualizar agora".
   function renderUpdate(s) {
     const u = s.update || {};
-    $('update-box').hidden = u.status !== 'new';
-    if (u.status === 'new') $('update-text').textContent = t(`Nova versão ${u.version} disponível (você tem a ${s.versions.app}).`, `Version ${u.version} is available (you have ${s.versions.app}).`);
+    const found = ['new', 'downloading', 'ready'].includes(u.status);
+    $('update-box').hidden = !found;
+    const notes = u.notes ? t(u.notes.pt, u.notes.en || u.notes.pt) : '';
+    if (found) {
+      $('update-text').textContent = u.status === 'ready'
+        ? t(`Versão ${u.version} pronta${notes ? `: ${notes}` : ''}. Ela também é instalada quando você fechar o app.`, `Version ${u.version} is ready${notes ? `: ${notes}` : ''}. It also installs when you close the app.`)
+        : u.status === 'downloading' ? t(`Baixando a versão ${u.version}… ${u.pct || 0}%`, `Downloading version ${u.version}… ${u.pct || 0}%`)
+        : u.failed ? t(`Versão ${u.version} encontrada. O download parou (internet?) e continua sozinho.`, `Version ${u.version} found. The download stopped (internet?) and resumes by itself.`)
+        : t(`Versão ${u.version} encontrada. O download continua quando você sair do jogo.`, `Version ${u.version} found. The download continues when you leave the game.`);
+    }
+    $('update-get').hidden = u.status !== 'ready';
     $('update-status').textContent = {
       checking: t('Verificando…', 'Checking…'),
-      new: t(`Versão ${u.version} disponível!`, `Version ${u.version} available!`),
+      new: t(`Versão ${u.version} encontrada.`, `Version ${u.version} found.`),
+      downloading: t(`Baixando a versão ${u.version}… ${u.pct || 0}%`, `Downloading version ${u.version}… ${u.pct || 0}%`),
+      ready: t(`Versão ${u.version} pronta para instalar.`, `Version ${u.version} ready to install.`),
       none: t(`Você já tem a versão mais nova (${s.versions.app}).`, `You have the latest version (${s.versions.app}).`),
       error: t('Não deu para verificar agora (sem internet?).', 'Could not check now (no internet?).'),
     }[u.status] || t(`Versão instalada: ${s.versions.app}`, `Installed version: ${s.versions.app}`);
@@ -426,7 +479,7 @@
     $('btn-saves').hidden = selGame !== 'nfsu2'; // só o NFSU2 tem cópia do save
     $('c-tips').hidden = !s.tipsOn || !s.gameStarted;
     // Texturas melhores: só com o NFSU2 aberto e o pacote presente. Colorido quando ligado.
-    $('c-tex').hidden = !(s.gameStarted && s.game === 'nfsu2' && s.texturesAvail);
+    $('c-tex').hidden = !(s.gameStarted && s.game === 'nfsu2'); // também sem mods: a janela é onde se baixa
     $('c-tex').classList.toggle('on', !!s.settings.hdTextures);
     const texTip = s.settings.hdTextures ? t('Texturas HD: ligadas. Clique para escolher', 'HD textures: on. Click to choose')
       : t('Texturas HD: desligadas. Clique para escolher', 'HD textures: off. Click to choose');
@@ -458,8 +511,6 @@
     renderUpdate(s);
     renderSaves(s);
     if (s.screen === 'settings') renderCustom(s);
-    $('tex-box').hidden = !s.texParts;
-    $('tex-sec').hidden = !s.texParts && !s.texturesAvail; // instalador sem texturas (linha 2.x) ou nenhum mod marcado
     loadCustom(s);
     $('e-exit').hidden = !s.locked;
     $('e-settings').hidden = s.locked;
@@ -513,7 +564,7 @@
   $('gpu-unblock').onclick = async () => { await api.setSetting('unblockGpu', !state.settings.unblockGpu); api.restart(); };
   $('b-cache').onclick = async () => { const r = await api.resetCache(); toast(r.ok ? t('Cache limpo.', 'Cache cleared.') : r.error, !r.ok); };
   const openUpdates = async () => { const r = await api.openUpdates(); if (!(r && r.ok)) toast((r && r.error) || '', true); };
-  $('update-get').onclick = openUpdates;
+  $('update-get').onclick = async () => { const r = await api.installUpdate(); if (!(r && r.ok)) toast((r && r.error) || '', true); };
   $('b-update-open').onclick = openUpdates;
   $('b-update').onclick = () => api.checkUpdates(); // o resultado chega pelo estado
   $('e-retry').onclick = () => api.reload();

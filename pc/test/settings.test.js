@@ -45,7 +45,7 @@ test('padrões: modo janela, tela inicial, proteção e prioridade ativas', () =
   assert.equal(d.blockAltSpace, true);
   assert.equal(d.highPriority, true);
   for (const k of ['prepareGame', 'lighterGpu', 'newDrawing', 'antiAlias']) assert.equal(d[k], true, k);
-  assert.equal(d.imageFilter, false);
+  assert.equal(d.imageFilter, true, 'qualidade também ligada por padrão (pedido do Bruno, 08/11)');
   assert.equal(d.showCorner, true);
   assert.equal('lowLatency' in d, false, 'o app não mexe no VSync');
 });
@@ -64,12 +64,15 @@ test('Graphite e Delegated: uma opção só, ligada por padrão, também para qu
   const off = s.sanitize(s.applyChange(d, 'newDrawing', false).cfg);
   assert.equal(off.newDrawing, false);
 });
-test('modo DirectX 11: entrar nele desliga texturas HD e opções extras; quem já estava passa uma vez; religar fica', () => {
+test('modo DirectX 11: entrar nele desliga só o que pesa, mantém o que alivia e pede os gráficos mínimos; religar fica', () => {
   const tudo = { hdTextures: true, prepareGame: true, lighterGpu: true, antiAlias: true, imageFilter: true, highPriority: true };
   const on = s.applyChange(s.sanitize({ ...tudo, version: 7 }), 'unblockGpu', true).cfg;
   assert.equal(on.unblockGpu, true);
   for (const k of s.DX11_OFF) assert.equal(on[k], false, k);
-  assert.equal(on.highPriority, false, 'no DX11, tudo desmarcado (pedido do Bruno, 06/11)');
+  for (const k of s.DX11_KEEP) assert.equal(on[k], true, `alivia o processador, fica ligada: ${k}`);
+  assert.deepEqual([...s.DX11_OFF].sort(), ['antiAlias', 'hdTextures', 'imageFilter', 'newDrawing']);
+  assert.equal(on.dx11GameMin, true, 'gráficos do jogo no mínimo ao abrir');
+  assert.equal(s.sanitize(on).dx11GameMin, true, 'o pedido fica guardado até ser feito');
   const v7 = s.sanitize({ version: 7, prepareGame: false, antiAlias: false, highPriority: false });
   for (const k of ['highPriority', 'prepareGame', 'lighterGpu', 'newDrawing', 'antiAlias']) assert.equal(v7[k], true, `quem tinha o app passa a ligado: ${k}`);
   const v7dx = s.sanitize({ version: 7, unblockGpu: true, prepareGame: true });
@@ -78,7 +81,12 @@ test('modo DirectX 11: entrar nele desliga texturas HD e opções extras; quem j
   assert.equal(desmarcou.antiAlias, false, 'desmarcar depois fica');
   const antigo = s.sanitize({ ...tudo, version: 6, unblockGpu: true });
   for (const k of s.DX11_OFF) assert.equal(antigo[k], false, `migração: ${k}`);
-  assert.equal(antigo.version, 8);
+  assert.equal(antigo.version, 9);
+  assert.equal(antigo.dx11GameMin, true, 'quem já estava no DX11 também recebe os gráficos mínimos uma vez');
+  const v8dx = s.sanitize({ version: 8, unblockGpu: true, highPriority: false, prepareGame: false, lighterGpu: false });
+  for (const k of s.DX11_KEEP) assert.equal(v8dx[k], true, `versão 9 religa no DX11: ${k}`);
+  assert.equal(s.sanitize({ version: 8, imageFilter: false }).imageFilter, true, 'filtro ligado uma vez para quem tinha o app');
+  assert.equal(s.sanitize({ version: 9, imageFilter: false }).imageFilter, false, 'depois, desmarcar fica');
   const fora = s.sanitize({ ...tudo, version: 6, unblockGpu: false });
   assert.equal(fora.hdTextures, true, 'quem não está no DX11 não muda');
   const religou = s.sanitize(s.applyChange({ ...antigo }, 'hdTextures', true).cfg);

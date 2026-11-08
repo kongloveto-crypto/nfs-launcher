@@ -75,3 +75,31 @@ test('Texturas HD: grava no lugar, com cópia antes; sem arquivo ou com dois, n�
     assert.strictEqual(fs.readFileSync(file, 'latin1'), text);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
+
+test('DirectX 11: gráficos do jogo no mínimo, resolução e VSync como estão, o resto do registry igual', () => {
+  const reg = 'd NotFirstTime=1\r\nd g_CarShadowEnable=2\r\nd g_RoadReflectionEnable=3\r\nd g_RacingResolution=3\r\nd g_VSyncOn=0\r\ns Outro=abc\r\n';
+  const r = gs.minGraphicsText(reg);
+  assert.ok(r.changed);
+  assert.match(r.text, /^d g_CarShadowEnable=0\r$/m);
+  assert.match(r.text, /^d g_RoadReflectionEnable=0\r$/m);
+  assert.match(r.text, /^d g_RacingResolution=3\r$/m, 'resolução fica');
+  assert.match(r.text, /^s Outro=abc\r$/m);
+  for (const k of Object.keys(gs.MIN_GRAPHICS)) assert.match(r.text, new RegExp(`^d ${k}=0\r$`, 'm'), `${k} no mínimo (o que faltava entra no fim)`);
+  assert.ok(!gs.minGraphicsText(r.text).changed, 'de novo: nada muda');
+});
+
+test('DirectX 11: grava no registry.txt com cópia antes; sem o arquivo, tenta depois', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nfs-gs-'));
+  const bak = path.join(root, 'copias');
+  try {
+    assert.strictEqual((await gs.minGraphics({ root: path.join(root, 'fs'), backupDir: bak })).done, false);
+    const p = path.join(root, 'fs', '000', 't', '00', '00000007');
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    const reg = 'd NotFirstTime=1\nd g_CarShadowEnable=2\nd g_FogEnable=1\n';
+    fs.writeFileSync(p, reg, 'latin1');
+    const r = await gs.minGraphics({ root: path.join(root, 'fs'), backupDir: bak });
+    assert.ok(r.done && r.changed);
+    assert.match(fs.readFileSync(p, 'latin1'), /^d g_FogEnable=0$/m);
+    assert.strictEqual(fs.readFileSync(path.join(bak, gs.REG_BACKUP), 'latin1'), reg);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});

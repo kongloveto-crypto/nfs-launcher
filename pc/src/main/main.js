@@ -20,7 +20,8 @@ const { mayBeShortcut, decideKey, shouldCancelClose, wantAltSpaceCatch, ALT_SPAC
 const { allowPermission } = require('./permissions');
 const diagnostics = require('./diagnostics');
 const custom = require('./custom');
-const update = require('./update');
+const github = require('./github');
+const downloader = require('./downloader');
 const { errorKind, offersSecureDns } = require('./connError');
 const { SECURE_DNS } = require('./config');
 const { Presence } = require('./discord');
@@ -226,8 +227,9 @@ function buildState() {
     cornerMode: cfg.tipsDiscovered || tipsBlocked() ? 'normal' : 'discover',
     game: currentGame,  // jogo aberto (null antes do START); o último iniciado fica em settings.game
     tipsOn: !tipsBlocked(),
-    texturesAvail: !!modsOn, // pacote de texturas carregado (instalador ou pasta de mods)
-    // Partes das texturas (texPack.js): o que cada parte oferece e o que vale agora. null = sem pacotes do instalador.
+    texturesAvail: !!modsOn, // pacote de texturas carregado (baixado ou pasta de mods)
+    texDl: texDlState(),     // o que dá para baixar e o que já está no PC (janela Texturas HD)
+    // Partes das texturas (texPack.js): o que cada parte oferece e o que vale agora. null = nenhum mod baixado.
     texParts: texSources ? {
       parts: texPack.PARTS.map((p) => ({ id: p.id, pt: p.pt, en: p.en, mods: texAvail[p.id] })),
       mods: texPack.MODS.filter((m) => texSources[m.id]).map((m) => ({ id: m.id, name: m.name })),
@@ -271,7 +273,7 @@ let texUiNote = '';   // vai para o registro dos mods
 async function texturesSettingAtStart() {
   // Sem pacote (instalado sem as texturas, escolha do instalador): só desfaz a linha que o app tinha gravado antes,
   // para o jogo não continuar carregando o mapa detalhado do site num PC que escolheu ficar sem texturas.
-  const hasPack = fs.existsSync(bundledModsDir()) || fs.existsSync(modsDir()) || texPack.MOD_IDS.some((id) => fs.existsSync(path.join(texSourcesDir(), `${id}.pak`)));
+  const hasPack = fs.existsSync(modsDir()) || texPack.MOD_IDS.some((id) => fs.existsSync(path.join(texSourcesDir(), `${id}.pak`)));
   if (SAFE_MODE || (!hasPack && cfg.texUiPrev === null)) return;
   const on = cfg.hdTextures && hasPack;
   try {
@@ -284,6 +286,24 @@ async function texturesSettingAtStart() {
     texUiNote = `settings.ini do jogo: não deu para conferir (${e && e.message})`;
   }
 }
+// Modo DirectX 11 (pedido do Bruno, 08/11): uma vez, com o jogo fechado, os gráficos do próprio jogo vão ao mínimo
+// (registry.txt, gameSettings.minGraphics). Sem o arquivo ainda (jogo nunca aberto), tenta na próxima abertura.
+let dx11MinApplied = false;
+async function dx11MinAtStart() {
+  if (SAFE_MODE || !cfg.dx11GameMin || !UNBLOCK_ON) return;
+  try {
+    const r = await gameSettings.minGraphics({ root: gameFsRoot(), backupDir: saveCopyDir() });
+    if (r.done) { cfg = { ...cfg, dx11GameMin: false }; saveCfg(); dx11MinApplied = !!r.changed; }
+  } catch { /* tenta na próxima abertura */ }
+}
+function dx11Warning() {
+  dialog.showMessageBox(win, {
+    type: 'info', buttons: ['OK'], noLink: true, title: tr('Modo DirectX 11', 'DirectX 11 mode'),
+    message: tr('Os gráficos do jogo foram colocados no mínimo.', 'The game graphics were set to the minimum.'),
+    detail: tr('Sua placa de vídeo usa o modo DirectX 11. Para rodar melhor, o app desligou as opções que pesam e colocou os gráficos do jogo no mínimo. Se a tela do jogo ficar preta, diminua mais os gráficos do jogo (Options > Display) até a imagem carregar. Se estiver rodando bem, pode subir aos poucos.',
+      'Your graphics card uses DirectX 11 mode. To run better, the app turned off the heavy options and set the game graphics to the minimum. If the game screen goes black, lower the game graphics further (Options > Display) until the picture loads. If it runs well, you can raise them little by little.'),
+  }).catch(() => {});
+}
 // Antes de o navegador abrir os dados do jogo. Disco muito lento não segura a abertura: a cópia termina sozinha logo depois.
 async function copySaveAtStart() {
   const job = saveCopy.run({ root: gameFsRoot(), dest: saveCopyDir() })
@@ -295,14 +315,14 @@ async function copySaveAtStart() {
 }
 
 // ───────────────────────── Mods de textura do NFSU2 (modFiles.js) ─────────────────────────
-// Duas pastas com a mesma árvore do jogo (ex.: NFSU2\TEXPACKS\detailed.pak): a que vem no instalador
-// (resources\mods\NFSU2, desde a 2.0.8: o pacote de texturas junto com o mapa detalhado do site) e a do jogador
-// (%APPDATA%\NFS Launcher Mods\NFSU2), que vale por cima. Sem nenhuma: nada muda, nenhum pedido passa pelo app.
-// Com mods, os pedidos do site passam pelo app só enquanto o NFSU2 está aberto (openSite). Lidas ao abrir o app.
+// Duas fontes: os pacotes baixados pelo app (um de cada mod, texPack.js, juntados na hora conforme as partes
+// escolhidas) e a pasta do jogador com a mesma árvore do jogo (%APPDATA%\NFS Launcher Mods\NFSU2, ex.:
+// TEXPACKS\detailed.pak), que vale por cima. Sem nenhuma: nada muda, nenhum pedido passa pelo app.
+// Com mods, os pedidos do site passam pelo app só enquanto o NFSU2 está aberto (openSite).
 const modsDir = () => path.join(app.getPath('appData'), 'NFS Launcher Mods', 'NFSU2');
-const bundledModsDir = () => path.join(process.resourcesPath, 'mods', 'NFSU2'); // até a 3.0.0 (pacote já junto)
-// Desde a 3.0.1: um pacote de cada mod (texPack.js), juntados na hora conforme as partes escolhidas.
-const texSourcesDir = () => path.join(process.resourcesPath, 'texturas');
+// Desde a 3.0.3 (pedido do Bruno, 08/11): as texturas não vêm no instalador; o jogador baixa cada mod pelo app
+// (GitHub, pc/texturas.json) e elas ficam aqui, fora da pasta do programa (atualizar o app não as apaga).
+const texSourcesDir = () => path.join(app.getPath('userData'), 'texturas');
 let texSources = null; // { site, redux, definitive, nextgen } presentes (null = nenhum mod instalado)
 let texAvail = {};     // parte -> mods que têm texturas nela
 function loadTexSources() {
@@ -324,7 +344,7 @@ function texVirtualMods() {
 // Mods do jogador (pasta própria) valem por cima dos do app, pelo caminho.
 function allMods() {
   const by = new Map();
-  for (const m of [...texVirtualMods(), ...modFiles.scanAll([bundledModsDir(), modsDir()])]) by.set(m.p.toLowerCase(), m);
+  for (const m of [...texVirtualMods(), ...modFiles.scanAll([modsDir()])]) by.set(m.p.toLowerCase(), m);
   return [...by.values()];
 }
 let modsOn = null; // resultado de modFiles.install (null = sem mods)
@@ -337,10 +357,12 @@ function modLog(text) {
   if (!modLogFile || modLogLines++ > 300) return;
   try { fs.appendFileSync(modLogFile, `${new Date().toLocaleTimeString()} ${text}\r\n`); } catch { /* sem como gravar: segue */ }
 }
+let gameSes = null;   // sessão do jogo: os mods podem ser ligados depois de baixar as texturas
 function setupMods(ses) {
-  const dir = modsDir(), bundled = bundledModsDir();
+  gameSes = ses;
+  const dir = modsDir();
   const userHas = fs.existsSync(path.dirname(dir));
-  if (!userHas && !fs.existsSync(bundled) && !fs.existsSync(texSourcesDir())) return; // nada a fazer nem a registrar
+  if (!userHas && !fs.existsSync(texSourcesDir())) return; // nada a fazer nem a registrar
   const head = `NFS Launcher ${app.getVersion()}, aberto ${new Date().toLocaleString()}\r\n`;
   for (const f of [userHas && path.join(dir, '..', 'registro.txt'), path.join(os.tmpdir(), 'nfs-mods-registro.txt')].filter(Boolean)) {
     try { fs.writeFileSync(f, head); modLogFile = f; break; } catch { /* tenta o próximo */ }
@@ -349,9 +371,88 @@ function setupMods(ses) {
   if (texUiNote) modLog(texUiNote);
   loadTexSources();
   const mods = allMods();
-  modLog(`do instalador ${texSources ? texSourcesDir() : bundled}, do jogador ${dir}: ${mods.length} arquivo(s)`);
+  modLog(`baixadas em ${texSourcesDir()}, do jogador ${dir}: ${mods.length} arquivo(s)`);
   if (!mods.length) return;
   modsOn = modFiles.install(ses, { mods, allowed: (u) => isAllowedUrl(u, 'nfsu2'), log: modLog });
+}
+// Texturas baixadas ou removidas com o app aberto: monta de novo e vale na próxima vez que o jogo carregar.
+function reloadTextures() {
+  if (SAFE_MODE) return;
+  texSources = null;
+  texAvail = {};
+  loadTexSources();
+  const mods = allMods();
+  if (modsOn) modsOn.setMods(mods);
+  else if (mods.length && gameSes) {
+    modsOn = modFiles.install(gameSes, { mods, allowed: (u) => isAllowedUrl(u, 'nfsu2'), log: modLog });
+    if (modsOn && gameStarted) modsOn.active(cfg.hdTextures && currentGame === 'nfsu2');
+  }
+  refresh();
+}
+
+// ───────────────────────── Baixar texturas (GitHub, pc/texturas.json) ─────────────────────────
+// Pedido do Bruno (08/11): as texturas saíram do instalador. Na janela "Texturas HD", cada mod tem Baixar e Remover;
+// o mapa detalhado do site vem junto com o primeiro mod (o pacote do jogo precisa dele). Cada arquivo só vale com o
+// SHA-256 publicado; Remover manda para a Lixeira.
+const TEX_IDS = [texPack.SITE, ...texPack.MOD_IDS];
+let texOffer = {};           // id -> { url, size, sha256 } publicados
+let texOfferStatus = 'idle'; // 'idle' | 'checking' | 'ok' | 'error'
+let texJob = null;           // { id, pct, ctl } download em andamento
+let texError = null;
+const texFile = (id) => path.join(texSourcesDir(), `${id}.pak`);
+async function loadTexOffer() {
+  if (texOfferStatus === 'checking') return;
+  texOfferStatus = 'checking';
+  sendState();
+  try { texOffer = github.texturesList(await fetchJson(github.TEXTURES_URL), TEX_IDS); texOfferStatus = 'ok'; } catch { texOfferStatus = 'error'; }
+  sendState();
+}
+function texDlState() {
+  const files = TEX_IDS.map((id) => {
+    const have = fs.existsSync(texFile(id));
+    const o = texOffer[id];
+    const mod = texPack.MODS.find((m) => m.id === id);
+    return { id, name: mod ? mod.name : null, have, size: o ? o.size : null, offered: !!o, outdated: have && !!o && downloader.savedSha(texFile(id)) !== o.sha256 };
+  });
+  return { status: texOfferStatus, files, job: texJob && { id: texJob.id, pct: texJob.pct }, error: texError };
+}
+async function downloadTextures(id) {
+  if (!texPack.MOD_IDS.includes(id)) return { ok: false, error: tr('Mod desconhecido.', 'Unknown mod.') };
+  if (texJob) return { ok: false, error: tr('Espere o download que está em andamento.', 'Wait for the download in progress.') };
+  if (texOfferStatus !== 'ok') await loadTexOffer();
+  if (!texOffer[id]) return { ok: false, error: tr('Não deu para achar esse mod agora (sem internet?).', 'Could not find this mod now (no internet?).') };
+  const need = [texPack.SITE, id].filter((x) => texOffer[x] && (!fs.existsSync(texFile(x)) || downloader.savedSha(texFile(x)) !== texOffer[x].sha256));
+  texError = null;
+  try {
+    for (const x of need) {
+      const o = texOffer[x];
+      texJob = { id: x, pct: 0, ctl: new AbortController() };
+      sendState();
+      let last = 0;
+      await downloader.download({
+        url: o.url, dest: texFile(x), size: o.size, sha256: o.sha256, fetch: net.fetch, signal: texJob.ctl.signal,
+        onProgress: (have, total) => { const now = Date.now(); if (now - last < 300) return; last = now; texJob.pct = Math.floor(have / total * 100); sendState(); },
+      });
+    }
+  } catch (e) {
+    texError = e && e.name === 'AbortError' ? null : tr('O download falhou. Confira a internet e tente de novo: ele continua de onde parou.', 'The download failed. Check the internet and try again: it resumes where it stopped.');
+    return { ok: false, error: texError || '' };
+  } finally { texJob = null; sendState(); }
+  reloadTextures();
+  if (texSources) askTexturesRestart(); // o jogo aberto só pega as texturas ao carregar de novo
+  return { ok: true };
+}
+async function removeTextures(id) {
+  if (!texPack.MOD_IDS.includes(id) || (texJob && texJob.id === id)) return { ok: false, error: tr('Não dá para remover agora.', 'Cannot remove now.') };
+  const left = texPack.MOD_IDS.filter((m) => m !== id && fs.existsSync(texFile(m)));
+  try {
+    for (const x of left.length ? [id] : [id, texPack.SITE]) { // sem mod nenhum, o mapa do site também sai
+      for (const f of [texFile(x), downloader.shaFileOf(texFile(x)), downloader.partOf(texFile(x))]) if (fs.existsSync(f)) await shell.trashItem(f);
+    }
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+  reloadTextures();
+  if (gameStarted && currentGame === 'nfsu2') askTexturesRestart(true);
+  return { ok: true };
 }
 
 // ───────────────────────── Personalização: fundo e capa de cada jogo ─────────────────────────
@@ -414,32 +515,90 @@ function customImages() {
   return out;
 }
 
-// ───────────────────────── Atualizações (pasta pública do Drive) ─────────────────────────
-// Só lê a lista de nomes da pasta; não baixa nem instala nada sozinho e não envia dados do PC.
-// Verifica ao abrir, ao voltar à tela inicial e de hora em hora fora do jogo (durante o jogo, nada).
+// ───────────────────────── Atualização automática (GitHub, github.js) ─────────────────────────
+// Pedido do Bruno (08/11): o app se atualiza sozinho. Ao abrir, ao voltar à tela inicial e de hora em hora fora do jogo,
+// lê pc/atualizacao.json do repositório. Versão nova: baixa o instalador em segundo plano (nunca durante o jogo: para
+// e continua depois de onde parou), confere o SHA-256 e mostra "Atualizar agora" na tela inicial. Se o jogador
+// fechar o app sem clicar, a atualização é instalada ao fechar, sem abrir nada. Nada do PC é enviado.
 const UPDATE_EVERY_MS = 60 * 60 * 1000;
 let updateTimer = null;
 let updateChecking = false;
-async function checkUpdates(manual) {
-  if (updateChecking) return updateInfo;
-  updateChecking = true;
-  // Versão nova já encontrada: o botão continua na tela durante a nova verificação, mesmo sem internet.
-  const known = updateInfo.status === 'new' ? updateInfo : null;
-  if (!known) { updateInfo = { status: 'checking', version: null }; sendState(); }
+let updateCtl = null;   // download em andamento
+let updateFile = null;  // instalador baixado e conferido
+let updateSpawned = false;
+const updateDir = () => path.join(app.getPath('userData'), 'atualizacao');
+async function fetchJson(url) {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 15000);
   try {
-    const r = await net.fetch(update.LIST_URL, { signal: ctl.signal, credentials: 'omit', cache: 'no-store' });
+    const r = await net.fetch(url, { signal: ctl.signal, credentials: 'omit', cache: 'no-store' });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const v = update.newer(await r.text(), app.getVersion());
-    updateInfo = v ? { status: 'new', version: v } : { status: 'none', version: null };
-    // Abriu direto no jogo (sem tela inicial): avisa uma vez por notificação.
-    if (v && !manual && screen === 'none' && !(known && known.version === v)) notify(tr(`Nova versão ${v} do NFS Launcher disponível. Volte à tela inicial para baixar.`, `NFS Launcher ${v} is available. Go back to the home screen to download it.`));
+    return await r.json();
+  } finally { clearTimeout(timer); }
+}
+// Só o instalador da versão nova fica na pasta; os antigos (já instalados ou trocados) saem.
+function cleanUpdateDir(keep) {
+  let list = [];
+  try { list = fs.readdirSync(updateDir()); } catch { return; }
+  for (const f of list) {
+    if (keep && (f === path.basename(keep) || f.startsWith(`${path.basename(keep)}.`))) continue;
+    try { fs.rmSync(path.join(updateDir(), f), { force: true }); } catch { /* em uso: fica para a próxima */ }
+  }
+}
+async function checkUpdates(manual) {
+  if (updateChecking || ['downloading', 'ready'].includes(updateInfo.status)) { if (updateInfo.status === 'new') downloadUpdate(); return updateInfo; }
+  updateChecking = true;
+  const known = updateInfo.status === 'new' ? updateInfo : null;
+  if (!known) { updateInfo = { status: 'checking', version: null }; sendState(); }
+  try {
+    const u = github.newerApp(await fetchJson(github.UPDATE_URL), app.getVersion());
+    updateInfo = u ? { status: 'new', version: u.version, notes: u.notes, pct: 0, info: u } : { status: 'none', version: null };
+    if (!u) cleanUpdateDir(null);
   } catch {
     updateInfo = known || { status: 'error', version: null };
-  } finally { clearTimeout(timer); updateChecking = false; }
+  } finally { updateChecking = false; }
   sendState();
+  if (updateInfo.status === 'new') downloadUpdate();
   return updateInfo;
+}
+async function downloadUpdate() {
+  if (updateCtl || gameStarted || updateInfo.status !== 'new' || !updateInfo.info) return;
+  const u = updateInfo.info;
+  const dest = path.join(updateDir(), `NFS-Launcher-Setup-${u.version}.exe`);
+  cleanUpdateDir(dest);
+  updateCtl = new AbortController();
+  updateInfo = { ...updateInfo, status: 'downloading' };
+  let last = 0;
+  try {
+    await downloader.download({
+      url: u.url, dest, size: u.size, sha256: u.sha256, fetch: net.fetch, signal: updateCtl.signal,
+      onProgress: (have, total) => {
+        const now = Date.now();
+        if (now - last < 400) return;
+        last = now;
+        updateInfo = { ...updateInfo, pct: Math.floor(have / total * 100) };
+        sendState();
+      },
+    });
+    updateFile = dest;
+    updateInfo = { ...updateInfo, status: 'ready', pct: 100 };
+    if (screen === 'none') notify(tr(`A versão ${u.version} do NFS Launcher está pronta. Ela é instalada quando você fechar o app.`, `NFS Launcher ${u.version} is ready. It installs when you close the app.`));
+  } catch (e) {
+    // Parou por causa do jogo (ou da rede): continua de onde parou na próxima verificação.
+    updateInfo = { ...updateInfo, status: 'new', failed: !(e && e.name === 'AbortError') };
+  } finally { updateCtl = null; sendState(); }
+}
+function pauseUpdateDownload() { if (updateCtl) updateCtl.abort(); }
+// Roda o instalador baixado sem janelas (/S). --updated: o instalador espera o app fechar (installer.nsh);
+// --force-run: abre o app de novo no fim (só no "Atualizar agora").
+function installUpdate(reopen) {
+  if (!updateFile || updateSpawned || !fs.existsSync(updateFile)) return false;
+  try {
+    const { spawn } = require('child_process');
+    spawn(updateFile, ['/S', '--updated', ...(reopen ? ['--force-run'] : [])], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+    updateSpawned = true;
+    return true;
+  } catch { return false; }
 }
 
 // ───────────────────────── Layout das views ─────────────────────────
@@ -510,7 +669,7 @@ function syncIdentity() {
   }
   presence.set(g && g.discordId && cfg.discord ? {
     clientId: g.discordId, details: g.short, title: g.name, start: playingSince,
-    linkLabel: tr('Baixar o NFS Launcher', 'Download NFS Launcher'), linkUrl: update.FOLDER_URL,
+    linkLabel: tr('Baixar o NFS Launcher', 'Download NFS Launcher'), linkUrl: github.RELEASES_URL,
   } : null);
 }
 function focusedView() { return NO_UI || screen === 'none' ? gameView : uiView; }
@@ -722,6 +881,9 @@ function exitProtected() {
   notify(tr('Modo protegido desativado.', 'Protected mode turned off.'));
 }
 function quitApp() { quitting = true; applyNativeLock(false); app.quit(); }
+// Reabrir o app (opções que só valem ao abrir): a atualização pronta não é instalada nessa saída.
+let relaunching = false;
+function relaunchApp() { relaunching = true; app.relaunch({ args: process.argv.slice(1) }); quitApp(); }
 
 // Tela "Carregando…" entre o clique e a página do site aparecer (antes ficava uma tela preta).
 // Sai no dom-ready da página, num erro ou em 20 s; depois disso nada do app fica por cima do jogo.
@@ -786,6 +948,7 @@ function startGame(gameId) {
     return;
   }
   if (!gameStarted) {
+    pauseUpdateDownload(); // nada de download do app durante o jogo: continua ao voltar à tela inicial
     gameStarted = true;
     currentGame = id;
     playingSince = Date.now();
@@ -851,8 +1014,7 @@ async function askTexturesRestart(partChanged = false) {
         'When it opens, the app turns on the game\'s detailed map, which is how the textures come in (the HUD stays the same). Go to the garage and save the game first: progress that was not saved will be lost.'),
     });
     if (response !== 1) return;
-    app.relaunch({ args: process.argv.slice(1) });
-    quitApp();
+    relaunchApp();
     return;
   }
   if (!gameStarted || currentGame !== 'nfsu2') return;
@@ -1086,6 +1248,7 @@ function showWindow() {
   if (!cfg.showHome || NO_UI) startGame();
   refresh();
   if (NO_UI) return;
+  if (dx11MinApplied) dx11Warning();
   setTimeout(() => checkUpdates(false), 4000); // depois da janela, sem atrasar a abertura
   updateTimer = setInterval(() => { if (!gameStarted) checkUpdates(false); }, UPDATE_EVERY_MS);
 }
@@ -1263,11 +1426,15 @@ function registerIpc() {
   });
   // Janela de texturas (botão "Texturas HD" da barra e Configurações > Texturas): volta para onde estava.
   handle('screen:textures', () => {
-    if (NO_UI || !modsOn) return { ok: false };
+    if (NO_UI) return { ok: false };
     if (screen !== 'textures') texReturn = screen;
+    loadTexOffer();
     setScreen('textures');
     return { ok: true };
   });
+  handle('textures:download', (id) => downloadTextures(String(id)));
+  handle('textures:remove', (id) => removeTextures(String(id)));
+  handle('textures:cancel', () => { if (texJob) texJob.ctl.abort(); return { ok: true }; });
   // "Aplicar" da janela: a opção geral e o mod de cada parte de uma vez (texPack.js); só então pergunta se reinicia.
   handle('textures:apply', (draft) => {
     if (!draft || typeof draft !== 'object' || typeof draft.on !== 'boolean') return { ok: false, error: tr('Escolha inválida.', 'Invalid choice.') };
@@ -1354,8 +1521,7 @@ function registerIpc() {
     if (id && s && typeof s === 'object') sizePanel(id, Number(s.width), Number(s.height));
   });
   handle('app:restart', () => {
-    app.relaunch({ args: process.argv.slice(1) });
-    quitApp();
+    relaunchApp();
     return { ok: true };
   });
   // Resultado do teste de WebGPU da tela inicial: placa sem DirectX 12 tenta o modo DirectX 11 sozinha, uma vez.
@@ -1367,8 +1533,7 @@ function registerIpc() {
     if (action === 'try') {
       cfg = { ...settings.dx11Basic(cfg), unblockTried: true }; // modo DirectX 11 com o jogo "cru"
       saveCfg();
-      app.relaunch({ args: process.argv.slice(1) });
-      quitApp();
+      relaunchApp();
     } else if (action === 'failed') {
       cfg = { ...cfg, unblockGpu: false, unblockTried: true };
       saveCfg();
@@ -1381,9 +1546,15 @@ function registerIpc() {
   handle('custom:reset', (gameId, kind) => resetCustom(gameId, kind));
   handle('custom:get', () => customImages());
   handle('update:check', () => checkUpdates(true));
+  handle('update:install', () => {
+    if (updateInfo.status !== 'ready') return { ok: false, error: tr('A atualização ainda não está pronta.', 'The update is not ready yet.') };
+    if (!installUpdate(true)) return { ok: false, error: tr('Não deu para abrir o instalador. Feche o app: ele tenta de novo ao fechar.', 'Could not start the installer. Close the app: it tries again when closing.') };
+    quitApp();
+    return { ok: true };
+  });
   // Abre SEMPRE a mesma pasta fixa no navegador padrão (nunca um endereço vindo da interface ou do site).
   handle('update:open', async () => {
-    try { await shell.openExternal(update.FOLDER_URL); return { ok: true }; } catch (err) { return { ok: false, error: String(err.message || err) }; }
+    try { await shell.openExternal(github.RELEASES_URL); return { ok: true }; } catch (err) { return { ok: false, error: String(err.message || err) }; }
   });
 }
 
@@ -1427,7 +1598,8 @@ if (gotLock) {
       app.exit(0);
       return;
     }
-    await texturesSettingAtStart(); // inteira antes da sessão: é a única escrita nos dados do jogo
+    await texturesSettingAtStart(); // inteiras antes da sessão: as únicas escritas nos dados do jogo
+    await dx11MinAtStart();
     await copySaveAtStart();
 
     const gameSession = session.fromPartition(PARTITION);
@@ -1445,6 +1617,8 @@ if (gotLock) {
 
   app.on('before-quit', () => { quitting = true; });
   app.on('will-quit', () => {
+    // Atualização baixada e o jogador fechou o app: instala agora, sem reabrir (não ao reabrir por uma opção).
+    if (!relaunching && updateInfo.status === 'ready') installUpdate(false);
     globalShortcut.unregisterAll();
     presence.set(null);
     if (psbId !== null && powerSaveBlocker.isStarted(psbId)) powerSaveBlocker.stop(psbId);

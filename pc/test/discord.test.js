@@ -53,13 +53,13 @@ test('Discord: conversa com um canal local e envia só o nome do jogo e a hora',
   });
 });
 
-test('Discord: botão de baixar leva à pasta de versões, com nome no limite do Discord', () => {
+test('Discord: botão de baixar leva à página de versões, com nome no limite do Discord', () => {
   const fs = require('fs');
-  const { FOLDER_URL } = require('../src/main/update');
+  const FOLDER_URL = require('../src/main/github').RELEASES_URL;
   const a = activityOf({ clientId: '1', details: 'NFSU2', title: 'x', start: 1, linkLabel: 'Baixar', linkUrl: FOLDER_URL });
   assert.deepEqual(a.buttons, [{ label: 'Baixar', url: FOLDER_URL }]);
   const main = fs.readFileSync(path.join(__dirname, '../src/main/main.js'), 'utf8');
-  const [, pt, en] = main.match(/linkLabel: tr\('(.+?)', '(.+?)'\), linkUrl: update\.FOLDER_URL/);
+  const [, pt, en] = main.match(/linkLabel: tr\('(.+?)', '(.+?)'\), linkUrl: github\.RELEASES_URL/);
   assert.ok(pt.length <= 32 && en.length <= 32, 'o Discord recusa nome de botão com mais de 32 letras');
 });
 

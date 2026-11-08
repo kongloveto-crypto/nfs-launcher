@@ -2,8 +2,7 @@
   "name": "nfsu2-launcher",
   "productName": "NFS Launcher",
   "version": "3.0.3",
-  "versaoLeve": "2.0.9",
-  "description": "Cliente dedicado (não oficial) para NFSU2 (nfsu2.xyz), NFSMW (web.nfsmwo.com) e NFSC (nfscrb.xyz) com WebGPU, tela cheia protegida e instalador para Windows 11",
+  "description": "Cliente dedicado (não oficial) para NFSU2 (nfsu2.xyz), NFSMW (web.nfsmwo.com) e NFSC (nfscrb.xyz) com WebGPU, tela cheia protegida e atualização automática pelo GitHub, para Windows 10 e 11",
   "main": "src/main/main.js",
   "author": "NFS Launcher",
   "license": "MIT",
@@ -18,8 +17,7 @@
     "test": "node --test \"test/**/*.test.js\"",
     "verify": "node scripts/verify.js",
     "pack": "electron-builder --win --dir",
-    "dist": "npm run verify && electron-builder --win nsis --x64",
-    "dist:leve": "npm run verify && electron-builder --win nsis --x64 --config build/leve.config.js"
+    "dist": "npm run verify && electron-builder --win nsis --x64"
   },
   "devDependencies": {
     "electron": "^45.1.0",
@@ -36,19 +34,6 @@
     "files": [
       "src/**/*",
       "package.json"
-    ],
-    "extraResources": [
-      {
-        "from": "C:/e/texturas/fontes",
-        "to": "texturas",
-        "filter": [
-          "site.pak",
-          "texwizard.pak",
-          "redux.pak",
-          "definitive.pak",
-          "nextgen.pak"
-        ]
-      }
     ],
     "asar": true,
     "compression": "maximum",
@@ -93,7 +78,7 @@
       ],
       "language": "1046",
       "include": "build/installer.nsh",
-      "artifactName": "NFS-Launcher-Setup-${version}-com-texturas.exe"
+      "artifactName": "NFS-Launcher-Setup-${version}.exe"
     }
   }
 }

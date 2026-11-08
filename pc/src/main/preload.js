@@ -17,6 +17,9 @@ contextBridge.exposeInMainWorld('launcher', {
   nextImageMode: () => call('image:next'),
   openTextures: () => call('screen:textures'),
   applyTextures: (draft) => call('textures:apply', draft && typeof draft === 'object' ? { on: !!draft.on, parts: { ...draft.parts } } : null),
+  downloadTextures: (id) => call('textures:download', String(id)),
+  removeTextures: (id) => call('textures:remove', String(id)),
+  cancelTextures: () => call('textures:cancel'),
   goHome: () => call('game:home'),
   toggleFullscreen: () => call('window:toggle-fullscreen'),
   exitProtected: () => call('window:exit-protected'),
@@ -37,5 +40,6 @@ contextBridge.exposeInMainWorld('launcher', {
   customImages: () => call('custom:get'),
   checkUpdates: () => call('update:check'),
   openUpdates: () => call('update:open'),
+  installUpdate: () => call('update:install'),
   quit: () => call('app:quit'),
 });
