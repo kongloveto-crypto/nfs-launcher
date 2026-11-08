@@ -211,16 +211,18 @@ def patch_app_startup(t):
                                 // funcionava ligando uma opção escondida no Chrome. Quem já era aceito não muda.
                                 "--disable-dawn-features=adapter_blocklist"
                             });
-            // NFS Launcher: opção "Preparar o jogo ao carregar" (Configurações > Avançado), como no PC.
-            if (context.getSharedPreferences("nfs", 0).getBoolean("prepareGame", false)) {
+            // NFS Launcher: opção "Preparar o jogo ao carregar" (Configurações > Desempenho), ligada por padrão.
+            if (context.getSharedPreferences("nfs", 0).getBoolean("prepareGame", true)) {
                 org.chromium.base.CommandLine.getInstance()
                         .appendSwitchWithValue(
                                 "js-flags",
                                 "--no-wasm-lazy-compilation --no-wasm-dynamic-tiering");
             }
-            // NFS Launcher: "Texturas HD" desligada (Configurações): o motor não entrega o pacote (patch 0007).
-            if (!context.getSharedPreferences("nfs", 0).getBoolean("hdTextures", true)) {
-                org.chromium.base.CommandLine.getInstance().appendSwitch("nfs-sem-texturas");
+            // NFS Launcher: "Texturas HD" ligada e pacote montado pelo app (files/texturas): o motor o entrega (patch 0007).
+            java.io.File nfsTex = new java.io.File(context.getFilesDir(), "texturas/texturas.ntxp");
+            if (context.getSharedPreferences("nfs", 0).getBoolean("hdTextures", true) && nfsTex.isFile()) {
+                org.chromium.base.CommandLine.getInstance()
+                        .appendSwitchWithValue("nfs-texturas", nfsTex.getAbsolutePath());
             }\n''')
 
 

@@ -44,9 +44,17 @@
       <h3 id="set-perf-h"></h3>
       <label class="switch"><input type="checkbox" id="s-prepareGame"><span id="s-prepareGame-l"></span></label>
     </section>
-    <section id="tex-sec" hidden>
+    <section id="tex-sec">
       <h3 id="set-tex-h"></h3>
       <label class="switch"><input type="checkbox" id="s-hdTextures"><span id="s-hdTextures-l"></span></label>
+      <p id="tex-note" class="muted small"></p>
+      <div class="tex-line"><span id="tex-scale-l" class="small"></span><div id="tex-scale" class="lang" role="group"></div></div>
+      <div id="tex-mods" class="custom-list"></div>
+      <p id="tex-status" class="muted small"></p>
+      <div id="tex-parts-box" hidden>
+        <p id="tex-parts-note" class="muted small"></p>
+        <div id="tex-parts" class="custom-list"></div>
+      </div>
     </section>
     <section>
       <h3 id="set-game-h"></h3>
@@ -95,7 +103,7 @@
     </div>
     <nav id="tips-tabs" class="tabs" role="tablist"></nav>
     <div id="tips-body" class="tips-body"></div>
-    <div class="footer"><button id="t-back" class="primary small"></button></div>
+    <div class="footer"><button id="t-bubble" class="small" hidden></button><button id="t-back" class="primary small"></button></div>
   </main>
 
   <main id="loading" class="screen center" hidden>

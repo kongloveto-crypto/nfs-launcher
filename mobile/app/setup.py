@@ -37,15 +37,8 @@ shutil.copytree(HERE / 'res', DEST / 'res')  # res/xml/nfs_game_mode_config.xml 
 subprocess.run([str(NODE), str(PROJ / 'pc' / 'scripts' / 'export-guides.js'),
                 str(assets / 'guides.json'), str(assets / 'catalog.json')], check=True)
 
-# Texturas HD do NFSU2 (1.6.4): pack "02 - Optional - Texture" do TexWizard (o visual do próprio jogo em alta resolução),
-# com até 2x o lado das originais (pedido do Bruno, 06/11; tw-build.js com ESCALA_MAX=2), montado em C:\e\texturas\celular.
-# Nome .ntxp de propósito: com ".pak" no nome, a montagem o trata como pacote do Chromium e pede um .pak.info.
-# Fica fora de assets/ comum: vai SEM compressão, para o motor ler só os trechos que o jogo pede (patch 0007).
-TEX = pathlib.Path('/mnt/c/e/texturas/celular/detailed.pak')
-tex_dir = DEST / 'texturas'
-if TEX.exists():
-    tex_dir.mkdir()
-    shutil.copy(TEX, tex_dir / 'texturas.ntxp')
+# Texturas HD do NFSU2: não vêm mais no APK (pedido do Bruno, 08/11). O app as baixa das releases do GitHub
+# (mobile/texturas.json) e monta files/texturas/texturas.ntxp; o motor lê de lá (patches 0005 e 0007).
 
 java = sorted(p.relative_to(DEST).as_posix() for p in java_dir.glob('*.java'))
 files = sorted(p.relative_to(DEST).as_posix() for p in assets.rglob('*') if p.is_file())
@@ -83,13 +76,6 @@ android_assets("assets") {{
   renaming_destinations = [
 {q('nfs/' + f[len('assets/'):] for f in files)}
   ]
-{'  deps = [ ":texturas_assets" ]' if (tex_dir / 'texturas.ntxp').exists() else ''}
 }}
-''' + ('''
-android_assets("texturas_assets") {
-  renaming_sources = [ "texturas/texturas.ntxp" ]
-  renaming_destinations = [ "nfs/texturas.ntxp" ]
-  disable_compression = true
-}
-''' if (tex_dir / 'texturas.ntxp').exists() else ''))
+''')
 print(f'NFS Launcher colocado em {DEST}: {len(java)} arquivos Java, {len(files)} arquivos de tela')

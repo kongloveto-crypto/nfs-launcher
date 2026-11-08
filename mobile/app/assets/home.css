@@ -85,6 +85,10 @@ code { background: #0c0f1e; border: 1px solid var(--line); padding: 6px 10px; bo
 .custom-row { display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
 .custom-name { min-width: 58px; letter-spacing: 1px; }
 .custom-cell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tex-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 6px 0; }
+.tex-name { min-width: 92px; font-weight: 700; }
+.tex-info { flex: 1; min-width: 120px; color: var(--mut); font-size: 12px; }
+.footer { gap: 10px; }
 .thumb-bg { width: 80px; height: 45px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); background: #000; }
 .thumb-disc { width: 45px; height: 45px; object-fit: cover; border-radius: 50%; border: 1px solid var(--line); }
 .advanced { margin-top: 6px; border-top: 1px solid var(--line); padding-top: 6px; }

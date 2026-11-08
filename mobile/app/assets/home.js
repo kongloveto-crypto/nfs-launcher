@@ -90,19 +90,115 @@
     if (gb !== undefined) $('disk-text').textContent = t(`Pouco espaço no celular: ${String(gb).replace('.', ',')} GB livres. O jogo pode precisar de até 3 GB para baixar e de espaço para salvar.`, `Low storage on this phone: ${gb} GB free. The game may need up to 3 GB to download and room to save.`);
   }
 
-  // Atualizações: o botão fica na tela inicial sempre que a pasta de versões tem um APK mais novo.
+  const mb = (n) => `${Math.max(1, Math.round(n / 1048576))} MB`;
+  // Versão nova (GitHub): no Wi-Fi baixa sozinho; nos dados móveis, o botão baixa; pronta, o botão instala.
   function renderUpdate() {
     const u = st.update || {};
-    $('update-box').hidden = u.status !== 'new';
-    if (u.status === 'new') $('update-text').textContent = t(`Nova versão ${u.version} disponível (você tem a ${st.version}).`, `Version ${u.version} is available (you have ${st.version}).`);
-    $('update-get').textContent = t('Baixar', 'Download');
+    const found = ['new', 'downloading', 'ready'].includes(u.status);
+    $('update-box').hidden = !found;
+    if (found) {
+      $('update-text').textContent = u.status === 'downloading'
+        ? t(`Baixando a versão ${u.version}: ${u.pct}%`, `Downloading version ${u.version}: ${u.pct}%`)
+        : u.status === 'ready'
+          ? t(`Versão ${u.version} pronta para instalar (você tem a ${st.version}).`, `Version ${u.version} is ready to install (you have ${st.version}).`)
+          : t(`Nova versão ${u.version} disponível (você tem a ${st.version}).`, `Version ${u.version} is available (you have ${st.version}).`);
+    }
+    $('update-get').hidden = u.status === 'downloading';
+    $('update-get').textContent = u.status === 'ready' ? t('Atualizar agora', 'Update now') : t(`Baixar (${mb(u.size || 0)})`, `Download (${mb(u.size || 0)})`);
     $('update-status').textContent = {
       checking: t('Verificando…', 'Checking…'),
       new: t(`Versão ${u.version} disponível!`, `Version ${u.version} available!`),
+      downloading: t(`Baixando a versão ${u.version}: ${u.pct}%`, `Downloading version ${u.version}: ${u.pct}%`),
+      ready: t(`Versão ${u.version} pronta para instalar.`, `Version ${u.version} ready to install.`),
       none: t(`Você já tem a versão mais nova (${st.version}).`, `You have the latest version (${st.version}).`),
       error: t('Não deu para verificar agora (sem internet?).', 'Could not check now (no internet?).'),
     }[u.status] || t(`Versão instalada: ${st.version}`, `Installed version: ${st.version}`);
-    $('b-update').disabled = u.status === 'checking';
+    $('b-update').disabled = u.status === 'checking' || u.status === 'downloading';
+  }
+
+  // Texturas HD (NFSU2): baixadas pelo app, em 1x ou 2x; cada parte escolhe TexWizard, NextGen ou Original.
+  const MOD_LABEL = { texwizard: 'TexWizard', nextgen: 'NextGen' };
+  let texWant = true; // pede a lista publicada ao abrir as Configurações (e de novo se falhou)
+  function renderTextures() {
+    const x = st.tex || {};
+    if (texWant && x.offer !== 'loading') { texWant = false; if (x.offer !== 'ok') api.texLoad(); }
+    $('set-tex-h').textContent = t('Texturas HD (NFSU2)', 'HD textures (NFSU2)');
+    $('s-hdTextures').checked = !!st.hdTextures;
+    $('s-hdTextures-l').textContent = t('Usar as texturas HD baixadas. Vale na próxima vez que o jogo abrir', 'Use the downloaded HD textures. Applies the next time the game opens');
+    $('tex-note').textContent = t('Baixe um ou os dois mods. TexWizard: asfalto, faixas, calçadas, grama e terra do próprio jogo refeitos em alta resolução, mais sombra e neon dos carros. NextGen: mais partes da cidade. Junto com o primeiro vem o mapa detalhado do site. Use o Wi-Fi: são arquivos grandes.',
+      'Download one or both mods. TexWizard: the game’s own asphalt, lane lines, sidewalks, grass and dirt remade in high resolution, plus car shadows and neon. NextGen: more parts of the city. The site’s detailed map comes with the first one. Use Wi-Fi: these are big files.');
+    $('tex-scale-l').textContent = t('Tamanho:', 'Size:');
+    const scales = [['1x', t('1x (original, mais leve)', '1x (original, lighter)')], ['2x', t('Até 2x (mais nítido)', 'Up to 2x (sharper)')]];
+    $('tex-scale').replaceChildren(...scales.map(([id, label]) => {
+      const btn = el('button', '', label);
+      btn.setAttribute('aria-pressed', String(x.scale === id));
+      btn.onclick = () => {
+        if (x.scale === id) return;
+        api.texScale(id);
+        if ((x.mods || []).some((m) => m.state !== 'get' && m.state !== 'none')) toast(t('Os mods baixados são trocados pelos deste tamanho.', 'The downloaded mods are replaced by the ones in this size.'));
+      };
+      return btn;
+    }));
+    const busy = !!x.job;
+    $('tex-mods').replaceChildren(...(x.mods || []).map((m) => {
+      const row = el('div', 'custom-row');
+      row.append(el('b', 'tex-name', m.name));
+      const extra = m.state === 'get' || m.state === 'update' ? (x.siteSize || 0) : 0;
+      const info = {
+        ok: t('Baixado', 'Downloaded'), have: t('Baixado', 'Downloaded'),
+        update: t(`Versão nova (${mb(m.size + extra)})`, `New version (${mb(m.size + extra)})`),
+        get: mb(m.size + extra),
+        none: x.offer === 'loading' ? t('Buscando…', 'Looking…') : t('Sem internet agora', 'No internet now'),
+      }[m.state];
+      const doing = m.busy && x.job
+        ? (x.job.startsWith(m.id) ? `${t('Baixando', 'Downloading')} ${x.pct}%` : t('Baixando o mapa do site…', 'Downloading the site map…'))
+        : m.busy ? t('Na fila', 'Queued') : info;
+      row.append(el('span', 'tex-info', doing));
+      if (m.busy) {
+        const stop = el('button', 'small', t('Parar', 'Stop'));
+        stop.onclick = () => api.texCancel();
+        row.append(stop);
+      } else {
+        if (m.state === 'get' || m.state === 'update') {
+          const get = el('button', 'primary small', m.state === 'update' ? t('Atualizar', 'Update') : t('Baixar', 'Download'));
+          get.disabled = busy;
+          get.onclick = () => api.texDownload(m.id);
+          row.append(get);
+        }
+        if (m.state === 'ok' || m.state === 'have' || m.state === 'update') {
+          const rm = el('button', 'small', t('Remover', 'Remove'));
+          rm.disabled = busy;
+          rm.onclick = () => api.texRemove(m.id);
+          row.append(rm);
+        }
+      }
+      return row;
+    }));
+    const err = {
+      sha: t('O arquivo veio diferente do publicado e foi descartado. Tente de novo.', 'The file did not match the published one and was discarded. Try again.'),
+      size: t('O arquivo veio com tamanho errado. Tente de novo.', 'The file came with the wrong size. Try again.'),
+    }[x.error] || (x.error ? t('O download parou (internet?). Toque em Baixar para continuar de onde parou.', 'The download stopped (internet?). Tap Download to continue where it stopped.') : '');
+    const noList = x.offer === 'error' && !(x.mods || []).some((m) => m.state === 'have');
+    $('tex-status').textContent = err
+      || (noList ? t('Não deu para ver as texturas disponíveis agora (sem internet?).', 'Could not check the available textures now (no internet?).')
+        : x.ready ? t('Pronto: as texturas entram na próxima vez que o jogo abrir.', 'Ready: the textures apply the next time the game opens.') : '');
+    const parts = x.parts || [];
+    $('tex-parts-box').hidden = !parts.length;
+    $('tex-parts-note').textContent = t('De qual mod vem cada parte. “Original” deixa a parte como no jogo. Os outros mods completam o que o escolhido não tem.',
+      'Which mod each part comes from. “Original” keeps the part as in the game. The other mods fill in what the chosen one lacks.');
+    $('tex-parts').replaceChildren(...parts.map((p) => {
+      const row = el('div', 'custom-row');
+      row.append(el('span', 'tex-info', p.name));
+      const g = el('div', 'lang');
+      for (const id of [...p.options, 'original']) {
+        const btn = el('button', '', id === 'original' ? 'Original' : MOD_LABEL[id] || id);
+        btn.setAttribute('aria-pressed', String(p.value === id));
+        btn.onclick = () => { if (p.value !== id) api.texChoose(p.id, id); };
+        g.append(btn);
+      }
+      row.append(g);
+      return row;
+    }));
   }
 
   function renderCustom() {
@@ -134,16 +230,16 @@
     langButtons($('set-lang'));
     $('set-game-h').textContent = t('Jogo', 'Game');
     $('s-bubble').checked = !!st.bubble;
-    $('s-bubble-l').textContent = t('Bolha por cima do jogo (guia, reiniciar e voltar ao início). Desligada = o mais leve possível.',
-      'Bubble over the game (guide, restart and back to home). Off = as light as possible.');
+    $('s-bubble-l').textContent = t('Bolha por cima do jogo (guia, reiniciar e voltar ao início). Ao ligar, o Android pede a permissão de sobrepor a outros apps. Desligada = o mais leve possível.',
+      'Bubble over the game (guide, restart and back to home). When you turn it on, Android asks for the display over other apps permission. Off = as light as possible.');
     $('set-custom-h').textContent = t('Personalização', 'Personalization');
     $('custom-note').textContent = t('Troque o fundo da tela inicial e a capa (o CD) de cada jogo por uma imagem PNG ou JPG do seu celular. A capa fica redonda: o app usa o quadrado do meio da imagem. “Padrão” volta à imagem original.',
       'Change the home background and the cover (the CD) of each game to a PNG or JPG image from your phone. The cover is round: the app uses the square in the middle of the image. “Default” goes back to the original image.');
     $('set-update-h').textContent = t('Atualizações', 'Updates');
-    $('update-note').textContent = t('Quando houver versão nova, o botão de baixar aparece na tela inicial. Nada é baixado ou instalado sozinho e nada do seu celular é enviado.',
-      'When there is a new version, the download button shows on the home screen. Nothing is downloaded or installed by itself and nothing from your phone is sent.');
+    $('update-note').textContent = t('O app procura versões novas. No Wi-Fi ele baixa sozinho; nos dados móveis, só pelo botão. Instalar é sempre pelo botão “Atualizar agora” na tela inicial. Nada do seu celular é enviado.',
+      'The app looks for new versions. On Wi-Fi it downloads by itself; on mobile data, only by the button. Installing is always by the “Update now” button on the home screen. Nothing from your phone is sent.');
     $('b-update').textContent = t('Verificar agora', 'Check now');
-    $('b-update-open').textContent = t('Abrir a pasta de versões', 'Open the versions folder');
+    $('b-update-open').textContent = t('Abrir a página de versões', 'Open the versions page');
     $('set-saves-h').textContent = t('Cópias do save (NFSU2)', 'Save copies (NFSU2)');
     $('saves-note').textContent = t('Ao abrir, o app guarda uma cópia do seu save em Download/NFS Launcher, só se ele mudou. Ficam as 2 últimas versões e nada é enviado. O app nunca coloca uma cópia de volta sozinho. Só restaure se perdeu o save: a cópia pode estar mais antiga que o seu jogo e substitui o que estiver nele. Para voltar: no jogo, em Jogos salvos > Restaurar, escolha o arquivo mais novo da pasta.',
       'When it opens, the app keeps a copy of your save in Download/NFS Launcher, only if it changed. The last 2 versions stay and nothing is sent. The app never puts a copy back by itself. Only restore if you lost your save: a copy may be older than your game and replaces what is in it. To bring one back: in the game, under Saved games > Restore, pick the newest file in the folder.');
@@ -156,11 +252,7 @@
     $('s-prepareGame').checked = !!st.prepareGame;
     $('s-prepareGame-l').textContent = t('Preparar o jogo ao carregar: otimiza o jogo todo no início, não durante a corrida. Pesa mais nos primeiros segundos e pode reduzir engasgos depois',
       'Prepare the game while loading: optimizes the whole game at the start, not during the race. Heavier in the first seconds and may reduce stutters later');
-    $('tex-sec').hidden = !st.texAvail;
-    $('set-tex-h').textContent = t('Texturas (NFSU2)', 'Textures (NFSU2)');
-    $('s-hdTextures').checked = !!st.hdTextures;
-    $('s-hdTextures-l').textContent = t('Texturas melhores: asfalto, faixas, calçadas, grama e terra do próprio jogo refeitos em alta resolução, com até 2x o tamanho das originais, e sombra e neon dos carros mais nítidos. Vale na próxima vez que o jogo abrir',
-      'Better textures: the game\'s own asphalt, lane lines, sidewalks, grass and dirt remade in high resolution, up to 2x the size of the originals, plus sharper car shadows and neon. Applies the next time the game opens');
+    renderTextures();
     $('set-maint-h').textContent = t('Manutenção', 'Maintenance');
     $('maint-note').textContent = t('Limpar o cache fica nos ajustes do Android, em Armazenamento, e não toca nos seus saves. Atenção: nunca use “Limpar dados” ali: ele apaga o login, as configurações e os saves do jogo neste app.',
       'Clearing the cache is in the Android settings, under Storage, and does not touch your saves. Warning: never use “Clear data” there: it erases the login, settings and game saves in this app.');
@@ -198,6 +290,9 @@
       }
     }
     $('tips-body').replaceChildren(...out);
+    // A bolha é opcional: só quem quiser os guias por cima do jogo a liga (e aí o Android pede a permissão).
+    $('t-bubble').hidden = !!st.bubble;
+    $('t-bubble').textContent = t('Ver os guias durante o jogo', 'See the guides during the game');
   }
 
   // Carregando: o CD do jogo girando, igual à tela que continua por cima do jogo até ele aparecer.
@@ -278,8 +373,9 @@
   const openSaves = () => { api.openSaves(); toast(t('Só restaure se perdeu o save: no jogo, Jogos salvos > Restaurar.', 'Only restore if you lost your save: in the game, Saved games > Restore.')); };
   $('btn-saves').onclick = openSaves;
   $('b-saves-open').onclick = openSaves;
-  $('btn-settings').onclick = () => setScreen('settings');
-  $('update-get').onclick = () => api.openUpdates();
+  $('btn-settings').onclick = () => { texWant = true; setScreen('settings'); };
+  $('update-get').onclick = () => ((st.update || {}).status === 'ready' ? api.installUpdate() : api.downloadUpdate());
+  $('t-bubble').onclick = () => api.setOption('bubble', true);
   $('btn-quit').onclick = () => api.quit();
   $('t-back').onclick = () => window.goBack();
   $('s-back').onclick = () => window.goBack();

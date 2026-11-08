@@ -7,20 +7,42 @@ const path = require('path');
 const motor = (...p) => fs.readFileSync(path.join(__dirname, '../../mobile', ...p), 'utf8');
 const main = motor('app/java/xyz/nfs/launcher/MainActivity.java');
 
-test('celular: o aviso de versão nova só olha o APK, e o do PC só olha o instalador', () => {
-  const pattern = main.match(/APK_NAME = Pattern\.compile\("(.+?)"\)/)[1].replace(/\\\\/g, '\\');
-  const re = new RegExp(pattern);
-  assert.ok(re.test('NFS-Launcher-Android-1.5.1.apk'));
-  assert.ok(!re.test('NFS-Launcher-Setup-9.9.9.exe'), 'o instalador do PC nunca conta no celular');
-  const { versionsIn } = require('../src/main/update');
-  assert.deepEqual(versionsIn('NFS-Launcher-Android-9.9.9.apk'), [], 'o APK nunca conta no PC');
+const java = (name) => motor(`app/java/xyz/nfs/launcher/${name}.java`);
+
+test('celular: versão nova e texturas só do mesmo repositório do PC, na pasta mobile/', () => {
+  const gh = require('../src/main/github');
+  const dl = java('Downloads');
+  assert.equal(dl.match(/REPO = "(.+?)"/)[1], gh.REPO);
+  assert.match(dl, /RAW = "https:\/\/raw\.githubusercontent\.com\/" \+ REPO \+ "\/main\/mobile\/"/);
+  assert.match(java('AppUpdate'), /Downloads\.RAW \+ "atualizacao\.json"/);
+  assert.match(java('Textures'), /Downloads\.RAW \+ "texturas\.json"/);
+  assert.doesNotMatch(main + java('AppUpdate'), /drive\.google|FOLDER_ID/, 'o Drive saiu do aviso de versão nova');
+  for (const f of ['atualizacao.json', 'texturas.json']) {
+    const p = path.join(__dirname, '../../mobile', f);
+    if (fs.existsSync(p)) JSON.parse(fs.readFileSync(p, 'utf8'));
+  }
 });
 
-test('celular: mesma pasta de versões do PC', () => {
-  const { FOLDER_URL, LIST_URL } = require('../src/main/update');
-  const id = main.match(/FOLDER_ID = "(.+?)"/)[1];
-  assert.ok(FOLDER_URL.endsWith(id));
-  assert.ok(LIST_URL.endsWith(id));
+test('celular: mesmas partes de textura do PC', () => {
+  const { PARTS } = require('../src/main/texPack');
+  const src = java('Textures');
+  const got = [...src.matchAll(/new Part\("(\w+)", "[^"]*", "[^"]*", "((?:[^"\\]|\\.)*)"\)/g)].map((m) => [m[1], m[2].replace(/\\\\/g, '\\')]);
+  assert.deepEqual(got, PARTS.map((p) => [p.id, p.re.source]));
+});
+
+test('celular: texturas fora do APK, baixadas pelo app em 1x e 2x, só TexWizard e NextGen', () => {
+  const setup = motor('app/setup.py');
+  assert.doesNotMatch(setup, /\/mnt\/c\/e\/texturas|texturas_assets/);
+  const src = java('Textures');
+  assert.match(src, /MODS = \{"texwizard", "nextgen"\}/);
+  assert.match(src, /SCALES = \{"1x", "2x"\}/);
+  assert.doesNotMatch(motor('patches/0007-texturas-hd-do-nfsu2.patch'), /OpenApkAsset/);
+});
+
+test('celular: a bolha só pede a permissão quando o jogador a liga', () => {
+  const start = main.slice(main.indexOf('private void startGame('), main.indexOf('private void askOverlay('));
+  assert.doesNotMatch(start, /ACTION_MANAGE_OVERLAY_PERMISSION|canDrawOverlays/);
+  assert.match(main, /getBoolean\("bubble", false\)/);
 });
 
 test('celular: tipos de erro iguais aos do PC, sem código técnico na tela', () => {
@@ -49,7 +71,8 @@ test('celular: patches com recarga sem cache, tela de carregar, erro e WebGPU no
   for (const s of ['reloadIgnoringCache', 'nfsShowLoading', 'nfsFail']) assert.ok(p6.includes(s), s);
   const p5 = motor('patches/0005-app-unico-e-leve.patch');
   assert.ok(p5.includes('--disable-dawn-features=adapter_blocklist'));
-  assert.ok(p5.includes('prepareGame'));
+  assert.ok(p5.includes('getBoolean("prepareGame", true)'), 'Preparar o jogo ao carregar ligada por padrão (pedido do Bruno, 08/11)');
+  assert.match(p5, /nfs-texturas/);
   assert.ok(!p5.includes('SkiaGraphite') && !p5.includes('skip_validation'), 'desempenho do celular só muda se o Bruno pedir');
   assert.ok(!p5.includes('enable-unsafe-webgpu'), 'só a lista de chips, nunca a opção insegura inteira');
 });

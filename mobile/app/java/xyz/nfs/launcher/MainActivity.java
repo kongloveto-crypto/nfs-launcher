@@ -10,6 +10,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInstaller;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -58,15 +59,16 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * NFS Launcher para Android, app ÚNICO: esta tela fica dentro do próprio navegador do app (o "motor", Chromium
  * compilado para o NFS Launcher). Roda num processo separado (":nfs") para não pesar no processo do jogo.
  * - Tela inicial local (assets/nfs/home.html): abertura, CDs, START, Português/English, Dicas (só NFSU2),
- *   Configurações e o aviso de versão nova.
+ *   Configurações e a versão nova (baixada do GitHub, AppUpdate) e as texturas HD (Textures).
  * - START abre o site do jogo no motor do próprio app como Trusted Web Activity: tela cheia, sem barra nenhuma.
  * - Bolha por cima do jogo (BubbleService, permissão "Sobrepor a outros apps"): Guia (NFSU2), Reiniciar e Voltar ao início.
  * - Guia nativo leve (GuideView); sem mapa no celular.
@@ -120,11 +122,6 @@ public class MainActivity extends Activity {
     static final long LOW_DISK_BYTES = 3L * 1024 * 1024 * 1024; // o maior jogo baixa cerca de 3 GB
     // Tela de entrada do motor (o mesmo pacote deste app). Pelo nome exato: o motor não recebe links de fora.
     static final String MOTOR_ENTRY = "com.google.android.apps.chrome.IntentDispatcher";
-    // Aviso de versão nova: lê só os NOMES da pasta pública do Drive (a mesma do PC) e só o APK conta; o .exe nunca.
-    static final String FOLDER_ID = "1rVrBR33DFZT8ANuwn2IJtMsOhn-m7pk8";
-    static final String FOLDER_URL = "https://drive.google.com/drive/folders/" + FOLDER_ID;
-    static final String LIST_URL = "https://drive.google.com/embeddedfolderview?id=" + FOLDER_ID;
-    static final Pattern APK_NAME = Pattern.compile("NFS-Launcher-Android-(\\d{1,4}\\.\\d{1,4}\\.\\d{1,4})\\.apk");
     static final long UPDATE_EVERY_MS = 3600000; // de hora em hora, só com a tela inicial na frente
     static final long RETRY_MS = 5000;           // tela de erro: tenta de novo a cada 5 s
     static final int REQ_IMAGE = 41;
@@ -139,9 +136,20 @@ public class MainActivity extends Activity {
     private boolean resumed;
     private boolean dnsFailed;         // nem o DNS seguro abriu o jogo
     private String error = null;       // tipo do erro mostrado (offline, server, crash, other)
-    private String updateStatus = "";
-    private String updateVersion = "";
+    private String updateStatus = "";  // checking, none, error, new, downloading, ready
+    private AppUpdate.Info updateInfo = null;
+    private int updatePct = 0;
+    private AtomicBoolean updateCancel = null;
     private long updateCheckedAt = 0;
+    private boolean askingOverlay;     // foi aos ajustes dar a permissão da bolha
+    // Texturas: lista publicada, download em andamento (um por vez, numa fila) e o último erro.
+    private Map<String, Textures.Offer> texOffer = null;
+    private String texOfferStatus = "";  // loading, ok, error
+    private final List<String> texQueue = new java.util.concurrent.CopyOnWriteArrayList<>(); // a tela lê de outra linha
+    private String texJob = null;        // id do arquivo baixando (ex.: "texwizard-2x")
+    private int texPct = 0;
+    private AtomicBoolean texCancel = null;
+    private String texError = "";
     private int customRev = 0;
     private String pickGame, pickKind; // imagem sendo escolhida na personalização
 
@@ -156,6 +164,7 @@ public class MainActivity extends Activity {
         getWindow().getAttributes().layoutInDisplayCutoutMode =
                 WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
         prefs = getSharedPreferences("nfs", MODE_PRIVATE);
+        migrate();
         loadCatalog();
         // Nova execução: "DNS normal só desta vez" acaba e o DNS seguro que já funcionou é tentado de novo.
         if (state == null && !getIntent().hasExtra("error")) prefs.edit().remove("dnsTry").remove("dnsQueue").commit();
@@ -174,6 +183,18 @@ public class MainActivity extends Activity {
         immersive();
     }
 
+    /**
+     * Uma vez por mudança de padrão (pedido do Bruno, 08/11): "Preparar o jogo ao carregar" ligada para todos, inclusive
+     * quem tinha desmarcado; a bolha deixa de ser pedida no START: fica ligada só para quem já tinha dado a permissão.
+     * As texturas que vinham no APK (até a 1.6.4 de teste) saem: agora são baixadas pelo app.
+     */
+    private void migrate() {
+        if (prefs.getInt("prefsVersion", 0) >= 2) return;
+        SharedPreferences.Editor e = prefs.edit().putBoolean("prepareGame", true);
+        if (!prefs.contains("bubble")) e.putBoolean("bubble", Settings.canDrawOverlays(this));
+        e.remove("overlayAsked").putInt("prefsVersion", 2).commit(); // commit: o motor lê este arquivo em outro processo
+    }
+
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
@@ -184,6 +205,7 @@ public class MainActivity extends Activity {
     /** O jogo pediu para voltar: com erro (o motor manda o código) ou "Reiniciar o jogo" (bolha). */
     private void handleIntent(Intent i) {
         if (i == null) return;
+        if (AppUpdate.ACTION_INSTALLED.equals(i.getAction())) { installResult(i); i.setAction(null); return; }
         if (i.hasExtra("error")) {
             String kind = errorKind(i.getIntExtra("error", 0));
             i.removeExtra("error");
@@ -282,6 +304,13 @@ public class MainActivity extends Activity {
         if (SystemClock.uptimeMillis() - launchedAt > 5000) closeGame(this, getTaskId());
         home.onResume();
         home.evaluateJavascript("window.audioOn && audioOn(true); window.showHome && showHome()", null);
+        if (askingOverlay) {
+            askingOverlay = false;
+            boolean ok = Settings.canDrawOverlays(this);
+            prefs.edit().putBoolean("bubble", ok).commit();
+            toast(ok ? tr("Bolha ligada: ela aparece por cima do jogo.", "Bubble on: it shows over the game.")
+                     : tr("Sem a permissão, a bolha fica desligada.", "Without the permission, the bubble stays off."));
+        }
         if (pendingGame != null) { String g = pendingGame; pendingGame = null; launchGame(g); }
         refreshHome();
         // Versão nova: ao abrir, ao voltar à tela inicial e de hora em hora com ela na frente (durante o jogo, nada).
@@ -314,21 +343,6 @@ public class MainActivity extends Activity {
         }
     };
 
-    static String download(String address, int maxBytes) throws IOException {
-        HttpURLConnection c = (HttpURLConnection) new URL(address).openConnection();
-        c.setConnectTimeout(8000);
-        c.setReadTimeout(8000);
-        c.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android) NFSLauncher");
-        try (InputStream in = c.getInputStream()) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            byte[] buf = new byte[16384];
-            for (int n; out.size() < maxBytes && (n = in.read(buf)) > 0; ) out.write(buf, 0, n);
-            return new String(out.toByteArray(), StandardCharsets.UTF_8);
-        } finally {
-            c.disconnect();
-        }
-    }
-
     // Compara versões número a número ("1.10.0" é maior que "1.9.9").
     static int compareVersions(String a, String b) {
         String[] x = a.split("\\."), y = b.split("\\.");
@@ -339,40 +353,266 @@ public class MainActivity extends Activity {
         return 0;
     }
 
-    // A versão de APK mais nova da lista da pasta, se for maior que a instalada; senão null.
-    static String newerApk(String html, String current) {
-        String best = null;
-        Matcher m = APK_NAME.matcher(html);
-        while (m.find()) if (best == null || compareVersions(m.group(1), best) > 0) best = m.group(1);
-        return best != null && compareVersions(best, current) > 0 ? best : null;
+    // Versão nova pelo GitHub (AppUpdate): verifica ao abrir, ao voltar à tela inicial e de hora em hora com ela na frente.
+    // No Wi-Fi baixa sozinho; nos dados móveis, só pelo botão. Instalar: só pelo botão "Atualizar agora".
+    private void checkUpdate() {
+        if ("checking".equals(updateStatus) || "downloading".equals(updateStatus)) return;
+        updateCheckedAt = SystemClock.uptimeMillis();
+        boolean had = updateInfo != null;
+        if (!had) updateStatus = "checking"; // o botão não some enquanto verifica de novo
+        refreshHome();
+        Context app = getApplicationContext();
+        new Thread(() -> {
+            AppUpdate.Info u;
+            boolean failed = false;
+            try { u = AppUpdate.check(VERSION); } catch (Exception e) { u = null; failed = true; }
+            AppUpdate.Info got = failed ? updateInfo : u;
+            if (!failed) AppUpdate.clean(app, got);
+            boolean ready = AppUpdate.ready(app, got), fail = failed;
+            ui.post(() -> {
+                updateInfo = got;
+                updateStatus = got == null ? (fail ? "error" : "none") : ready ? "ready" : "new";
+                refreshHome();
+                if ("new".equals(updateStatus) && resumed && AppUpdate.freeNetwork(this)) downloadUpdate();
+            });
+        }).start();
     }
 
-    private void checkUpdate() {
-        if ("checking".equals(updateStatus)) return;
-        updateCheckedAt = SystemClock.uptimeMillis();
-        boolean had = "new".equals(updateStatus);
-        if (!had) updateStatus = "checking"; // o botão de baixar não some enquanto verifica de novo
+    private void downloadUpdate() {
+        AppUpdate.Info u = updateInfo;
+        if (u == null || !"new".equals(updateStatus)) return;
+        updateStatus = "downloading";
+        updatePct = 0;
+        AtomicBoolean cancel = new AtomicBoolean(false);
+        updateCancel = cancel;
         refreshHome();
+        Context app = getApplicationContext();
         new Thread(() -> {
-            String status, version = updateVersion;
+            boolean ok;
             try {
-                String v = newerApk(download(LIST_URL, 512 * 1024), VERSION);
-                status = v != null ? "new" : "none";
-                if (v != null) version = v;
-            } catch (Exception e) {
-                status = had ? "new" : "error";
-            }
-            String s = status, ver = version;
-            ui.post(() -> { updateStatus = s; updateVersion = ver; refreshHome(); });
+                Downloads.fetch(u.url, AppUpdate.fileOf(app, u), u.size, u.sha256, cancel,
+                        (d, t) -> ui.post(() -> { updatePct = (int) (d * 100 / Math.max(1, t)); refreshHome(); }));
+                ok = true;
+            } catch (Exception e) { ok = false; }
+            boolean done = ok;
+            ui.post(() -> {
+                if (updateCancel == cancel) updateCancel = null;
+                if (updateInfo != u) return;
+                updateStatus = done ? "ready" : "new";
+                if (!done && !cancel.get()) toast(tr("Não deu para baixar a versão nova agora. Tente de novo mais tarde.", "Could not download the new version now. Try again later."));
+                refreshHome();
+            });
         }).start();
+    }
+
+    /** Para o download (continua depois de onde parou): o jogo não divide a internet com ele. */
+    private void pauseDownloads() {
+        if (updateCancel != null) updateCancel.set(true);
+        texQueue.clear();
+        if (texCancel != null) texCancel.set(true);
+    }
+
+    private void installUpdate() {
+        AppUpdate.Info u = updateInfo;
+        if (u == null || !"ready".equals(updateStatus)) return;
+        new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setTitle(tr("Atualizar para a " + u.version, "Update to " + u.version))
+                .setMessage(tr("O app fecha e a versão nova entra por cima. Seus saves, o login e as texturas ficam. Depois, é só abrir o app de novo.",
+                        "The app closes and the new version installs over it. Your saves, login and textures stay. Then just open the app again."))
+                .setPositiveButton(tr("Atualizar", "Update"), (d, w) -> {
+                    Activity a = this;
+                    new Thread(() -> {
+                        try { AppUpdate.install(a, u); }
+                        catch (Exception e) { ui.post(() -> toast(tr("Não deu para instalar. Tente de novo.", "Could not install. Try again."))); }
+                    }).start();
+                })
+                .setNegativeButton(tr("Agora não", "Not now"), null)
+                .show();
+    }
+
+    /** Resposta do instalador do Android: pede a confirmação dele, ou avisa se não deu. */
+    @SuppressWarnings("deprecation") // getParcelableExtra(nome, classe) só existe no Android 13+
+    private void installResult(Intent i) {
+        int status = i.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE);
+        if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
+            Intent confirm = i.getParcelableExtra(Intent.EXTRA_INTENT);
+            if (confirm != null) {
+                try { startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); return; } catch (Exception ignored) { }
+            }
+        }
+        if (status == PackageInstaller.STATUS_SUCCESS) return;
+        if (status != PackageInstaller.STATUS_FAILURE_ABORTED) {
+            toast(tr("A versão nova não foi instalada. Tente de novo; se o Android pedir, permita instalar apps do NFS Launcher.",
+                    "The new version was not installed. Try again; if Android asks, allow installing apps from NFS Launcher."));
+        }
     }
 
     private void openUpdates() {
         try {
-            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(FOLDER_URL)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(Downloads.RELEASES_URL)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         } catch (ActivityNotFoundException e) {
             toast(tr("Nenhum navegador encontrado neste celular.", "No browser found on this phone."));
         }
+    }
+
+    // ───────────────────────── Texturas HD (Textures) ─────────────────────────
+    private void loadTexOffer() {
+        if ("loading".equals(texOfferStatus)) return;
+        texOfferStatus = "loading";
+        new Thread(() -> {
+            Map<String, Textures.Offer> o = null;
+            try { o = Textures.parseOffer(Downloads.text(Textures.MANIFEST_URL, 64 * 1024)); } catch (Exception ignored) { }
+            Map<String, Textures.Offer> got = o;
+            ui.post(() -> { if (got != null) texOffer = got; texOfferStatus = got != null ? "ok" : "error"; refreshHome(); });
+        }).start();
+    }
+
+    /** Estado de um arquivo: ok (igual ao publicado), update (publicado outro), have (baixado, sem lista), get, none. */
+    private String texFileState(String id) {
+        File f = Textures.fileOf(this, id);
+        Textures.Offer o = texOffer == null ? null : texOffer.get(id);
+        if (f.isFile()) {
+            if (o == null) return "have";
+            return o.sha256.equals(Downloads.savedSha(f)) ? "ok" : "update";
+        }
+        return o == null ? "none" : "get";
+    }
+
+    /** Baixa o mod no tamanho escolhido (e o mapa do site antes, se faltar ou mudou). */
+    private void texDownload(String mod) {
+        if (!Textures.knownMod(mod) || texOffer == null) return;
+        String scale = Textures.scale(prefs);
+        String site = texFileState(Textures.SITE);
+        if ("get".equals(site) || "update".equals(site)) queueTex(Textures.SITE);
+        queueTex(Textures.idOf(mod, scale));
+        nextTex();
+    }
+    private void queueTex(String id) { if (!texQueue.contains(id) && !id.equals(texJob)) texQueue.add(id); }
+
+    private void nextTex() {
+        if (texJob != null) return;
+        while (!texQueue.isEmpty()) {
+            String id = texQueue.remove(0);
+            Textures.Offer o = texOffer == null ? null : texOffer.get(id);
+            if (o == null) continue;
+            texJob = id;
+            texPct = 0;
+            texError = "";
+            AtomicBoolean cancel = new AtomicBoolean(false);
+            texCancel = cancel;
+            refreshHome();
+            Context app = getApplicationContext();
+            new Thread(() -> {
+                String err = "";
+                try {
+                    Downloads.fetch(o.url, Textures.fileOf(app, id), o.size, o.sha256, cancel,
+                            (d, t) -> ui.post(() -> { texPct = (int) (d * 100 / Math.max(1, t)); refreshHome(); }));
+                    Textures.build(app);
+                } catch (Downloads.Failed f) { err = f.code; }
+                catch (Exception e) { err = "net"; }
+                String e2 = err;
+                ui.post(() -> {
+                    texJob = null;
+                    texCancel = null;
+                    if (!e2.isEmpty() && !"cancel".equals(e2)) { texError = e2; texQueue.clear(); }
+                    refreshHome();
+                    nextTex();
+                });
+            }).start();
+            return;
+        }
+        refreshHome();
+    }
+
+    /** Tira o mod (os dois tamanhos); sem nenhum mod, o mapa do site também sai. */
+    private void texRemove(String mod) {
+        if (!Textures.knownMod(mod)) return;
+        for (String s : Textures.SCALES) {
+            String id = Textures.idOf(mod, s);
+            texQueue.remove(id);
+            if (id.equals(texJob) && texCancel != null) texCancel.set(true);
+            Downloads.remove(Textures.fileOf(this, id));
+        }
+        boolean any = false;
+        for (String m : Textures.MODS) for (String s : Textures.SCALES) any |= Textures.fileOf(this, Textures.idOf(m, s)).isFile();
+        if (!any) Downloads.remove(Textures.fileOf(this, Textures.SITE));
+        rebuildTextures();
+    }
+
+    /** Trocar o tamanho: os mods baixados no outro tamanho saem e são baixados de novo neste. */
+    private void texScale(String scale) {
+        if (!"1x".equals(scale) && !"2x".equals(scale) || scale.equals(Textures.scale(prefs))) return;
+        String old = Textures.scale(prefs);
+        prefs.edit().putString("texScale", scale).commit();
+        if (texCancel != null) texCancel.set(true);
+        texQueue.clear();
+        List<String> again = new ArrayList<>();
+        for (String m : Textures.MODS) {
+            File f = Textures.fileOf(this, Textures.idOf(m, old));
+            if (f.isFile() || Downloads.partOf(f).isFile()) { again.add(m); Downloads.remove(f); }
+        }
+        rebuildTextures();
+        if (texOffer != null) for (String m : again) if (!Textures.fileOf(this, Textures.idOf(m, scale)).isFile()) texDownload(m);
+    }
+
+    private void texChoose(String part, String value) {
+        boolean okPart = false;
+        for (Textures.Part p : Textures.PARTS) okPart |= p.id.equals(part);
+        if (!okPart || !(Textures.ORIGINAL.equals(value) || Textures.knownMod(value))) return;
+        JSONObject c = Textures.choice(prefs);
+        try { c.put(part, value); } catch (Exception ignored) { }
+        prefs.edit().putString("texChoice", c.toString()).commit();
+        rebuildTextures();
+    }
+
+    private void rebuildTextures() {
+        refreshHome();
+        Context app = getApplicationContext();
+        new Thread(() -> { Textures.build(app); ui.post(this::refreshHome); }).start();
+    }
+
+    private JSONObject texState() throws Exception {
+        JSONObject t = new JSONObject();
+        String scale = Textures.scale(prefs);
+        t.put("scale", scale);
+        t.put("offer", texOfferStatus);
+        t.put("job", texJob == null ? JSONObject.NULL : texJob);
+        t.put("pct", texPct);
+        t.put("queued", texQueue.size());
+        t.put("error", texError);
+        t.put("ready", Textures.ready(this));
+        JSONArray mods = new JSONArray();
+        for (int i = 0; i < Textures.MODS.length; i++) {
+            String m = Textures.MODS[i], id = Textures.idOf(m, scale);
+            JSONObject j = new JSONObject();
+            j.put("id", m);
+            j.put("name", Textures.MOD_NAMES[i]);
+            j.put("state", texFileState(id));
+            Textures.Offer o = texOffer == null ? null : texOffer.get(id);
+            j.put("size", o == null ? 0 : o.size);
+            j.put("busy", id.equals(texJob) || texQueue.contains(id));
+            mods.put(j);
+        }
+        t.put("mods", mods);
+        Textures.Offer so = texOffer == null ? null : texOffer.get(Textures.SITE);
+        t.put("siteSize", so == null || Textures.fileOf(this, Textures.SITE).isFile() ? 0 : so.size);
+        Map<String, Textures.Index> src = Textures.sources(this, scale);
+        Map<String, List<String>> avail = Textures.partsAvailable(src);
+        Map<String, String> eff = Textures.effective(Textures.choice(prefs), avail);
+        JSONArray parts = new JSONArray();
+        for (Textures.Part p : Textures.PARTS) {
+            if (avail.get(p.id).isEmpty()) continue;
+            JSONObject j = new JSONObject();
+            j.put("id", p.id);
+            j.put("name", "en".equals(lang()) ? p.en : p.pt);
+            JSONArray opts = new JSONArray();
+            for (String m : avail.get(p.id)) opts.put(m);
+            j.put("options", opts);
+            j.put("value", eff.get(p.id));
+            parts.put(j);
+        }
+        t.put("parts", parts);
+        return t;
     }
 
     // Abre Download/NFS Launcher no app de arquivos; quem não abrir pasta direto cai na lista de downloads.
@@ -544,11 +784,11 @@ public class MainActivity extends Activity {
         try {
             o.put("lang", lang());
             o.put("game", prefs.getString("game", DEFAULT_GAME));
-            o.put("bubble", prefs.getBoolean("bubble", true));
+            o.put("bubble", bubbleOn());
             o.put("sounds", true); // sempre ligados, como no PC, mesmo para quem tinha desligado
-            o.put("prepareGame", prefs.getBoolean("prepareGame", false));
+            o.put("prepareGame", prefs.getBoolean("prepareGame", true));
             o.put("hdTextures", prefs.getBoolean("hdTextures", true));
-            o.put("texAvail", texturesInApk());
+            o.put("tex", texState());
             if (error != null) {
                 o.put("error", error);
                 o.put("dnsFailed", dnsFailed);
@@ -571,7 +811,10 @@ public class MainActivity extends Activity {
             o.put("customRev", customRev);
             JSONObject u = new JSONObject();
             u.put("status", updateStatus);
-            u.put("version", updateVersion);
+            u.put("version", updateInfo == null ? "" : updateInfo.version);
+            u.put("size", updateInfo == null ? 0 : updateInfo.size);
+            u.put("pct", updatePct);
+            u.put("notes", updateInfo == null ? "" : tr(updateInfo.notesPt, updateInfo.notesEn));
             o.put("update", u);
             o.put("version", VERSION);
             long free = getFilesDir().getUsableSpace();
@@ -590,6 +833,7 @@ public class MainActivity extends Activity {
             runOnUiThread(() -> home.evaluateJavascript("window.refresh && refresh()", null));
         }
         @JavascriptInterface public void setOption(String key, boolean on) {
+            if ("bubble".equals(key) && on && !Settings.canDrawOverlays(MainActivity.this)) { runOnUiThread(MainActivity.this::askOverlay); return; }
             if (!"bubble".equals(key) && !"prepareGame".equals(key) && !"hdTextures".equals(key)) return;
             prefs.edit().putBoolean(key, on).commit(); // commit: o processo do jogo lê este arquivo ao abrir
             runOnUiThread(MainActivity.this::refreshHome);
@@ -597,6 +841,16 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void setFont(double f) { prefs.edit().putFloat("font", (float) f).apply(); }
         @JavascriptInterface public void checkUpdate() { runOnUiThread(MainActivity.this::checkUpdate); }
         @JavascriptInterface public void openUpdates() { runOnUiThread(MainActivity.this::openUpdates); }
+        @JavascriptInterface public void downloadUpdate() { runOnUiThread(MainActivity.this::downloadUpdate); }
+        @JavascriptInterface public void installUpdate() { runOnUiThread(MainActivity.this::installUpdate); }
+        @JavascriptInterface public void texLoad() { runOnUiThread(MainActivity.this::loadTexOffer); }
+        @JavascriptInterface public void texDownload(String mod) { runOnUiThread(() -> MainActivity.this.texDownload(mod)); }
+        @JavascriptInterface public void texRemove(String mod) { runOnUiThread(() -> MainActivity.this.texRemove(mod)); }
+        @JavascriptInterface public void texCancel() {
+            runOnUiThread(() -> { texQueue.clear(); if (texCancel != null) texCancel.set(true); refreshHome(); });
+        }
+        @JavascriptInterface public void texScale(String s) { runOnUiThread(() -> MainActivity.this.texScale(s)); }
+        @JavascriptInterface public void texChoose(String part, String value) { runOnUiThread(() -> MainActivity.this.texChoose(part, value)); }
         @JavascriptInterface public void openSaves() { runOnUiThread(MainActivity.this::openSaves); }
         @JavascriptInterface public void openAppSettings() {
             runOnUiThread(() -> {
@@ -639,31 +893,46 @@ public class MainActivity extends Activity {
     private void startGame(String id) {
         Game g = gameOf(id);
         prefs.edit().putString("game", g.id).apply(); // o próximo START já vem com este jogo marcado
-        boolean wantBubble = prefs.getBoolean("bubble", true);
-        if (wantBubble && !Settings.canDrawOverlays(this) && !prefs.getBoolean("overlayAsked", false)) {
-            new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                    .setTitle(tr("Bolha de dicas", "Tips bubble"))
-                    .setMessage(tr("Para mostrar a bolha (guia e voltar ao início) por cima do jogo, o Android pede a permissão "
-                                    + "\"Sobrepor a outros apps\". Ligue para o NFS Launcher e volte. Em celulares Xiaomi, ligue "
-                                    + "também \"Exibir janelas pop-up enquanto executa em segundo plano\".",
-                            "To show the bubble (guide and back to home) over the game, Android asks for the \"Display over "
-                                    + "other apps\" permission. Turn it on for NFS Launcher and come back."))
-                    .setPositiveButton(tr("Permitir", "Allow"), (d, w) -> {
-                        prefs.edit().putBoolean("overlayAsked", true).apply();
-                        pendingGame = g.id;
-                        try {
-                            startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName())));
-                        } catch (ActivityNotFoundException e) { pendingGame = null; launchGame(g.id); }
-                    })
-                    .setNegativeButton(tr("Agora não", "Not now"), (d, w) -> {
-                        prefs.edit().putBoolean("overlayAsked", true).apply();
-                        launchGame(g.id);
-                    })
-                    .show();
-            return;
-        }
-        launchGame(g.id);
+        if (prefs.getBoolean("remindOff", false)) { launchGame(g.id); return; }
+        // Lembrete (pedido do Bruno, 08/11): modo jogo do celular e o jogo baixado por completo antes de carregar.
+        String download = "nfsu2".equals(g.id)
+                ? tr("Na primeira vez, baixe o jogo inteiro antes de carregar: no site, na aba Game, toque em \"Game data on this device\" e espere terminar. Assim ele não fica baixando no meio da corrida.",
+                     "The first time, download the whole game before loading: on the site, in the Game tab, tap \"Game data on this device\" and wait for it to finish. That way it does not download in the middle of a race.")
+                : tr("Na primeira vez, deixe o jogo baixar por completo antes de começar a jogar.",
+                     "The first time, let the game download completely before you start playing.");
+        new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setTitle(tr("Antes de jogar", "Before you play"))
+                .setMessage(tr("• Coloque o NFS Launcher no modo jogo do seu celular (Game Turbo, Game Booster ou Game Space): o jogo roda melhor.\n\n• ",
+                               "• Add NFS Launcher to your phone’s game mode (Game Turbo, Game Booster or Game Space): the game runs better.\n\n• ") + download)
+                .setPositiveButton(tr("Jogar", "Play"), (d, w) -> launchGame(g.id))
+                .setNeutralButton(tr("Não lembrar mais", "Don’t remind me"), (d, w) -> {
+                    prefs.edit().putBoolean("remindOff", true).apply();
+                    launchGame(g.id);
+                })
+                .show();
     }
+
+    /** A bolha só pede a permissão quando o jogador a liga (pedido do Bruno, 08/11). */
+    private void askOverlay() {
+        new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setTitle(tr("Bolha de dicas", "Tips bubble"))
+                .setMessage(tr("Para mostrar a bolha (guia, reiniciar e voltar ao início) por cima do jogo, o Android pede a permissão "
+                                + "\"Sobrepor a outros apps\". Ligue para o NFS Launcher e volte. Em celulares Xiaomi, ligue "
+                                + "também \"Exibir janelas pop-up enquanto executa em segundo plano\".",
+                        "To show the bubble (guide, restart and back to home) over the game, Android asks for the \"Display over "
+                                + "other apps\" permission. Turn it on for NFS Launcher and come back."))
+                .setPositiveButton(tr("Permitir", "Allow"), (d, w) -> {
+                    try {
+                        askingOverlay = true;
+                        startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName())));
+                    } catch (ActivityNotFoundException e) { askingOverlay = false; toast(tr("Não deu para abrir os ajustes.", "Could not open the settings.")); }
+                })
+                .setNegativeButton(tr("Agora não", "Not now"), (d, w) -> refreshHome())
+                .setOnCancelListener(d -> refreshHome())
+                .show();
+    }
+
+    private boolean bubbleOn() { return prefs.getBoolean("bubble", false) && Settings.canDrawOverlays(this); }
 
     private void launchGame(String id) {
         Game g = gameOf(id);
@@ -673,23 +942,22 @@ public class MainActivity extends Activity {
         home.evaluateJavascript("window.showLoading && showLoading('" + g.id + "')", null);
         // Só um jogo por vez: o anterior é encerrado por completo antes (e o motor espera ele sair).
         boolean wasOpen = closeGame(this, getTaskId());
+        pauseDownloads(); // durante o jogo, nada baixa (continua depois de onde parou)
         root.postDelayed(() -> {
-            if (prefs.getBoolean("bubble", true) && Settings.canDrawOverlays(this)) {
+            if (bubbleOn()) {
                 startService(new Intent(this, BubbleService.class).putExtra(BubbleService.EXTRA_TIPS, g.tips));
             }
             if (!"nfsu2".equals(g.id)) { launchInMotor(g); return; }
-            // Texturas HD (1.6.4): com o jogo fechado, liga (ou desfaz) o mapa detalhado no settings.ini, por onde elas entram.
+            // Texturas HD: com o jogo fechado, monta o pacote com a escolha atual (só se mudou) e liga (ou desfaz) o mapa
+            // detalhado no settings.ini, por onde elas entram. O motor abre o pacote ao começar (patch 0005).
             Context app = getApplicationContext();
-            boolean on = prefs.getBoolean("hdTextures", true) && texturesInApk();
-            new Thread(() -> { GameSettings.run(app, on); ui.post(() -> launchInMotor(g)); }).start();
+            boolean want = prefs.getBoolean("hdTextures", true);
+            new Thread(() -> {
+                if (want) Textures.build(app);
+                GameSettings.run(app, want && Textures.ready(app));
+                ui.post(() -> launchInMotor(g));
+            }).start();
         }, wasOpen ? 500 : 0);
-    }
-
-    /** O APK traz o pacote de texturas (assets/nfs/texturas.ntxp, guardado sem compressão para o motor ler por partes). */
-    private boolean texturesInApk() {
-        try (android.content.res.AssetFileDescriptor fd = getAssets().openFd(ASSETS + "texturas.ntxp")) {
-            return fd.getLength() > 0;
-        } catch (IOException e) { return false; }
     }
 
     /**

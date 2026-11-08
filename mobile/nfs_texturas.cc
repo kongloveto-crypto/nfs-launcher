@@ -1,15 +1,16 @@
-// ───────────────── NFS Launcher (1.6.4): texturas HD do NFSU2 no celular ─────────────────
+// ───────────────── NFS Launcher: texturas HD do NFSU2 no celular ─────────────────
 // Mesmo caminho do app de PC (src/main/modFiles.js), dentro do motor: o jogo lê os arquivos pela lista do site
 // (/data-manifest) e os baixa em blocos (/data-blocks/<v>/<caminho>?b&n&m&s) ou com Range (/data/<caminho>).
-// Aqui, só nas páginas e workers do site do NFSU2, a lista ganha o pacote de texturas do APK
-// (assets/nfs/texturas.ntxp, sem compressão) no lugar de TEXPACKS/detailed.pak, e os pedidos desse arquivo saem do APK.
-// Todo o resto segue para o site sem mudança. Sem script na página. Com "--nfs-sem-texturas" (opção desligada no
-// app) ou sem o pacote, nada passa por aqui. Qualquer falha: a lista do site segue como veio.
+// Aqui, só nas páginas e workers do site do NFSU2, a lista ganha o pacote de texturas que o app montou com o que o
+// jogador baixou (files/texturas/texturas.ntxp, caminho em "--nfs-texturas", passado pelo patch 0005 só com a opção
+// ligada) no lugar de TEXPACKS/detailed.pak, e os pedidos desse arquivo saem dele. Todo o resto segue para o site sem
+// mudança. Sem script na página. Sem o pacote, nada passa por aqui. Qualquer falha: a lista do site segue como veio.
 // Inserido em chrome/browser/chrome_content_browser_client.cc por mobile/make-patches.py (patch 0007).
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
-#include "base/android/apk_assets.h"
-#include "base/files/memory_mapped_file.h"
+#include "base/files/file_path.h"
 #include "base/json/json_reader.h"
 #include "base/json/json_writer.h"
 #include "base/memory/weak_ptr.h"
@@ -38,7 +39,7 @@
 
 namespace nfs_tex {
 
-constexpr char kAsset[] = "assets/nfs/texturas.ntxp";
+constexpr char kSwitch[] = "nfs-texturas";
 constexpr char kPath[] = "TEXPACKS/detailed.pak";
 constexpr int64_t kBlock = 1 << 20;
 
@@ -51,20 +52,26 @@ struct Pack {
 
 Pack OpenPack() {
   Pack p;
-  if (base::CommandLine::ForCurrentProcess()->HasSwitch("nfs-sem-texturas")) {
+  base::FilePath path = base::CommandLine::ForCurrentProcess()->GetSwitchValuePath(kSwitch);
+  if (path.empty()) {
     return p;
   }
-  base::MemoryMappedFile::Region region;
-  int fd = base::android::OpenApkAsset(kAsset, &region);
+  int fd = open(path.value().c_str(), O_RDONLY | O_CLOEXEC);
   if (fd < 0) {
     return p;
   }
+  struct stat st;
   uint8_t head[4096];
-  ssize_t n = pread(fd, head, sizeof(head), region.offset);
-  if (region.size < 64 || n < 16 || memcmp(head, "NTXP", 4) != 0) {
+  ssize_t n = fstat(fd, &st) == 0 ? pread(fd, head, sizeof(head), 0) : -1;
+  if (n < 16 || st.st_size < 64 || memcmp(head, "NTXP", 4) != 0) {
     close(fd);
     return p;
   }
+  struct {
+    int64_t offset = 0;
+    int64_t size = 0;
+  } region;
+  region.size = st.st_size;
   uint32_t h = 2166136261u;
   for (ssize_t i = 0; i < n; i++) {
     h = (h ^ head[i]) * 16777619u;
