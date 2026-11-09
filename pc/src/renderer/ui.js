@@ -487,10 +487,10 @@
     $('btn-start').textContent = s.gameStarted && selGame === s.game ? t('VOLTAR AO JOGO', 'BACK TO GAME') : 'START';
     // Dicas e guias são do NFSU2: somem com outro jogo escolhido/aberto.
     $('btn-tips').hidden = !(gameInfo(selGame) || {}).tips;
-    $('btn-saves').hidden = selGame !== 'nfsu2'; // só o NFSU2 tem cópia do save
+    $('btn-saves').hidden = !(gameInfo(selGame) || {}).saves; // só os NFSU2 têm cópia do save
     $('c-tips').hidden = !s.tipsOn || !s.gameStarted;
     // Texturas melhores: só com o NFSU2 aberto e o pacote presente. Colorido quando ligado.
-    $('c-tex').hidden = !(s.gameStarted && s.game === 'nfsu2'); // também sem mods: a janela é onde se baixa
+    $('c-tex').hidden = !(s.gameStarted && (gameInfo(s.game) || {}).textures); // também sem mods: a janela é onde se baixa
     $('c-tex').classList.toggle('on', !!s.settings.hdTextures);
     const texTip = s.settings.hdTextures ? t('Texturas HD: ligadas. Clique para escolher', 'HD textures: on. Click to choose')
       : t('Texturas HD: desligadas. Clique para escolher', 'HD textures: off. Click to choose');

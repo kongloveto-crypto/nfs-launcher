@@ -15,6 +15,8 @@ body[data-screen="launcher"], body[data-screen="settings"], body[data-screen="er
   background-size: auto, auto, auto, cover; background-position: center, center, center, var(--bgpos); background-repeat: no-repeat; }
 /* Underground 2: noite azul-petróleo com neon roxo e ciano. A foto alinha pela esquerda para não cortar o logo no canto. */
 body[data-game="nfsu2"] { --glow: #3a1070; --glow2: #00506a; --base: #070b18; --bgimg: url("bg/nfsu2.jpg"); --bgpos: left center; }
+/* Underground 2 Modded: a mesma foto, com o laranja da faixa "MODDED" do disco no lugar do roxo. */
+body[data-game="nfsu2mod"] { --glow: #7a3a00; --glow2: #00506a; --base: #0b0a12; --bgimg: url("bg/nfsu2mod.jpg"); --bgpos: left center; }
 /* Most Wanted: asfalto escuro com brilho laranja e vermelho. */
 body[data-game="nfsmw"] { --glow: #7a2a00; --glow2: #4a0a14; --base: #0d0b0a; --bgimg: url("bg/nfsmw.jpg"); }
 /* Carbon: noite azul do cânion com o vermelho do Evo da capa. */

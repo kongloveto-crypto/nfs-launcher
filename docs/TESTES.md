@@ -8,7 +8,7 @@ Automatizados, na pasta `pc`: `npm test` (141 testes) e `npm run verify` (27 ver
 |---|---|---|
 | 1 | Abrir o app | Logo "NFS Launcher" por pouco mais de 1 s (clique ou tecla pulam), depois a tela inicial. Aparece na barra de tarefas; sem ícone na bandeja. |
 | 2 | Fechar a janela (X) | O app encerra; no Gerenciador de Tarefas não sobra processo dele. |
-| 3 | Tela inicial | 3 CDs (NFSU2, Most Wanted, Carbon), cada um com seu fundo. Sem endereço, sem "site", sem nome de navegador. Rodapé só com a versão. Indicador de WebGPU só se houver problema. |
+| 3 | Tela inicial | 4 CDs (NFSU2, NFSU2 Modded com a faixa laranja "MODDED", Most Wanted, Carbon), cada um com seu fundo. Sem endereço, sem "site", sem nome de navegador. Rodapé só com a versão. Indicador de WebGPU só se houver problema. |
 | 4 | Tela inicial: passar o mouse, clicar num CD, START | Sons curtos. Durante o jogo, nenhum som do app. |
 | 5 | START em cada jogo | "Carregando o jogo…" com o CD girando até o jogo aparecer; título da janela com o nome do jogo. |
 | 6 | START do NFSU2 com o app em português | O jogo pergunta "Join crew?" (U2BR). Join entra; Not now não entra. Em inglês, nenhum convite. Recarregar não repete o convite. |
@@ -62,6 +62,7 @@ Automatizados, na pasta `pc`: `npm test` (141 testes) e `npm run verify` (27 ver
 | 46d | Na janela "Texturas HD" (também por Configurações > Texturas HD…), trocar várias partes de uma vez (ex.: Asfalto e pistas = Definitive, Céu = Original) e Aplicar, com o NFSU2 aberto | Só aparecem os mods instalados que têm aquela parte. Uma pergunta só para reiniciar; reiniciando, as partes mudam (Original = como no jogo). Aberta pelas Configurações, volta para elas. Voltar à escolha anterior não baixa nada de novo. |
 | 46f | Na janela "Texturas HD", em Asfalto e pistas clicar NextGen, Definitive e Redux nessa ordem; clicar de novo no Definitive; Aplicar e jogar | Os botões mostram "1ª NextGen", "2ª Definitive"..., e tirar um renumera os outros. Asfalto do NextGen; o que ele não tem vem da 2ª; o que nenhum escolhido tem fica original (nada de mod não escolhido). "Original" limpa a ordem. |
 | 46e | Baixar o TexWizard; abrir a janela "Texturas HD"; depois baixar o Redux, trocar Asfalto e pistas para Redux, Aplicar e reabrir o app | Asfalto, calçadas, grama e terra, sombra e neon dos carros com o TexWizard por padrão. Depois da troca, o Redux continua ao reabrir. Os mapas das corridas aparecem detalhados. |
+| 46g | Texturas HD ligada, com mods baixados: START no NFSU2 Modded, jogar até o settings.ini existir, fechar e abrir o app de novo; andar na cidade | Asfalto, cenário e céu com as texturas escolhidas, como no NFSU2; carros novos do site ficam como o site fez. Os saves do Modded não aparecem no NFSU2 nem o contrário. A cópia do save do Modded fica em `NFS Launcher SavesNFSU2 Modded`. Trocar do NFSU2 para o Modded com a partida aberta pede confirmação antes. |
 
 ## Celular (Android)
 

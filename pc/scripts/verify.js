@@ -122,7 +122,7 @@ check('Saves protegidos: a cópia antiga sai antes de abrir os dados', () => {
   const m = read('src/main/main.js');
   const a = m.indexOf('profileLock.acquire(');
   assert(a > 0, 'espera pela cópia antiga ausente');
-  assert(a < m.indexOf('session.fromPartition(PARTITION)') && a < m.indexOf('createWindow();'), 'dados abertos antes da espera');
+  assert(a < m.indexOf('session.fromPartition(') && a < m.indexOf('createWindow();'), 'dados abertos antes da espera');
   assert(/if \(!onlyCopy\)[\s\S]{0,300}app\.exit\(0\);\s*return;/.test(m), 'abre os dados mesmo com a cópia antiga viva');
   assert(!/clearStorageData\(\s*\)|clearData\(/.test(m), 'o app não pode apagar os dados do jogo');
   const limpezas = m.match(/clearStorageData\([^)]*\)/g) || [];
@@ -131,7 +131,7 @@ check('Saves protegidos: a cópia antiga sai antes de abrir os dados', () => {
 check('Cópia do save: uma vez, antes de abrir os dados, sem internet e sem tocar nos dados do jogo', () => {
   const m = read('src/main/main.js');
   const a = m.indexOf('await copySaveAtStart()');
-  assert(a > m.indexOf('profileLock.acquire(') && a < m.indexOf('session.fromPartition(PARTITION)'), 'cópia fora do momento certo');
+  assert(a > m.indexOf('profileLock.acquire(') && a < m.indexOf('session.fromPartition('), 'cópia fora do momento certo');
   assert((m.match(/copySaveAtStart\(\)/g) || []).length === 2 && (m.match(/saveCopy\.run\(/g) || []).length === 1, 'cópia em mais de um lugar');
   const s = read('src/main/saveCopy.js');
   assert(!/require\('(electron|child_process|http|https|net|tls|dns)'\)/.test(s), 'cópia com internet ou outro programa');
@@ -216,13 +216,17 @@ check('Permissões do site: só as necessárias (pasta de músicas só leitura)'
   }
   assert(!allowPermission('fileSystem', { fileAccessType: 'writable' }), 'escrita em arquivos liberada');
   const m = read('src/main/main.js');
-  assert(/gameSession\.setPermissionRequestHandler\([^\n]*allowPermission/.test(m) &&
-    /gameSession\.setPermissionCheckHandler\([^\n]*allowPermission/.test(m), 'sessão do jogo não usa allowPermission');
+  // Todas as pastas de dados dos jogos (NFSU2 e NFSU2 Modded) com as mesmas regras, e nenhuma sessão aberta fora do laço.
+  assert(/for \(const p of PARTITIONS\) \{\s*const ses = session\.fromPartition\(p\);\s*ses\.setPermissionRequestHandler\([^\n]*allowPermission[^\n]*\n\s*ses\.setPermissionCheckHandler\([^\n]*allowPermission/.test(m) &&
+    (m.match(/session\.fromPartition\(/g) || []).length === 1, 'sessão do jogo não usa allowPermission');
 });
 check('Domínios permitidos', () => {
   const { ALLOWED_HOSTS, isAllowedUrl } = require('../src/main/config');
-  // Só os sites do catálogo: NFSU2 (nfsu2.xyz), NFSMW (nfsmwo.com e subdomínios, para cadastro/login) e NFSC (nfscrb.xyz).
-  assert([...ALLOWED_HOSTS].every((h) => /(^|\.)nfsu2\.xyz$|(^|\.)nfsmwo\.com$|(^|\.)nfscrb\.xyz$/.test(h)), 'host extra inesperado');
+  // Só os sites do catálogo: NFSU2 (nfsu2.xyz), NFSU2 Modded (nfsu2mod.xyz), NFSMW (nfsmwo.com e subdomínios, para
+  // cadastro/login) e NFSC (nfscrb.xyz).
+  assert([...ALLOWED_HOSTS].every((h) => /(^|\.)nfsu2\.xyz$|(^|\.)nfsu2mod\.xyz$|(^|\.)nfsmwo\.com$|(^|\.)nfscrb\.xyz$/.test(h)), 'host extra inesperado');
+  assert(isAllowedUrl('https://nfsu2mod.xyz/', 'nfsu2mod') && !isAllowedUrl('https://nfsu2.xyz/', 'nfsu2mod') &&
+    !isAllowedUrl('https://nfsu2mod.xyz/', 'nfsu2') && !isAllowedUrl('https://evilnfsu2mod.xyz/', 'nfsu2mod'), 'o NFSU2 Modded só navega no próprio site');
   assert(isAllowedUrl('https://nfscrb.xyz/', 'nfsc') && isAllowedUrl('https://nfscrb.xyz/online/', 'nfsc') &&
     !isAllowedUrl('https://evilnfscrb.xyz/', 'nfsc') && !isAllowedUrl('https://nfsu2.xyz/', 'nfsc') &&
     !isAllowedUrl('https://nfscrb.xyz/', 'nfsu2'), 'o Carbon só navega no próprio site');
@@ -251,8 +255,14 @@ check('Internet só para o jogo e para o GitHub do app (atualização e texturas
   assert((m.match(/fetch: net\.fetch/g) || []).length === 2 && (m.match(/downloader\.download\(/g) || []).length === 2, 'download fora do downloader');
   // Mods (modFiles.js): o app só responde endereços do próprio NFSU2; o resto segue para o site sem mudança.
   const mods = read('src/main/modFiles.js');
-  assert(/allowed: \(u\) => isAllowedUrl\(u, 'nfsu2'\)/.test(m) && /const r = allowed\(req\.url\) && route\(req\.url, served\);\s*if \(!r\) return pass\(req\);/.test(mods) &&
-    /modsOn\.active\(cfg\.hdTextures && isAllowedUrl\(url, 'nfsu2'\)\)/.test(m), 'mods: só o NFSU2 pode passar pelo app, e só com "Texturas melhores" ligada');
+  // Desde 09/11, os dois NFSU2 (nfsu2.xyz e o Modded), cada um na própria sessão; o Most Wanted e o Carbon nunca.
+  const cfgMod = require('../src/main/config');
+  assert(JSON.stringify(cfgMod.TEX_GAMES) === '["nfsu2","nfsu2mod"]' && cfgMod.GAMES.nfsu2mod.partition !== cfgMod.GAMES.nfsu2.partition &&
+    cfgMod.GAMES.nfsmw.partition === cfgMod.PARTITION && cfgMod.GAMES.nfsc.partition === cfgMod.PARTITION, 'texturas ou pastas de dados dos jogos trocadas');
+  assert(/const texAllowed = \(partition\) => \(u\) => TEX_GAMES\.some\(\(id\) => GAMES\[id\]\.partition === partition && isAllowedUrl\(u, id\)\);/.test(m) &&
+    /modFiles\.install\(ses, \{ mods, allowed, log: modLog \}\)/.test(m) && (m.match(/modFiles\.install\(/g) || []).length === 1 &&
+    /const r = allowed\(req\.url\) && route\(req\.url, served\);\s*if \(!r\) return pass\(req\);/.test(mods) &&
+    /x\.h\.active\(cfg\.hdTextures && x\.allowed\(url\)\)/.test(m), 'mods: só os NFSU2 podem passar pelo app, e só com "Texturas melhores" ligada');
   const g = require('../src/main/github');
   assert(g.REPO === 'vtrspeedman-cell/nfs-launcher' && g.RELEASES_URL === `https://github.com/${g.REPO}/releases`, 'repositório do app trocado');
 });

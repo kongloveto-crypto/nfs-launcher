@@ -8,7 +8,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-const { GAMES, GAME_IDS, isAllowedUrl, gameOf, startUrlOf, PARTITION } = require('./config');
+const { GAMES, GAME_IDS, isAllowedUrl, gameOf, startUrlOf, PARTITION, PARTITIONS, TEX_GAMES, SAVE_GAMES } = require('./config');
 const settings = require('./settings');
 const combo = require('./combo');
 const { toChromeUA } = require('./ua');
@@ -247,7 +247,7 @@ function buildState() {
       mods: texPack.MODS.filter((m) => texSources[m.id]).map((m) => ({ id: m.id, name: m.name })),
       choice: texPack.effectiveChoice(cfg.texParts, texAvail),
     } : null,
-    games: GAME_IDS.map((id) => { const g = GAMES[id]; return { id, short: g.short, name: g.name, disc: g.disc, tips: g.tips, host: new URL(g.url).host }; }),
+    games: GAME_IDS.map((id) => { const g = GAMES[id]; return { id, short: g.short, name: g.name, disc: g.disc, tips: g.tips, textures: !!g.textures, saves: !!g.saves, host: new URL(g.url).host }; }),
     fsHint: hintOn, // dica piscando no topo: "para sair da tela cheia: <atalho>"
     guideOpen: panelOpen('guide'),
     // "Preparar o jogo" e "aliviar o processador" só valem ao reabrir (as flags são lidas antes do app iniciar).
@@ -276,37 +276,55 @@ function lowDiskGb() {
 }
 // Fora da pasta de dados do jogo: se ela se perder, as cópias continuam.
 const saveCopyDir = () => path.join(app.getPath('appData'), 'NFS Launcher Saves');
-const gameFsRoot = () => path.join(app.getPath('userData'), 'Partitions', PARTITION.replace('persist:', ''), 'File System');
+// Pasta de dados de cada jogo (o NFSU2 Modded tem a dele; os outros dividem a do NFSU2).
+const gameFsRoot = (partition = PARTITION) => path.join(app.getPath('userData'), 'Partitions', partition.replace('persist:', ''), 'File System');
+// Cópias do NFSU2 Modded numa subpasta própria: a "última cópia" de cada site não se confunde com a do outro.
+const savesDirOf = (id) => (GAMES[id].savesDir ? path.join(saveCopyDir(), GAMES[id].savesDir) : saveCopyDir());
+// O que o app guarda por jogo nas preferências: a linha que trocou no settings.ini e o "gráficos no mínimo" a fazer.
+const TEX_PREV_KEY = { nfsu2: 'texUiPrev', nfsu2mod: 'texUiPrevMod' };
+const DX11_MIN_KEY = { nfsu2: 'dx11GameMin', nfsu2mod: 'dx11GameMinMod' };
 
 // Texturas HD (gameSettings.js): com a opção ligada, deixa "ui_textures = map" no settings.ini do jogo, para o pacote
 // entrar sem o jogador ligar nada; desligada, desfaz só o que o app trocou. Antes de o navegador abrir os dados.
-let texUiOn = true;   // o jogo vai carregar o pacote de mapa (falso: ligar Texturas HD só vale reabrindo o app)
-let texUiNote = '';   // vai para o registro dos mods
+// Cada NFSU2 (o do site principal e o Modded) tem o seu settings.ini, na sua pasta.
+const texUiOnBy = {};  // id -> o jogo vai carregar o pacote de mapa (falso: ligar Texturas HD só vale reabrindo o app)
+let texUiNote = '';    // vai para o registro dos mods
 async function texturesSettingAtStart() {
   // Sem pacote (instalado sem as texturas, escolha do instalador): só desfaz a linha que o app tinha gravado antes,
   // para o jogo não continuar carregando o mapa detalhado do site num PC que escolheu ficar sem texturas.
   const hasPack = fs.existsSync(modsDir()) || texPack.MOD_IDS.some((id) => fs.existsSync(path.join(texSourcesDir(), `${id}.pak`)));
-  if (SAFE_MODE || (!hasPack && cfg.texUiPrev === null)) return;
-  const on = cfg.hdTextures && hasPack;
-  try {
-    const r = await gameSettings.run({ root: gameFsRoot(), backupDir: saveCopyDir(), on, prev: cfg.texUiPrev });
-    // Só pede para reabrir quando reabrir resolve: com o mapa escolhido pelo jogador ou sem achar o arquivo certo, não.
-    texUiOn = !!r.uiOn || (!!r.why && r.why !== 'sem settings.ini');
-    texUiNote = `settings.ini do jogo: ${r.changed ? (on ? `"${gameSettings.UI_LINE}" gravada` : 'linha do app desfeita') : 'sem mudança'}${r.why ? ` (${r.why})` : ''}`;
-    if (r.prev !== cfg.texUiPrev) { cfg = { ...cfg, texUiPrev: r.prev }; saveCfg(); }
-  } catch (e) {
-    texUiNote = `settings.ini do jogo: não deu para conferir (${e && e.message})`;
+  const notes = [];
+  for (const id of TEX_GAMES) {
+    const key = TEX_PREV_KEY[id];
+    texUiOnBy[id] = true;
+    if (SAFE_MODE || !key || (!hasPack && cfg[key] === null)) continue;
+    const on = cfg.hdTextures && hasPack;
+    try {
+      const r = await gameSettings.run({ root: gameFsRoot(GAMES[id].partition), backupDir: savesDirOf(id), on, prev: cfg[key] });
+      // Só pede para reabrir quando reabrir resolve: com o mapa escolhido pelo jogador ou sem achar o arquivo certo, não.
+      texUiOnBy[id] = !!r.uiOn || (!!r.why && r.why !== 'sem settings.ini');
+      notes.push(`settings.ini do ${GAMES[id].short}: ${r.changed ? (on ? `"${gameSettings.UI_LINE}" gravada` : 'linha do app desfeita') : 'sem mudança'}${r.why ? ` (${r.why})` : ''}`);
+      if (r.prev !== cfg[key]) { cfg = { ...cfg, [key]: r.prev }; saveCfg(); }
+    } catch (e) {
+      notes.push(`settings.ini do ${GAMES[id].short}: não deu para conferir (${e && e.message})`);
+    }
   }
+  texUiNote = notes.join('; ');
 }
 // Modo DirectX 11 (pedido do Bruno, 08/11): uma vez, com o jogo fechado, os gráficos do próprio jogo vão ao mínimo
 // (registry.txt, gameSettings.minGraphics). Sem o arquivo ainda (jogo nunca aberto), tenta na próxima abertura.
+// Um pedido por jogo: o NFSU2 Modded pode ser aberto pela 1ª vez bem depois do NFSU2.
 let dx11MinApplied = false;
 async function dx11MinAtStart() {
-  if (SAFE_MODE || !cfg.dx11GameMin || !UNBLOCK_ON) return;
-  try {
-    const r = await gameSettings.minGraphics({ root: gameFsRoot(), backupDir: saveCopyDir() });
-    if (r.done) { cfg = { ...cfg, dx11GameMin: false }; saveCfg(); dx11MinApplied = !!r.changed; }
-  } catch { /* tenta na próxima abertura */ }
+  if (SAFE_MODE || !UNBLOCK_ON) return;
+  for (const id of TEX_GAMES) {
+    const key = DX11_MIN_KEY[id];
+    if (!key || !cfg[key]) continue;
+    try {
+      const r = await gameSettings.minGraphics({ root: gameFsRoot(GAMES[id].partition), backupDir: savesDirOf(id) });
+      if (r.done) { cfg = { ...cfg, [key]: false }; saveCfg(); dx11MinApplied = dx11MinApplied || !!r.changed; }
+    } catch { /* tenta na próxima abertura */ }
+  }
 }
 function dx11Warning() {
   dialog.showMessageBox(win, {
@@ -317,9 +335,9 @@ function dx11Warning() {
   }).catch(() => {});
 }
 // Antes de o navegador abrir os dados do jogo. Disco muito lento não segura a abertura: a cópia termina sozinha logo depois.
+// Uma cópia por site (NFSU2 em "NFS Launcher Saves", o Modded na subpasta dele); a tela mostra a do NFSU2.
 async function copySaveAtStart() {
-  const job = saveCopy.run({ root: gameFsRoot(), dest: saveCopyDir() })
-    .catch(() => null)
+  const job = Promise.all(SAVE_GAMES.map((id) => saveCopy.run({ root: gameFsRoot(GAMES[id].partition), dest: savesDirOf(id) }).catch(() => null)))
     .then(() => saveCopy.info(saveCopyDir()))
     .then((i) => { saveCopyInfo = i; sendState(); })
     .catch(() => {});
@@ -359,7 +377,29 @@ function allMods() {
   for (const m of [...texVirtualMods(), ...modFiles.scanAll([modsDir()])]) by.set(m.p.toLowerCase(), m);
   return [...by.values()];
 }
-let modsOn = null; // resultado de modFiles.install (null = sem mods)
+// Os mods passam pela sessão de cada jogo com texturas (o NFSU2 e o Modded têm pastas de dados, e sessões, separadas).
+// Em cada sessão, só os pedidos do próprio site do jogo; o Most Wanted e o Carbon, que dividem a sessão do NFSU2,
+// nunca passam pelo app.
+const texAllowed = (partition) => (u) => TEX_GAMES.some((id) => GAMES[id].partition === partition && isAllowedUrl(u, id));
+const isTexUrl = (u) => TEX_GAMES.some((id) => isAllowedUrl(u, id));
+const gameSessions = new Map(); // partição -> sessão do jogo
+// Um modFiles.install por sessão, por trás de um objeto só: setMods vale para todas; active(url) liga só a sessão
+// cujo site é o que está abrindo, e só com "Texturas HD" ligada.
+function installMods(mods) {
+  const hs = [];
+  for (const [p, ses] of gameSessions) {
+    if (!TEX_GAMES.some((id) => GAMES[id].partition === p)) continue;
+    const allowed = texAllowed(p);
+    const h = modFiles.install(ses, { mods, allowed, log: modLog });
+    if (h) hs.push({ h, allowed });
+  }
+  if (!hs.length) return null;
+  return {
+    setMods: (m) => { for (const x of hs) x.h.setMods(m); },
+    active: (url) => { for (const x of hs) x.h.active(cfg.hdTextures && x.allowed(url)); },
+  };
+}
+let modsOn = null; // installMods (null = sem mods)
 let texReturn = null; // tela de onde a janela de texturas foi aberta (Voltar/Aplicar voltam para ela)
 // Registro curto do que houve com os mods (refeito a cada abertura, no máximo 300 linhas): NFS Launcher Mods\registro.txt
 // para quem tem a pasta; senão (ou se ela não aceitar gravação), na pasta temporária (nfs-mods-registro.txt).
@@ -369,9 +409,7 @@ function modLog(text) {
   if (!modLogFile || modLogLines++ > 300) return;
   try { fs.appendFileSync(modLogFile, `${new Date().toLocaleTimeString()} ${text}\r\n`); } catch { /* sem como gravar: segue */ }
 }
-let gameSes = null;   // sessão do jogo: os mods podem ser ligados depois de baixar as texturas
-function setupMods(ses) {
-  gameSes = ses;
+function setupMods() {
   const dir = modsDir();
   const userHas = fs.existsSync(path.dirname(dir));
   if (!userHas && !fs.existsSync(texSourcesDir())) return; // nada a fazer nem a registrar
@@ -385,7 +423,7 @@ function setupMods(ses) {
   const mods = allMods();
   modLog(`baixadas em ${texSourcesDir()}, do jogador ${dir}: ${mods.length} arquivo(s)`);
   if (!mods.length) return;
-  modsOn = modFiles.install(ses, { mods, allowed: (u) => isAllowedUrl(u, 'nfsu2'), log: modLog });
+  modsOn = installMods(mods);
 }
 // Texturas baixadas ou removidas com o app aberto: monta de novo e vale na próxima vez que o jogo carregar.
 function reloadTextures() {
@@ -395,9 +433,9 @@ function reloadTextures() {
   loadTexSources();
   const mods = allMods();
   if (modsOn) modsOn.setMods(mods);
-  else if (mods.length && gameSes) {
-    modsOn = modFiles.install(gameSes, { mods, allowed: (u) => isAllowedUrl(u, 'nfsu2'), log: modLog });
-    if (modsOn && gameStarted) modsOn.active(cfg.hdTextures && currentGame === 'nfsu2');
+  else if (mods.length && gameSessions.size) {
+    modsOn = installMods(mods);
+    if (modsOn && gameStarted) modsOn.active(gameView.webContents.getURL());
   }
   refresh();
 }
@@ -463,7 +501,7 @@ async function removeTextures(id) {
     }
   } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
   reloadTextures();
-  if (gameStarted && currentGame === 'nfsu2') askTexturesRestart(true);
+  if (gameStarted && gameOf(currentGame).textures) askTexturesRestart(true);
   return { ok: true };
 }
 
@@ -940,12 +978,56 @@ async function applyImageFilter() {
 function openSite(url) {
   try { modLog(`abrindo ${new URL(url).host}${modsOn ? (cfg.hdTextures ? '' : ' (texturas desligadas nas configurações)') : ' (sem mods carregados)'}`); } catch { /* endereço inválido: segue */ }
   // "Texturas melhores" desligada: nada passa pelo app e o jogo recebe a lista do site como ela é.
-  if (modsOn) { try { modsOn.active(cfg.hdTextures && isAllowedUrl(url, 'nfsu2')); } catch (e) { modLog(`não deu para ligar os mods: ${e && e.message}`); } }
+  if (modsOn) { try { modsOn.active(url); } catch (e) { modLog(`não deu para ligar os mods: ${e && e.message}`); } }
   gameView.webContents.loadURL(url).catch(() => {}); // erros de carga vão para o did-fail-load
+}
+// Uma view do jogo por pasta de dados (partição): o NFSU2 Modded tem a dele; os outros jogos dividem a do NFSU2.
+// Só a do jogo aberto fica visível (gameView); a outra fica em branco e escondida.
+const gameViews = new Map(); // partição -> WebContentsView
+function makeGameView(partition) {
+  const v = new WebContentsView({
+    webPreferences: {
+      partition, contextIsolation: true, nodeIntegration: false, sandbox: true,
+      spellcheck: false, devTools: DEV,
+    },
+  });
+  v.setBackgroundColor('#000000');
+  v.webContents.setUserAgent(app.userAgentFallback);
+  win.contentView.addChildView(v, 0); // sempre embaixo da interface
+  v.setVisible(false);
+  wireGameContents(v.webContents);
+  gameViews.set(partition, v);
+  return v;
+}
+function useViewOf(id) {
+  const p = gameOf(id).partition;
+  if (gameView && gameViews.get(p) === gameView) return;
+  const old = gameView;
+  gameView = gameViews.get(p) || makeGameView(p);
+  if (old) {
+    old.setVisible(false);
+    if (!old.webContents.isDestroyed() && old.webContents.getURL() !== 'about:blank') old.webContents.loadURL('about:blank').catch(() => {});
+  }
+  layout();
+}
+// Troca para um jogo de outra pasta de dados: a página atual fecha antes (o site pode pedir confirmação, como no
+// "início"); se o jogador cancelar, continua no jogo.
+async function switchAcross(id) {
+  const wc = gameView.webContents;
+  leavingGame = true;
+  try { await wc.loadURL('about:blank'); } catch { /* cancelado pelo jogador */ }
+  leavingGame = false;
+  if (wc.isDestroyed() || wc.getURL() !== 'about:blank') return;
+  useViewOf(id);
+  startGame(id);
 }
 // START com o jogo escolhido nos CDs da tela inicial (sem id: o último iniciado). O app lembra o último iniciado.
 function startGame(gameId) {
   const id = GAMES[gameId] ? gameId : cfg.game;
+  if (gameStarted && id !== currentGame && gameViews.get(gameOf(id).partition) !== gameView) {
+    if (!leavingGame) switchAcross(id).catch(() => {});
+    return;
+  }
   if (cfg.game !== id) { cfg.game = id; saveCfg(); }
   if (gameStarted && id !== currentGame) {
     // Troca de jogo: o site atual pode pedir confirmação (partida aberta) antes de sair.
@@ -961,6 +1043,7 @@ function startGame(gameId) {
     return;
   }
   if (!gameStarted) {
+    useViewOf(id);
     pauseUpdateDownload(); // nada de download do app durante o jogo: continua ao voltar à tela inicial
     gameStarted = true;
     currentGame = id;
@@ -1018,7 +1101,7 @@ async function askTexturesRestart(partChanged = false) {
   if (partChanged && !on) return; // trocou uma parte com as texturas desligadas: vale quando ligar
   // Ligou e o jogo ainda está sem o mapa detalhado no settings.ini: a linha só é trocada ao abrir o app (com o jogo
   // fechado), então quem precisa reabrir é o app, não só o jogo.
-  if (on && !texUiOn) {
+  if (on && texUiOnBy[gameStarted && gameOf(currentGame).textures ? currentGame : 'nfsu2'] === false) {
     const { response } = await dialog.showMessageBox(win, {
       type: 'info', buttons: [tr('Depois', 'Later'), tr('Reabrir o app', 'Reopen the app')], defaultId: 1, cancelId: 0, noLink: true,
       title: tr('Texturas HD', 'HD textures'),
@@ -1030,7 +1113,7 @@ async function askTexturesRestart(partChanged = false) {
     relaunchApp();
     return;
   }
-  if (!gameStarted || currentGame !== 'nfsu2') return;
+  if (!gameStarted || !gameOf(currentGame).textures) return;
   const { response } = await dialog.showMessageBox(win, {
     type: 'info', buttons: [tr('Depois', 'Later'), tr('Reiniciar o jogo', 'Restart the game')], defaultId: 1, cancelId: 0, noLink: true,
     title: tr('Texturas melhores', 'Better textures'),
@@ -1175,25 +1258,15 @@ function createWindow() {
   });
   win.removeMenu();
 
-  gameView = new WebContentsView({
-    webPreferences: {
-      partition: PARTITION, contextIsolation: true, nodeIntegration: false, sandbox: true,
-      spellcheck: false, devTools: DEV,
-    },
-  });
-  gameView.setBackgroundColor('#000000');
-  gameView.webContents.setUserAgent(app.userAgentFallback);
+  gameView = makeGameView(gameOf(cfg.game).partition);
 
   uiView = new WebContentsView({
     webPreferences: { preload: PRELOAD, contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false, devTools: DEV },
   });
   uiView.setBackgroundColor('#00000000');
 
-  win.contentView.addChildView(gameView);
   if (!NO_UI) win.contentView.addChildView(uiView); // no modo de teste a interface nem entra na janela
-  gameView.setVisible(false);
 
-  wireGameContents(gameView.webContents);
   wireUiContents(uiView.webContents);
 
   win.on('close', (e) => {
@@ -1275,13 +1348,15 @@ function wireUiContents(wc) {
 }
 
 function wireGameContents(wc) {
+  // A view escondida (a do outro jogo, em branco) não mexe no carregamento, nos erros nem no filtro do jogo aberto.
+  const mine = () => !!gameView && gameView.webContents === wc;
   wc.on('before-input-event', (event, input) => onInput(event, input, true));
 
   // Zoom sempre em 100%: zoom diferente muda a escala de pixels e reduz a resolução do canvas.
   wc.on('did-finish-load', () => {
     wc.setZoomFactor(1);
     wc.setVisualZoomLevelLimits(1, 1).catch(() => {});
-    applyPriority();
+    if (mine()) applyPriority();
   });
   wc.on('zoom-changed', () => wc.setZoomFactor(1));
 
@@ -1313,17 +1388,17 @@ function wireGameContents(wc) {
     if (choice === 1) { event.preventDefault(); return; } // ignora o beforeunload e recarrega
     endLoading();         // volta direto para a partida
   });
-  wc.on('dom-ready', endLoading);
-  wc.on('dom-ready', () => { imageCssKey = null; applyImageFilter(); });
+  wc.on('dom-ready', () => { if (mine()) endLoading(); });
+  wc.on('dom-ready', () => { if (mine()) { imageCssKey = null; applyImageFilter(); } });
 
   wc.on('did-fail-load', (_e, code, _desc, _url, isMainFrame) => {
-    if (!isMainFrame) return;
+    if (!isMainFrame || !mine()) return;
     if (code === -3) return; // -3 = navegação cancelada (normal)
     endLoading();
     showConnError(code);
   });
   wc.on('did-navigate', (_e, url, status) => {
-    if (!isAllowedUrl(url)) return;
+    if (!isAllowedUrl(url) || !mine()) return;
     if (status >= 500) { showConnError(status); return; }
     connError = null;
     dnsFailed = false;
@@ -1333,7 +1408,7 @@ function wireGameContents(wc) {
   });
 
   wc.on('render-process-gone', (_e, details) => {
-    if (quitting || details.reason === 'clean-exit') return;
+    if (quitting || details.reason === 'clean-exit' || !mine()) return;
     logCrash('jogo', details);
     const now = Date.now();
     crashes = crashes.filter((t) => now - t < 60000);
@@ -1342,6 +1417,7 @@ function wireGameContents(wc) {
     else showConnError(-1);
   });
   wc.on('unresponsive', () => {
+    if (!mine()) return;
     if (gameStarted && !quitting) logCrash('jogo', { reason: 'unresponsive' });
     if (locked()) { exitProtected(); notify(tr('O jogo parou de responder. Modo protegido desativado.', 'The game stopped responding. Protected mode turned off.')); }
   });
@@ -1405,10 +1481,11 @@ async function collectDiagnostics() {
   };
 }
 async function clearCache() {
-  const ses = gameView.webContents.session;
-  await ses.clearCache();
-  await ses.clearCodeCaches({});
-  await ses.clearStorageData({ storages: ['shadercache'] }); // nunca toca em saves (IndexedDB/OPFS/localStorage)
+  for (const ses of gameSessions.size ? gameSessions.values() : [gameView.webContents.session]) {
+    await ses.clearCache();
+    await ses.clearCodeCaches({});
+    await ses.clearStorageData({ storages: ['shadercache'] }); // nunca toca em saves (IndexedDB/OPFS/localStorage)
+  }
 }
 function registerIpc() {
   handle('state:get', () => buildState());
@@ -1624,10 +1701,15 @@ if (gotLock) {
     await dx11MinAtStart();
     await copySaveAtStart();
 
-    const gameSession = session.fromPartition(PARTITION);
-    gameSession.setPermissionRequestHandler((_wc, perm, cb, details) => cb(allowPermission(perm, details)));
-    gameSession.setPermissionCheckHandler((_wc, perm, _origin, details) => allowPermission(perm, details));
-    try { setupMods(gameSession); } catch (e) { modLog(`mods fora nesta abertura: ${e && e.message}`); } // não impede o jogo de abrir
+    // Uma sessão por pasta de dados (a do NFSU2, que o Most Wanted e o Carbon dividem, e a do NFSU2 Modded), com as mesmas regras.
+    for (const p of PARTITIONS) {
+      const ses = session.fromPartition(p);
+      ses.setPermissionRequestHandler((_wc, perm, cb, details) => cb(allowPermission(perm, details)));
+      ses.setPermissionCheckHandler((_wc, perm, _origin, details) => allowPermission(perm, details));
+      gameSessions.set(p, ses);
+    }
+    const gameSession = gameSessions.get(gameOf(cfg.game).partition);
+    try { setupMods(); } catch (e) { modLog(`mods fora nesta abertura: ${e && e.message}`); } // não impede o jogo de abrir
     // Abre a conexão com o site enquanto a tela inicial aparece: o jogo carrega mais rápido ao clicar INICIAR.
     try { gameSession.preconnect({ url: gameOf(cfg.game).url, numSockets: 2 }); } catch { /* sem rede: ignora */ }
     session.defaultSession.setPermissionRequestHandler((_wc, _perm, cb) => cb(false));

@@ -10,18 +10,28 @@ const GAMES = Object.freeze({
     // startUrl: só o START usa (convite da equipe; o site tira o "#" e pergunta se quer entrar). Recarregar usa `url`:
     // com a página aberta, o mesmo endereço com "#" só muda o "#", não recarrega nada e deixaria o "Carregando" preso.
     url: 'https://nfsu2.xyz', startUrl: 'https://nfsu2.xyz/#crew=U2BR', hosts: ['nfsu2.xyz', 'www.nfsu2.xyz'], disc: 'games/nfsu2.png', tips: true,
+    textures: true, saves: true, partition: 'persist:nfsu2',
+    discordId: DISCORD_APP,
+  }),
+  // NFSU2 Modded (pedido do Bruno, 09/11): o mesmo nfsu2-web com carros e mods a mais. Mesma cidade, então as Texturas HD
+  // valem nele. Pasta de dados própria: os saves e o settings.ini dos dois sites nunca se misturam (cópia do save e a
+  // linha "ui_textures" procuram um arquivo só por pasta). Sem convite de equipe: não se sabe se as equipes são as mesmas.
+  nfsu2mod: Object.freeze({
+    id: 'nfsu2mod', short: 'NFSU2 Modded', name: 'Need for Speed: Underground 2 Modded',
+    url: 'https://nfsu2mod.xyz', hosts: ['nfsu2mod.xyz', 'www.nfsu2mod.xyz'], disc: 'games/nfsu2mod.png', tips: true,
+    textures: true, saves: true, partition: 'persist:nfsu2mod', savesDir: 'NFSU2 Modded',
     discordId: DISCORD_APP,
   }),
   nfsmw: Object.freeze({
     id: 'nfsmw', short: 'NFSMW', name: 'Need for Speed: Most Wanted',
     // ".nfsmwo.com" = qualquer subdomínio (o cadastro/login pode passar por outro endereço do mesmo site e voltar).
-    url: 'https://web.nfsmwo.com', hosts: ['nfsmwo.com', '.nfsmwo.com'], disc: 'games/nfsmw.png', tips: false,
+    url: 'https://web.nfsmwo.com', hosts: ['nfsmwo.com', '.nfsmwo.com'], disc: 'games/nfsmw.png', tips: false, partition: 'persist:nfsu2',
     discordId: DISCORD_APP,
   }),
   // Carbon (pedido do Bruno, 05/11): canvas #canvas, como o Most Wanted. Sem convite de equipe: o site não tem `#crew=`.
   nfsc: Object.freeze({
     id: 'nfsc', short: 'NFSC', name: 'Need for Speed: Carbon',
-    url: 'https://nfscrb.xyz', hosts: ['nfscrb.xyz', '.nfscrb.xyz'], disc: 'games/nfsc.png', tips: false,
+    url: 'https://nfscrb.xyz', hosts: ['nfscrb.xyz', '.nfscrb.xyz'], disc: 'games/nfsc.png', tips: false, partition: 'persist:nfsu2',
     discordId: DISCORD_APP,
   }),
 });
@@ -53,5 +63,11 @@ const SECURE_DNS = Object.freeze({
   google: Object.freeze(['https://8.8.8.8/dns-query', 'https://8.8.4.4/dns-query']),
 });
 
-// A partição continua com o nome antigo para não perder os saves do NFSU2; cada site guarda os próprios dados.
-module.exports = { SECURE_DNS, GAMES, GAME_IDS, DEFAULT_GAME, ALLOWED_HOSTS, isAllowedUrl, gameOf, startUrlOf, PARTITION: 'persist:nfsu2' };
+// A partição principal continua com o nome antigo para não perder os saves do NFSU2; cada site guarda os próprios dados.
+// O NFSU2 Modded tem a dele (ver acima). PARTITIONS: todas, na ordem do catálogo, sem repetir.
+const PARTITION = 'persist:nfsu2';
+const PARTITIONS = Object.freeze([...new Set(GAME_IDS.map((id) => GAMES[id].partition))]);
+// Jogos com Texturas HD (o pacote do app passa só pelo site deles) e com cópia do save (zip em "NFS Launcher Saves").
+const TEX_GAMES = Object.freeze(GAME_IDS.filter((id) => GAMES[id].textures));
+const SAVE_GAMES = Object.freeze(GAME_IDS.filter((id) => GAMES[id].saves));
+module.exports = { SECURE_DNS, GAMES, GAME_IDS, DEFAULT_GAME, ALLOWED_HOSTS, isAllowedUrl, gameOf, startUrlOf, PARTITION, PARTITIONS, TEX_GAMES, SAVE_GAMES };
