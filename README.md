@@ -2,7 +2,7 @@
 
 App que abre **só** os jogos do catálogo (`pc/src/main/config.js`), numa janela própria com cara de jogo instalado:
 - **NFSU2** em <https://nfsu2.xyz> (com dicas e guias);
-- **NFSU2 Modded** em <https://nfsu2mod.xyz> (o mesmo jogo com carros e mods a mais; dicas, guias e Texturas HD como no NFSU2, pasta de dados própria, só no PC por enquanto);
+- **NFSU2 Modded** em <https://nfsu2mod.xyz> (o mesmo jogo com carros e mods a mais; Texturas HD como no NFSU2 e cópia dos saves própria; no PC, também dicas e guias; desde a PC 3.0.8 e a Android 1.6.7);
 - **Most Wanted** em <https://web.nfsmwo.com>;
 - **Carbon** em <https://nfscrb.xyz>.
 
