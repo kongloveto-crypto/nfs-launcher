@@ -1,10 +1,10 @@
 {
-  "versao": "3.0.6",
-  "arquivo": "https://github.com/vtrspeedman-cell/nfs-launcher/releases/download/pc-3.0.6/NFS-Launcher-Setup-3.0.6.exe",
-  "tamanho": 106473968,
-  "sha256": "383bb7daf77c0037917f26d6ad6efb530023fe5015d7caeb953dec65d0bad717",
+  "versao": "3.0.7",
+  "arquivo": "https://github.com/vtrspeedman-cell/nfs-launcher/releases/download/pc-3.0.7/NFS-Launcher-Setup-3.0.7.exe",
+  "tamanho": 105497283,
+  "sha256": "b1c0cab6e559adb99d0d263b759ffcae9d02240d1400b2f9e08afc2a933016f9",
   "novidades": {
-    "pt": "Mais estabilidade: o app anota quando o jogo, a placa de vídeo ou a conexão caem e mostra isso no relatório de diagnóstico, com dicas quando se repete. Fica só no seu PC; nada é enviado.",
-    "en": "More stability: the app notes when the game, the graphics card or the connection crashes and shows it in the diagnostic report, with tips when it repeats. It stays on your PC; nothing is sent."
+    "pt": "Motor do jogo recompilado com um treino novo, jogando o NFSU2 pelo mapa inteiro com e sem texturas HD e com as opções de desempenho ligadas: o processador trabalha menos nos trechos mais usados do jogo. Continua com o registro de quedas da 3.0.6.",
+    "en": "Game engine rebuilt with new training, playing NFSU2 across the whole map with and without HD textures and with the performance options on: the processor works less in the most used parts of the game. Still has the crash log from 3.0.6."
   }
 }
