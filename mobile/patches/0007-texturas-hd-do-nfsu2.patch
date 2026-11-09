@@ -1,8 +1,8 @@
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
-index 2e0f287290b76..04c94ac0f938a 100644
+index 2e0f287290b76..74160734f3ee3 100644
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -6781,6 +6781,545 @@ void ChromeContentBrowserClient::
+@@ -6781,6 +6781,550 @@ void ChromeContentBrowserClient::
    }
  }
  
@@ -106,13 +106,18 @@ index 2e0f287290b76..04c94ac0f938a 100644
 +}
 +bool g_patched = false;
 +
++// Os dois NFSU2: o do site principal e o Modded (09/11, mesma cidade, mesmas texturas).
++bool IsGameHost(std::string_view h) {
++  return h == "nfsu2.xyz" || h == "www.nfsu2.xyz" || h == "nfsu2mod.xyz" || h == "www.nfsu2mod.xyz";
++}
++
 +bool IsGameUrl(const GURL& u) {
-+  return u.SchemeIs(url::kHttpsScheme) && (u.host() == "nfsu2.xyz" || u.host() == "www.nfsu2.xyz");
++  return u.SchemeIs(url::kHttpsScheme) && IsGameHost(u.host());
 +}
 +
 +bool Wanted(const url::Origin& initiator) {
 +  return !initiator.opaque() && initiator.scheme() == url::kHttpsScheme &&
-+         (initiator.host() == "nfsu2.xyz" || initiator.host() == "www.nfsu2.xyz") && GetPack().fd >= 0;
++         IsGameHost(initiator.host()) && GetPack().fd >= 0;
 +}
 +
 +std::optional<std::string> ReadSpan(int64_t start, int64_t end) {
@@ -548,7 +553,7 @@ index 2e0f287290b76..04c94ac0f938a 100644
  void ChromeContentBrowserClient::WillCreateURLLoaderFactory(
      content::BrowserContext* browser_context,
      content::RenderFrameHost* frame,
-@@ -6798,6 +7337,11 @@ void ChromeContentBrowserClient::WillCreateURLLoaderFactory(
+@@ -6798,6 +7342,11 @@ void ChromeContentBrowserClient::WillCreateURLLoaderFactory(
      network::mojom::URLLoaderFactoryOverridePtr* factory_override,
      scoped_refptr<base::SequencedTaskRunner> navigation_response_task_runner,
      bool is_for_network_service) {

@@ -1,10 +1,10 @@
 {
-  "versao": "3.0.7",
-  "arquivo": "https://github.com/vtrspeedman-cell/nfs-launcher/releases/download/pc-3.0.7/NFS-Launcher-Setup-3.0.7.exe",
-  "tamanho": 105497283,
-  "sha256": "b1c0cab6e559adb99d0d263b759ffcae9d02240d1400b2f9e08afc2a933016f9",
+  "versao": "3.0.8",
+  "arquivo": "https://github.com/vtrspeedman-cell/nfs-launcher/releases/download/pc-3.0.8/NFS-Launcher-Setup-3.0.8.exe",
+  "tamanho": 105701322,
+  "sha256": "b0537560f015a1872632f88d5fd527d6a21fa68e6c8a87cab68bcc9726fd8844",
   "novidades": {
-    "pt": "Motor do jogo recompilado com um treino novo, jogando o NFSU2 pelo mapa inteiro com e sem texturas HD e com as opções de desempenho ligadas: o processador trabalha menos nos trechos mais usados do jogo. Continua com o registro de quedas da 3.0.6.",
-    "en": "Game engine rebuilt with new training, playing NFSU2 across the whole map with and without HD textures and with the performance options on: the processor works less in the most used parts of the game. Still has the crash log from 3.0.6."
+    "pt": "Jogo novo na tela: NFSU2 Modded (o servidor do NFSU2 com carros a mais), com dicas, Texturas HD e cópia dos saves, tudo separado do NFSU2 de sempre. Filtro de imagem com 3 cores novas: Cinema, Preto e branco e Pôr do sol.",
+    "en": "New game on the home screen: NFSU2 Modded (the NFSU2 server with extra cars), with tips, HD Textures and save copies, all kept apart from the regular NFSU2. Image filter with 3 new colors: Cinema, Black and white and Sunset."
   }
 }

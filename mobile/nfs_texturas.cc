@@ -98,13 +98,18 @@ std::string& Served() {
 }
 bool g_patched = false;
 
+// Os dois NFSU2: o do site principal e o Modded (09/11, mesma cidade, mesmas texturas).
+bool IsGameHost(std::string_view h) {
+  return h == "nfsu2.xyz" || h == "www.nfsu2.xyz" || h == "nfsu2mod.xyz" || h == "www.nfsu2mod.xyz";
+}
+
 bool IsGameUrl(const GURL& u) {
-  return u.SchemeIs(url::kHttpsScheme) && (u.host() == "nfsu2.xyz" || u.host() == "www.nfsu2.xyz");
+  return u.SchemeIs(url::kHttpsScheme) && IsGameHost(u.host());
 }
 
 bool Wanted(const url::Origin& initiator) {
   return !initiator.opaque() && initiator.scheme() == url::kHttpsScheme &&
-         (initiator.host() == "nfsu2.xyz" || initiator.host() == "www.nfsu2.xyz") && GetPack().fd >= 0;
+         IsGameHost(initiator.host()) && GetPack().fd >= 0;
 }
 
 std::optional<std::string> ReadSpan(int64_t start, int64_t end) {

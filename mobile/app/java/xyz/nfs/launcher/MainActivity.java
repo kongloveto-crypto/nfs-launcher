@@ -79,9 +79,10 @@ public class MainActivity extends Activity {
 
     static final class Game {
         final String id, shortName, name, url, startUrl, disc; // startUrl: o START com o convite da equipe; em inglês, url
-        final boolean tips;
-        Game(String id, String shortName, String name, String url, String startUrl, String disc, boolean tips) {
+        final boolean tips, textures; // textures: Texturas HD (os dois NFSU2: nfsu2.xyz e o Modded)
+        Game(String id, String shortName, String name, String url, String startUrl, String disc, boolean tips, boolean textures) {
             this.id = id; this.shortName = shortName; this.name = name; this.url = url; this.startUrl = startUrl; this.disc = disc; this.tips = tips;
+            this.textures = textures;
         }
         String host() { return Uri.parse(url).getHost(); }
     }
@@ -112,15 +113,16 @@ public class MainActivity extends Activity {
             for (int i = 0; i < a.length(); i++) {
                 JSONObject g = a.getJSONObject(i);
                 list[i] = new Game(g.getString("id"), g.getString("short"), g.getString("name"), g.getString("url"),
-                        g.optString("startUrl", g.getString("url")), g.getString("disc"), g.optBoolean("tips"));
+                        g.optString("startUrl", g.getString("url")), g.getString("disc"), g.optBoolean("tips"),
+                        g.optBoolean("textures", "nfsu2".equals(g.getString("id"))));
             }
             if (list.length > 0) GAMES = list;
         } catch (Exception ignored) { }
         if (GAMES.length == 0) {
-            GAMES = new Game[]{ new Game("nfsu2", "NFSU2", "Need for Speed: Underground 2", "https://nfsu2.xyz", "https://nfsu2.xyz/#crew=U2BR", "games/nfsu2.png", true) };
+            GAMES = new Game[]{ new Game("nfsu2", "NFSU2", "Need for Speed: Underground 2", "https://nfsu2.xyz", "https://nfsu2.xyz/#crew=U2BR", "games/nfsu2.png", true, true) };
         }
     }
-    static final String VERSION = "1.6.6"; // também dá o nome do APK (quick.sh/build.sh leem daqui)
+    static final String VERSION = "1.6.7"; // também dá o nome do APK (quick.sh/build.sh leem daqui)
     static final long LOW_DISK_BYTES = 3L * 1024 * 1024 * 1024; // o maior jogo baixa cerca de 3 GB
     // Tela de entrada do motor (o mesmo pacote deste app). Pelo nome exato: o motor não recebe links de fora.
     static final String MOTOR_ENTRY = "com.google.android.apps.chrome.IntentDispatcher";
@@ -850,7 +852,7 @@ public class MainActivity extends Activity {
             for (Game g : GAMES) {
                 JSONObject j = new JSONObject();
                 j.put("id", g.id); j.put("short", g.shortName); j.put("name", g.name);
-                j.put("disc", g.disc); j.put("tips", g.tips);
+                j.put("disc", g.disc); j.put("tips", g.tips); j.put("textures", g.textures);
                 arr.put(j);
                 JSONObject c = new JSONObject();
                 c.put("bg", customFile(g.id, "bg").exists());
@@ -956,7 +958,7 @@ public class MainActivity extends Activity {
         prefs.edit().putString("game", g.id).apply(); // o próximo START já vem com este jogo marcado
         if (prefs.getBoolean("remindOff", false)) { launchGame(g.id); return; }
         // Lembrete (pedido do Bruno, 08/11): modo jogo do celular e o jogo baixado por completo antes de carregar.
-        String download = "nfsu2".equals(g.id)
+        String download = g.textures // os dois NFSU2 têm a mesma página
                 ? tr("Na primeira vez, baixe o jogo inteiro antes de carregar: no site, na aba Game, toque em \"Game data on this device\" e espere terminar. Assim ele não fica baixando no meio da corrida.",
                      "The first time, download the whole game before loading: on the site, in the Game tab, tap \"Game data on this device\" and wait for it to finish. That way it does not download in the middle of a race.")
                 : tr("Na primeira vez, deixe o jogo baixar por completo antes de começar a jogar.",
@@ -1008,14 +1010,18 @@ public class MainActivity extends Activity {
             if (bubbleOn()) {
                 startService(new Intent(this, BubbleService.class).putExtra(BubbleService.EXTRA_TIPS, g.tips));
             }
-            if (!"nfsu2".equals(g.id)) { launchInMotor(g); return; }
-            // Texturas HD: com o jogo fechado, monta o pacote com a escolha atual (só se mudou) e liga (ou desfaz) o mapa
-            // detalhado no settings.ini, por onde elas entram. O motor abre o pacote ao começar (patch 0005).
+            // Texturas HD (os dois NFSU2): com o jogo fechado, monta o pacote com a escolha atual (só se mudou) e liga (ou
+            // desfaz) o mapa detalhado no settings.ini de cada um, por onde elas entram. O motor abre o pacote ao começar
+            // (patch 0005). Antes de abrir qualquer jogo, as pastas novas do navegador ficam com o jogo anterior
+            // (SaveCopy.launched): é assim que o app sabe qual pasta é de qual NFSU2.
             Context app = getApplicationContext();
             boolean want = prefs.getBoolean("hdTextures", true);
             new Thread(() -> {
-                if (want) Textures.build(app);
-                GameSettings.run(app, want && Textures.ready(app));
+                if (g.textures) {
+                    if (want) Textures.build(app);
+                    GameSettings.run(app, want && Textures.ready(app));
+                }
+                SaveCopy.launched(app, g.id);
                 ui.post(() -> launchInMotor(g));
             }).start();
         }, wasOpen ? 500 : 0);

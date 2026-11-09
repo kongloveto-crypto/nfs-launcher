@@ -3,6 +3,7 @@ package xyz.nfs.launcher;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.MediaStore;
@@ -19,7 +20,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -43,11 +46,14 @@ final class SaveCopy {
 
     private SaveCopy() { }
 
-    private static File stateFile(Context c) { return new File(c.getFilesDir(), "save-copy.txt"); }
+    // O NFSU2 continua com o arquivo de antes; o Modded tem o dele.
+    private static File stateFile(Context c, String game) {
+        return new File(c.getFilesDir(), "nfsu2".equals(game) ? "save-copy.txt" : "save-copy-" + game + ".txt");
+    }
 
     /** Data da cópia mais nova (milissegundos), ou 0 se ainda não houve nenhuma. */
     static long lastCopy(Context c) {
-        File f = stateFile(c);
+        File f = stateFile(c, "nfsu2");
         return f.exists() ? f.lastModified() : 0;
     }
 
@@ -94,75 +100,132 @@ final class SaveCopy {
         return s.toString();
     }
 
-    /** Nunca lança erro: sem save ou sem conseguir ler, as cópias antigas continuam como estão. */
-    static void run(Context c) {
-        try {
-            File root = new File(c.getApplicationInfo().dataDir, "app_chrome/Default/File System");
-            File[] origins = root.listFiles((d, n) -> n.matches("\\d{3}"));
-            if (origins == null) return;
-            List<Found> profiles = new ArrayList<>();
-            List<File> originFiles = new ArrayList<>();
-            for (File o : origins) {
-                List<File> files = new ArrayList<>();
-                walk(new File(o, "t"), files);
-                for (File f : files) {
-                    if (f.length() != PROFILE_SIZE) continue;
-                    byte[] data = Files.readAllBytes(f.toPath());
-                    if (isProfile(data)) { profiles.add(new Found(f, data)); originFiles = files; }
-                }
-            }
-            if (profiles.isEmpty()) return;
-            profiles.sort(Comparator.comparingLong((Found p) -> -p.file.lastModified()));
+    // ───────────── Pasta de cada site (NFSU2 Modded, 09/11) ─────────────
+    // Os dois NFSU2 (nfsu2.xyz e nfsu2mod.xyz) guardam os arquivos em pastas numeradas do navegador (000, 001...), sem
+    // dizer qual é de qual site. Uma pasta nova com arquivos do NFSU2 é do último jogo aberto pelo START (o único que
+    // pode tê-la criado); as que já existiam antes desta versão são do NFSU2 (o Modded não abria antes).
+    static final String LAST = "lastLaunched";
+    private static final String DIR_KEY = "siteDir:";
 
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            List<byte[]> sorted = new ArrayList<>();
-            for (Found p : profiles) sorted.add(p.data);
-            sorted.sort(Arrays::compareUnsigned);
-            for (byte[] d : sorted) md.update(d);
-            String sum = hex(md.digest());
-            File state = stateFile(c);
-            if (state.exists() && sum.equals(new String(Files.readAllBytes(state.toPath()), StandardCharsets.UTF_8).trim())) return;
-
-            List<String> names = new ArrayList<>();
-            List<byte[]> datas = new ArrayList<>();
-            for (int i = 0; i < profiles.size(); i++) {
-                String n = profileName(profiles.get(i).data, i);
-                names.add("NFS Underground 2/" + n + "/" + n);
-                datas.add(profiles.get(i).data);
-            }
-            // Com um perfil só, sai o backup inteiro; com mais de um não dá para saber de quem é a garagem.
-            if (profiles.size() == 1) {
-                originFiles.sort(Comparator.comparingLong((File f) -> -f.lastModified()));
-                byte[] garage = null, settings = null, registry = null, autosave = null;
-                for (File f : originFiles) {
-                    if (!mayBeExtra(f.length())) continue;
-                    String k = kindOf(f);
-                    if (k == null) continue;
-                    if (k.equals("garage") && garage == null) garage = Files.readAllBytes(f.toPath());
-                    else if (k.equals("settings.ini") && settings == null) settings = Files.readAllBytes(f.toPath());
-                    else if (k.equals("registry.txt") && registry == null) registry = Files.readAllBytes(f.toPath());
-                    else if (k.equals("autosave-profiles.txt") && autosave == null) autosave = Files.readAllBytes(f.toPath());
-                }
-                if (garage != null && (settings != null || registry != null)) {
-                    String n = profileName(profiles.get(0).data, 0);
-                    names.add("NFS Underground 2/" + n + "/GARAGE.DAT");
-                    datas.add(garage);
-                    if (settings != null) { names.add("settings.ini"); datas.add(settings); }
-                    if (registry != null) { names.add("registry.txt"); datas.add(registry); }
-                    if (autosave != null) { names.add("autosave-profiles.txt"); datas.add(autosave); }
-                }
-            }
-            write(c, names, datas);
-            Files.write(state.toPath(), sum.getBytes(StandardCharsets.UTF_8));
-            prune(c);
-        } catch (Exception | OutOfMemoryError ignored) { }
+    static File[] originDirs(Context c) {
+        File root = new File(c.getApplicationInfo().dataDir, "app_chrome/Default/File System");
+        File[] o = root.listFiles((d, n) -> n.matches("\\d{3}"));
+        return o == null ? new File[0] : o;
     }
 
-    private static void write(Context c, List<String> names, List<byte[]> datas) throws IOException {
+    private static List<File> filesOf(File origin) {
+        List<File> files = new ArrayList<>();
+        walk(new File(origin, "t"), files);
+        return files;
+    }
+
+    private static boolean hasNfsu2(List<File> files) {
+        for (File f : files) {
+            if (f.length() == PROFILE_SIZE || (f.length() >= 20 && f.length() <= 200000 && "settings.ini".equals(kindOf(f)))) return true;
+        }
+        return false;
+    }
+
+    /** Pasta (000, 001...) com arquivos do NFSU2 -> jogo ("nfsu2" ou "nfsu2mod"). Nunca lança erro. */
+    static synchronized Map<String, String> siteDirs(Context c) {
+        Map<String, String> out = new HashMap<>();
+        try {
+            SharedPreferences prefs = c.getSharedPreferences("nfs", Context.MODE_PRIVATE);
+            SharedPreferences.Editor ed = prefs.edit();
+            String last = prefs.getString(LAST, "nfsu2");
+            if (!last.startsWith("nfsu2")) last = "nfsu2"; // Most Wanted e Carbon não criam arquivos do NFSU2
+            for (File o : originDirs(c)) {
+                String key = DIR_KEY + o.getName();
+                if (!prefs.contains(key)) {
+                    if (!hasNfsu2(filesOf(o))) continue;
+                    ed.putString(key, last);
+                }
+                out.put(o.getName(), prefs.getString(key, last));
+            }
+            ed.commit();
+        } catch (Exception | OutOfMemoryError ignored) { }
+        return out;
+    }
+
+    /** START: as pastas novas ficam com o jogo anterior antes de marcar o que vai abrir. */
+    static void launched(Context c, String gameId) {
+        siteDirs(c);
+        c.getSharedPreferences("nfs", Context.MODE_PRIVATE).edit().putString(LAST, gameId).commit();
+    }
+
+    /** Nunca lança erro: sem save ou sem conseguir ler, as cópias antigas continuam como estão. Uma cópia por site. */
+    static void run(Context c) {
+        Map<String, String> dirs = siteDirs(c);
+        for (String game : new String[]{"nfsu2", "nfsu2mod"}) {
+            try { runFor(c, game, dirs); } catch (Exception | OutOfMemoryError ignored) { }
+        }
+    }
+
+    private static void runFor(Context c, String game, Map<String, String> dirs) throws Exception {
+        List<Found> profiles = new ArrayList<>();
+        List<File> originFiles = new ArrayList<>();
+        for (File o : originDirs(c)) {
+            if (!game.equals(dirs.get(o.getName()))) continue;
+            List<File> files = filesOf(o);
+            for (File f : files) {
+                if (f.length() != PROFILE_SIZE) continue;
+                byte[] data = Files.readAllBytes(f.toPath());
+                if (isProfile(data)) { profiles.add(new Found(f, data)); originFiles = files; }
+            }
+        }
+        if (profiles.isEmpty()) return;
+        profiles.sort(Comparator.comparingLong((Found p) -> -p.file.lastModified()));
+
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        List<byte[]> sorted = new ArrayList<>();
+        for (Found p : profiles) sorted.add(p.data);
+        sorted.sort(Arrays::compareUnsigned);
+        for (byte[] d : sorted) md.update(d);
+        String sum = hex(md.digest());
+        File state = stateFile(c, game);
+        if (state.exists() && sum.equals(new String(Files.readAllBytes(state.toPath()), StandardCharsets.UTF_8).trim())) return;
+
+        List<String> names = new ArrayList<>();
+        List<byte[]> datas = new ArrayList<>();
+        for (int i = 0; i < profiles.size(); i++) {
+            String n = profileName(profiles.get(i).data, i);
+            String entry = "NFS Underground 2/" + n + "/" + n;
+            if (names.contains(entry)) continue; // mesmo nome duas vezes: fica o mais novo (o zip não aceita repetido)
+            names.add(entry);
+            datas.add(profiles.get(i).data);
+        }
+        // Com um perfil só, sai o backup inteiro; com mais de um não dá para saber de quem é a garagem.
+        if (profiles.size() == 1) {
+            originFiles.sort(Comparator.comparingLong((File f) -> -f.lastModified()));
+            byte[] garage = null, settings = null, registry = null, autosave = null;
+            for (File f : originFiles) {
+                if (!mayBeExtra(f.length())) continue;
+                String k = kindOf(f);
+                if (k == null) continue;
+                if (k.equals("garage") && garage == null) garage = Files.readAllBytes(f.toPath());
+                else if (k.equals("settings.ini") && settings == null) settings = Files.readAllBytes(f.toPath());
+                else if (k.equals("registry.txt") && registry == null) registry = Files.readAllBytes(f.toPath());
+                else if (k.equals("autosave-profiles.txt") && autosave == null) autosave = Files.readAllBytes(f.toPath());
+            }
+            if (garage != null && (settings != null || registry != null)) {
+                String n = profileName(profiles.get(0).data, 0);
+                names.add("NFS Underground 2/" + n + "/GARAGE.DAT");
+                datas.add(garage);
+                if (settings != null) { names.add("settings.ini"); datas.add(settings); }
+                if (registry != null) { names.add("registry.txt"); datas.add(registry); }
+                if (autosave != null) { names.add("autosave-profiles.txt"); datas.add(autosave); }
+            }
+        }
+        write(c, game, names, datas);
+        Files.write(state.toPath(), sum.getBytes(StandardCharsets.UTF_8));
+        prune(c, game);
+    }
+
+    private static void write(Context c, String game, List<String> names, List<byte[]> datas) throws IOException {
         ContentResolver cr = c.getContentResolver();
         ContentValues v = new ContentValues();
         String stamp = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.ROOT).format(new Date());
-        v.put(MediaStore.Downloads.DISPLAY_NAME, "nfsu2-saves-" + stamp + ".zip");
+        v.put(MediaStore.Downloads.DISPLAY_NAME, game + "-saves-" + stamp + ".zip");
         v.put(MediaStore.Downloads.MIME_TYPE, "application/zip");
         v.put(MediaStore.Downloads.RELATIVE_PATH, FOLDER);
         v.put(MediaStore.Downloads.IS_PENDING, 1);
@@ -183,12 +246,12 @@ final class SaveCopy {
         cr.update(uri, v, null, null);
     }
 
-    // Só as 2 cópias mais novas feitas por este app. Nunca outro arquivo da pasta.
-    private static void prune(Context c) {
+    // Só as 2 cópias mais novas de cada site feitas por este app. Nunca outro arquivo da pasta.
+    private static void prune(Context c, String game) {
         ContentResolver cr = c.getContentResolver();
         String[] cols = {MediaStore.Downloads._ID};
         String where = MediaStore.Downloads.RELATIVE_PATH + "=? AND " + MediaStore.Downloads.DISPLAY_NAME + " LIKE ?";
-        String[] args = {FOLDER, "nfsu2-saves-%.zip"};
+        String[] args = {FOLDER, game + "-saves-%.zip"};
         try (Cursor q = cr.query(MediaStore.Downloads.EXTERNAL_CONTENT_URI, cols, where, args, MediaStore.Downloads.DISPLAY_NAME + " DESC")) {
             if (q == null) return;
             for (int i = 0; q.moveToNext(); i++) {

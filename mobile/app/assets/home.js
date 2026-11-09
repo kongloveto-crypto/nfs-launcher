@@ -80,7 +80,7 @@
     $('btn-tips').textContent = t('Dicas', 'Tips');
     $('btn-tips').hidden = !info(sel).tips;
     $('btn-saves').textContent = t('Meus saves', 'My saves');
-    $('btn-saves').hidden = sel !== 'nfsu2'; // só o NFSU2 tem cópia do save
+    $('btn-saves').hidden = !info(sel).textures; // só os NFSU2 têm cópia do save (a pasta é a mesma)
     $('btn-settings').textContent = t('Configurações', 'Settings');
     $('btn-quit').textContent = t('Fechar', 'Close');
     $('versions').textContent = `v${st.version}`;
@@ -122,7 +122,7 @@
   function renderTextures() {
     const x = st.tex || {};
     if (texWant && x.offer !== 'loading') { texWant = false; if (x.offer !== 'ok') api.texLoad(); }
-    $('set-tex-h').textContent = t('Texturas HD (NFSU2)', 'HD textures (NFSU2)');
+    $('set-tex-h').textContent = t('Texturas HD (NFSU2 e NFSU2 Modded)', 'HD textures (NFSU2 and NFSU2 Modded)');
     $('s-hdTextures').checked = !!st.hdTextures;
     $('s-hdTextures-l').textContent = t('Usar as texturas HD baixadas. Vale na próxima vez que o jogo abrir', 'Use the downloaded HD textures. Applies the next time the game opens');
     $('tex-note').textContent = t('Baixe um ou os dois mods. TexWizard: asfalto, faixas, calçadas, grama e terra do próprio jogo refeitos em alta resolução, mais sombra e neon dos carros. NextGen: mais partes da cidade. Junto com o primeiro vem o mapa detalhado do site. Use o Wi-Fi: são arquivos grandes.',

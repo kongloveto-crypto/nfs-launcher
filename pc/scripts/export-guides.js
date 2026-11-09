@@ -31,7 +31,7 @@ if (catalogFile) {
   const { GAMES, GAME_IDS, DEFAULT_GAME } = require('../src/main/config');
   const games = GAME_IDS.map((id) => {
     const g = GAMES[id];
-    return { id, short: g.short, name: g.name, url: g.url, startUrl: g.startUrl || g.url, hosts: g.hosts, disc: g.disc, tips: g.tips, host: new URL(g.url).host };
+    return { id, short: g.short, name: g.name, url: g.url, startUrl: g.startUrl || g.url, hosts: g.hosts, disc: g.disc, tips: g.tips, textures: !!g.textures, host: new URL(g.url).host };
   });
   fs.writeFileSync(catalogFile, JSON.stringify({ defaultGame: DEFAULT_GAME, games }));
   console.log(`catálogo exportado: ${games.map((g) => g.short).join(', ')} -> ${catalogFile}`);
