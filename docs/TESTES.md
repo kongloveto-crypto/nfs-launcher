@@ -46,6 +46,7 @@ Automatizados, na pasta `pc`: `npm test` (141 testes) e `npm run verify` (27 ver
 | 38 | Configurações > Personalização: trocar fundo e capa | PNG ou JPG; aparece na tela inicial e no carregamento; "Padrão" volta. |
 | 39 | Limpar cache | Limpa sem perder saves. Não existe botão de apagar dados do jogo. |
 | 40 | Salvar relatório de diagnóstico | Pede onde salvar; o .txt tem monitores, GPU, driver e "Pontos de atenção" (RivaTuner e Lossless Scaling, se abertos). |
+| 40b | Com o jogo aberto, fechar o processo "GPU" pelo Gerenciador de Tarefas; salvar o relatório de diagnóstico | Seção "Quedas recentes" com a queda da placa de vídeo (jogo e há quanto tempo jogava). Duas em 7 dias: dica de atualizar o driver. Nada é enviado. |
 | 41 | Rádio do jogo > escolher pasta de músicas | A janela de pasta abre e as músicas aparecem. |
 | 42 | Minimizar com o jogo rodando | Com `background = pause`, o jogo pausa e continua ao voltar. |
 | 43 | Gerenciador de Tarefas > Detalhes | GPU "Acima do normal" (o Chromium faz). Com Prioridade ligada, o jogo também; desligando, volta a Normal. |
@@ -83,3 +84,5 @@ Automatizados, na pasta `pc`: `npm test` (141 testes) e `npm run verify` (27 ver
 | A15 | Configurações > Texturas HD: baixar TexWizard e NextGen em "Até 2x"; free roam por avenidas com faixa, calçadas e grama; olhar a sombra e o neon do carro | Mapa do site baixa junto com o primeiro. Asfalto, faixas, calçadas e grama mais nítidos que no Chrome; cada parte pode vir do TexWizard, do NextGen ou ser "Original". O jogo não fica mais lento nem fecha sozinho. Trocar para "1x": os mods baixam de novo no tamanho original (mais leves). |
 | A16 | Desligar Texturas HD (ou remover os mods) e abrir o NFSU2 de novo | Texturas originais; o mapa do jogo volta ao que era antes. Quem usa HUD HD continua com ele. |
 | A17 | START | Antes de abrir: lembrete de pôr o app no modo jogo do celular e de baixar o jogo inteiro (no NFSU2, aba Game > "Game data on this device"). "Jogar" abre; "Não lembrar mais" abre e não mostra de novo. |
+| A18 | Jogar uns minutos, voltar à tela inicial | A tela inicial volta na hora, sem tela branca; se o Android tiver fechado a página dela, ela é refeita sozinha. |
+| A19 | Configurações > Avançado > Quedas recentes | "Nenhuma queda registrada." ou a lista (jogo, tela, motor, GPU, com data). Copiar põe na área de transferência com versão e modelo do celular. |

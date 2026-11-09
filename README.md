@@ -93,6 +93,7 @@ node node_modules\electron\install.js
   - geração de quadros (NVIDIA Smooth Motion, AMD AFMF, Lossless Scaling);
   - overlays como RivaTuner.
   - O relatório de diagnóstico avisa quando Lossless Scaling ou RivaTuner estão abertos.
+- **Quedas:** desde a 3.0.6, o app anota quando o jogo, a placa de vídeo ou a rede caem (`quedas.json` na pasta de dados, só local) e o relatório de diagnóstico lista as últimas, com dicas quando se repetem. No celular (1.6.6), Configurações > Avançado > Quedas recentes, com Copiar.
 - **Monitor de 144/165 Hz:** com `fps = auto` o jogo roda a 120 fps. Use G-SYNC/FreeSync ou o monitor a 120 Hz.
 - **Qualidade:** é decidida no próprio jogo (Settings), e o `settings.ini` fica no perfil do app, separado do Chrome. `F8` mostra o FPS.
 - **Engasgo:** em Configurações > Avançado, salve o relatório de diagnóstico. Compare com o Chrome no mesmo trecho, com `F9` > Download log.
