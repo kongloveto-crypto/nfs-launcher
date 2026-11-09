@@ -1,10 +1,10 @@
 {
-  "versao": "3.0.5",
-  "arquivo": "https://github.com/vtrspeedman-cell/nfs-launcher/releases/download/pc-3.0.5/NFS-Launcher-Setup-3.0.5.exe",
-  "tamanho": 106472634,
-  "sha256": "ff841be490a23b1bb180792539c51ddf30592032990cae1b8da3bc39941ba41b",
+  "versao": "3.0.6",
+  "arquivo": "https://github.com/vtrspeedman-cell/nfs-launcher/releases/download/pc-3.0.6/NFS-Launcher-Setup-3.0.6.exe",
+  "tamanho": 106473968,
+  "sha256": "383bb7daf77c0037917f26d6ad6efb530023fe5015d7caeb953dec65d0bad717",
   "novidades": {
-    "pt": "Texturas HD: em cada parte, você escolhe a ordem dos mods (1ª, 2ª, 3ª...). O que a 1ª não tiver vem da 2ª, e assim por diante; o que nenhum escolhido tiver fica original.",
-    "en": "HD textures: for each part, you choose the order of the mods (1st, 2nd, 3rd...). What the 1st lacks comes from the 2nd, and so on; what none of the chosen ones has stays original."
+    "pt": "Mais estabilidade: o app anota quando o jogo, a placa de vídeo ou a conexão caem e mostra isso no relatório de diagnóstico, com dicas quando se repete. Fica só no seu PC; nada é enviado.",
+    "en": "More stability: the app notes when the game, the graphics card or the connection crashes and shows it in the diagnostic report, with tips when it repeats. It stays on your PC; nothing is sent."
   }
 }
