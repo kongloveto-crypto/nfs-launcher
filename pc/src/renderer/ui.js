@@ -429,6 +429,9 @@
     intenso: ['Intenso', 'Intense'],
     nitido: ['Nítido', 'Sharp'],
     vividoNitido: ['Vívido+Nítido', 'Vivid+Sharp'],
+    cinema: ['Cinema', 'Cinema'],
+    pretoBranco: ['Preto e branco', 'Black and white'],
+    porDoSol: ['Pôr do sol', 'Sunset'],
   };
   function render(s) {
     state = s;

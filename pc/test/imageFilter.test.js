@@ -19,6 +19,21 @@ test('filtro de imagem: todo modo só altera o canvas dos dois jogos', () => {
   }
 });
 
+test('filtro de imagem: todo modo tem opção na tela, nome em PT e EN', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const dir = path.join(__dirname, '../src/renderer');
+  const html = fs.readFileSync(path.join(dir, 'ui.html'), 'utf8');
+  const js = fs.readFileSync(path.join(dir, 'ui.js'), 'utf8');
+  const i18n = fs.readFileSync(path.join(dir, 'i18n.js'), 'utf8');
+  for (const mode of imageFilter.MODE_IDS) {
+    const m = html.match(new RegExp(`<option value="${mode}" data-t="(\\w+)">`));
+    assert.ok(m, mode + ' sem opção em Configurações');
+    assert.match(i18n, new RegExp(`\\b${m[1]}: '`), mode + ' sem nome em inglês');
+    assert.match(js, new RegExp(`\\b${mode}: \\['`), mode + ' sem nome no botão da barra');
+  }
+});
+
 test('filtro de imagem: o botão passa por todos os modos e termina desligado', () => {
   let s = { on: false, mode: 'intenso' };
   const vistos = [];

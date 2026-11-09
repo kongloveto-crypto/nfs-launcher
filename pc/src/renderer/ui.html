@@ -124,7 +124,7 @@
       <summary data-t="advanced">Avançado</summary>
       <section>
         <h3 data-t="hImage">Imagem do jogo</h3>
-        <label class="switch"><input type="checkbox" id="s-imageFilter"><span data-t="sImage">Filtro de imagem (CSS filter: saturate, contrast e feConvolveMatrix) <small>(muda a cor e a nitidez na hora, sem reabrir o app. Os modos só de cor quase não pesam; os nítidos pesam um pouco, então confira com o F8)</small></span></label>
+        <label class="switch"><input type="checkbox" id="s-imageFilter"><span data-t="sImage">Filtro de imagem (CSS filter: saturate, contrast, sepia, grayscale e feConvolveMatrix) <small>(muda a cor e a nitidez na hora, sem reabrir o app. Os modos só de cor quase não pesam; os nítidos pesam um pouco, então confira com o F8)</small></span></label>
         <div class="row left image-mode">
           <label for="s-imageMode" data-t="imgMode">Modo</label>
           <select id="s-imageMode">
@@ -133,6 +133,9 @@
             <option value="intenso" data-t="imgStrong">Intenso</option>
             <option value="nitido" data-t="imgSharp">Nítido</option>
             <option value="vividoNitido" data-t="imgVividSharp">Vívido e nítido</option>
+            <option value="cinema" data-t="imgCinema">Cinema</option>
+            <option value="pretoBranco" data-t="imgBw">Preto e branco</option>
+            <option value="porDoSol" data-t="imgSunset">Pôr do sol</option>
           </select>
         </div>
       </section>

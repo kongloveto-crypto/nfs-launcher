@@ -9,6 +9,10 @@ const MODES = Object.freeze({
   intenso: 'saturate(1.5) contrast(1.08)',
   nitido: SHARPEN,
   vividoNitido: `${SHARPEN} saturate(1.25) contrast(1.05)`,
+  // Presets só de cor (ideia do "ReShade" de Safari que mandaram ao Bruno, 09/11; sem camadas por cima do jogo).
+  cinema: 'contrast(1.15) saturate(0.9) brightness(0.95)',
+  pretoBranco: 'grayscale(1) contrast(1.15)',
+  porDoSol: 'sepia(0.25) saturate(1.3) brightness(1.05)',
 });
 const MODE_IDS = Object.freeze(Object.keys(MODES));
 
