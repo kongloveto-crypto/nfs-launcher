@@ -120,7 +120,7 @@ assert ')NFS"' not in IMAGEM_WGSL
 CLEARER_H = '#include "third_party/blink/renderer/platform/graphics/gpu/webgpu_texture_alpha_clearer.h"\n\n'
 # Arquivos que tinham a versao antiga (so FXAA, ligada por NfsAntiAlias): voltam ao original antes de receber a nova.
 VERSAO_ANTIGA = {
-    "../third_party/blink/renderer/platform/graphics/gpu/webgpu_texture_alpha_clearer.h": "fxaa_pipeline_",
+    "../third_party/blink/renderer/platform/graphics/gpu/webgpu_texture_alpha_clearer.h": "wgpu::RenderPipeline fxaa_pipeline_",
     "../third_party/blink/renderer/platform/graphics/gpu/webgpu_texture_alpha_clearer.cc": "kNfsAntiAlias",
 }
 CORRECOES += [
