@@ -104,6 +104,54 @@ CORRECOES += [
     ]),
 ]
 
+# Programa que embrulha a placa de video (ReShade, na versao privada de teste do Bruno, 10/11): a textura devolve o device
+# original, de baixo do embrulho, e o motor recusava a imagem final ("Texture's device does not match", processo
+# grafico caindo). Aqui os dois contam como o mesmo device quando uma marca gravada pelo embrulho aparece no original.
+# Sem embrulho, os ponteiros ja sao iguais e nada disto roda.
+MESMO_DEVICE = (
+    "static const GUID kNfsMesmoDevice = {0x4e465355, 0x3200, 0x4c41,\n"
+    "{0x55, 0x4e, 0x43, 0x48, 0x45, 0x52, 0x30, 0x31}};\n"
+)
+CORRECOES += [
+    ("../third_party/angle/src/libANGLE/renderer/d3d/d3d11/Renderer11.cpp", [
+        ("    if (textureDevice != mDevice)\n    {\n"
+         "        return egl::Error(EGL_BAD_PARAMETER, \"Texture's device does not match.\");\n    }\n",
+         "    if (textureDevice != mDevice)\n    {\n"
+         "        // NFS: device embrulhado (ReShade): vale a marca gravada no device do ANGLE.\n"
+         "        " + MESMO_DEVICE.replace("\n", "\n        ").rstrip(" ") +
+         "        void *marca  = mDevice.Get();\n"
+         "        void *lida   = nullptr;\n"
+         "        UINT tamanho = sizeof(lida);\n"
+         "        mDevice->SetPrivateData(kNfsMesmoDevice, sizeof(marca), &marca);\n"
+         "        if (FAILED(textureDevice->GetPrivateData(kNfsMesmoDevice, &tamanho, &lida)) ||\n"
+         "            lida != marca)\n"
+         "        {\n"
+         "            return egl::Error(EGL_BAD_PARAMETER, \"Texture's device does not match.\");\n"
+         "        }\n"
+         "    }\n"),
+    ]),
+    ("../third_party/dawn/src/dawn/native/d3d11/SharedTextureMemoryD3D11.cpp", [
+        ("    DAWN_INVALID_IF(textureDevice.Get() != device->GetD3D11Device(),\n"
+         "                    \"The D3D11 device of the texture and the D3D11 device of %s must be same.\",\n"
+         "                    device);\n",
+         "    bool nfsMesmoDevice = textureDevice.Get() == device->GetD3D11Device();\n"
+         "    if (!nfsMesmoDevice) {\n"
+         "        // NFS: device embrulhado (ReShade): vale a marca gravada no device do Dawn.\n"
+         "        " + MESMO_DEVICE.replace("\n", "\n        ").rstrip(" ") +
+         "        void* marca = device->GetD3D11Device();\n"
+         "        void* lida = nullptr;\n"
+         "        UINT tamanho = sizeof(lida);\n"
+         "        device->GetD3D11Device()->SetPrivateData(kNfsMesmoDevice, sizeof(marca), &marca);\n"
+         "        nfsMesmoDevice =\n"
+         "            SUCCEEDED(textureDevice->GetPrivateData(kNfsMesmoDevice, &tamanho, &lida)) &&\n"
+         "            lida == marca;\n"
+         "    }\n"
+         "    DAWN_INVALID_IF(!nfsMesmoDevice,\n"
+         "                    \"The D3D11 device of the texture and the D3D11 device of %s must be same.\",\n"
+         "                    device);\n"),
+    ]),
+]
+
 # Pacotes de imagem do NFS Launcher (10/11, no lugar do FXAA sozinho de 03/11): anti-serrilhado (FXAA), nitidez (CAS),
 # bloom, cor e vinheta sobre a imagem pronta do jogo, logo antes do passo de alfa. Os efeitos estao em nfs-imagem.wgsl
 # e o codigo em nfs-imagem.inc, ao lado deste arquivo. O app escolhe os valores por CSS no canvas do jogo
@@ -120,7 +168,7 @@ assert ')NFS"' not in IMAGEM_WGSL
 CLEARER_H = '#include "third_party/blink/renderer/platform/graphics/gpu/webgpu_texture_alpha_clearer.h"\n\n'
 # Arquivos que tinham a versao antiga (so FXAA, ligada por NfsAntiAlias): voltam ao original antes de receber a nova.
 VERSAO_ANTIGA = {
-    "../third_party/blink/renderer/platform/graphics/gpu/webgpu_texture_alpha_clearer.h": "fxaa_pipeline_",
+    "../third_party/blink/renderer/platform/graphics/gpu/webgpu_texture_alpha_clearer.h": "wgpu::RenderPipeline fxaa_pipeline_",
     "../third_party/blink/renderer/platform/graphics/gpu/webgpu_texture_alpha_clearer.cc": "kNfsAntiAlias",
 }
 CORRECOES += [
