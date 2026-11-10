@@ -180,8 +180,7 @@ CORRECOES += [
     ("../third_party/blink/renderer/platform/graphics/gpu/webgpu_texture_alpha_clearer.cc", [
         (CLEARER_H + "namespace blink {\n",
          CLEARER_H + "#include <string_view>\n#include <vector>\n\n"
-         '#include "base/strings/string_number_conversions.h"\n#include "base/strings/string_split.h"\n'
-         '#include "base/environment.h"\n#include "base/strings/string_util.h"\n\n'
+         '#include "base/strings/string_number_conversions.h"\n#include "base/strings/string_split.h"\n\n'
          "namespace blink {\n\nnamespace {\n\n"
          "// NFS: efeitos do pacote de imagem do NFS Launcher (nfs-imagem.wgsl).\n"
          'constexpr char kNfsImageShader[] = R"NFS(' + IMAGEM_WGSL + ')NFS";\n\n'
@@ -190,20 +189,6 @@ CORRECOES += [
         ("  wgpu::TextureView attachment_view = texture.CreateView();\n",
          "  wgpu::TextureView attachment_view = texture.CreateView();\n"
          "  NfsImage(texture, attachment_view);\n"),
-        # Versao privada com o ReShade (10/11): com a variavel de ambiente NFS_MARCA_JOGO, o passo de alfa grava 0,5
-        # em vez de 1 nos pontos do jogo. A tela nao muda (o alfa da imagem final e ignorado), mas um efeito do
-        # ReShade (NfsMascara.fx) usa a marca para devolver ao original tudo o que nao e do jogo. Sem a variavel, nada muda.
-        ("  wgpu::ShaderModuleDescriptor shader_module_desc = {.nextInChain = &wgsl_desc};\n",
-         "  // NFS: marca dos pontos do jogo para a versao privada com o ReShade.\n"
-         "  std::string nfs_marked_code;\n"
-         '  if (base::Environment::Create()->HasVar("NFS_MARCA_JOGO")) {\n'
-         "    nfs_marked_code = std::string(std::string_view(wgsl_desc.code));\n"
-         "    base::ReplaceFirstSubstringAfterOffset(&nfs_marked_code, 0,\n"
-         '                                           "return vec4<f32>(1.0);",\n'
-         '                                           "return vec4<f32>(0.5);");\n'
-         "    wgsl_desc.code = nfs_marked_code.c_str();\n"
-         "  }\n"
-         "  wgpu::ShaderModuleDescriptor shader_module_desc = {.nextInChain = &wgsl_desc};\n"),
     ]),
     ("../third_party/blink/renderer/modules/webgpu/gpu_canvas_context.cc", [
         ('#include "third_party/blink/renderer/core/offscreencanvas/offscreen_canvas.h"\n',
@@ -214,27 +199,6 @@ CORRECOES += [
          '#include "third_party/blink/renderer/platform/wtf/std_lib_extras.h"\n'
          '#include "third_party/blink/renderer/platform/wtf/text/atomic_string.h"\n'),
         ("  mailbox_texture->SetAlphaClearer(alpha_clearer_);\n", PARTES["canvas"]),
-        # Marca do jogo (NFS_MARCA_JOGO, versao privada com o ReShade): a imagem do jogo segue com o alfa gravado
-        # (0,5) em vez de ser tratada como sem transparencia, mas continua desenhada sem mistura (camada opaca).
-        ('#include "base/metrics/histogram_functions.h"\n',
-         '#include "base/metrics/histogram_functions.h"\n#include "base/environment.h"\n'),
-        ("  SkAlphaType alpha_type = GetAlphaType();\n  scoped_refptr<WebGPUMailboxTexture> mailbox_texture =\n",
-         "  SkAlphaType alpha_type = GetAlphaType();\n"
-         "  // NFS: com a marca do jogo, o alfa gravado tem de chegar a imagem final.\n"
-         "  static const bool nfs_mark = base::Environment::Create()->HasVar(\"NFS_MARCA_JOGO\");\n"
-         "  if (nfs_mark && alpha_type == kOpaque_SkAlphaType) {\n"
-         "    alpha_type = kPremul_SkAlphaType;\n"
-         "  }\n"
-         "  scoped_refptr<WebGPUMailboxTexture> mailbox_texture =\n"),
-    ]),
-    ("../third_party/blink/renderer/platform/graphics/gpu/webgpu_swap_buffer_provider.cc", [
-        ('#include "base/feature_list.h"\n', '#include "base/environment.h"\n#include "base/feature_list.h"\n'),
-        ("  layer_->SetContentsOpaque(alpha_mode == kOpaque_SkAlphaType);\n"
-         "  layer_->SetBlendBackgroundColor(alpha_mode != kOpaque_SkAlphaType);\n",
-         "  // NFS: com a marca do jogo (versao privada com o ReShade), a camada continua opaca, sem mistura.\n"
-         "  static const bool nfs_mark = base::Environment::Create()->HasVar(\"NFS_MARCA_JOGO\");\n"
-         "  layer_->SetContentsOpaque(nfs_mark || alpha_mode == kOpaque_SkAlphaType);\n"
-         "  layer_->SetBlendBackgroundColor(!nfs_mark && alpha_mode != kOpaque_SkAlphaType);\n"),
     ]),
 ]
 

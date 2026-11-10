@@ -36,9 +36,6 @@ const gameSettings = require('./gameSettings');
 const argv = process.argv.slice(1);
 // Conferência da montagem: o executável abre, o pacote é aceito e o código carrega. Sai antes de tocar em qualquer dado.
 if (argv.includes('--conferir')) app.exit(73);
-// Versão privada de teste com o ReShade: o app pinta 3 pontos no canto da janela para o efeito NfsMascara.fx saber onde
-// está o jogo (ui.js). Só com a variável de ambiente NFS_MARCA_JOGO; no app normal nada aparece.
-const RESHADE_MARK = !!process.env.NFS_MARCA_JOGO;
 const SAFE_MODE = argv.includes('--safe-mode');           // ignora "iniciar em tela cheia"
 const RESET_SETTINGS = argv.includes('--reset-settings'); // apaga preferências salvas
 const DEV = !app.isPackaged && argv.includes('--dev');    // DevTools só no `npm run dev`; o app instalado nunca abre
@@ -262,7 +259,6 @@ function buildState() {
     fsHint: hintOn, // dica piscando no topo: "para sair da tela cheia: <atalho>"
     guideOpen: panelOpen('guide'),
     // "Preparar o jogo" e "aliviar o processador" só valem ao reabrir (as flags são lidas antes do app iniciar).
-    reshadeMark: RESHADE_MARK,
     restartNeeded: !SAFE_MODE && (cfg.prepareGame !== PREPARE_ON || cfg.lighterGpu !== LIGHTER_ON || cfg.unblockGpu !== UNBLOCK_ON || (cfg.newDrawing && !cfg.unblockGpu) !== NEW_DRAWING_ON),
     versions: { app: app.getVersion(), electron: process.versions.electron, chrome: process.versions.chrome },
   };
