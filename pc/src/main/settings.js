@@ -37,6 +37,7 @@ const DEFAULTS = Object.freeze({
   tipsDiscovered: false,    // o botão de dicas fica fixo na tela até o jogador usar as dicas uma vez
   lang: 'pt',               // idioma do app e das dicas ('pt' ou 'en'), escolhido na tela inicial ou nas configurações
   game: 'nfsu2',            // último jogo iniciado (vem selecionado na tela inicial; 1ª vez: NFSU2)
+  crewInvites: 0,           // quantas vezes o START abriu com o convite da equipe (config.CREW_MAX)
 });
 const { GAME_IDS, SECURE_DNS } = require('./config');
 const { MODE_IDS } = require('./imageFilter');
@@ -70,6 +71,7 @@ function sanitize(raw) {
   if (MODE_IDS.includes(r.imageMode)) out.imageMode = r.imageMode;
   if (GAME_IDS.includes(r.game)) out.game = r.game;
   if (Object.hasOwn(SECURE_DNS, r.secureDns)) out.secureDns = r.secureDns;
+  if (Number.isInteger(r.crewInvites) && r.crewInvites >= 0) out.crewInvites = Math.min(r.crewInvites, 99);
   out.texParts = require('./texPack').sanitizeChoice(r.texParts);
   for (const k of ['texUiPrev', 'texUiPrevMod']) if (typeof r[k] === 'string' && r[k].length <= 200 && !/[\r\n]/.test(r[k])) out[k] = r[k];
   // NFSU2 Modded (09/11): quem já estava no modo DirectX 11 recebe os gráficos mínimos nele também, uma vez.

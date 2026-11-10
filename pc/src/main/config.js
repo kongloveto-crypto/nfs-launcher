@@ -55,7 +55,12 @@ function isAllowedUrl(u, gameId) {
 }
 const gameOf = (id) => GAMES[id] || GAMES[DEFAULT_GAME];
 // Endereço do START: em inglês, o normal, sem o convite da equipe brasileira (pedido do Bruno).
-const startUrlOf = (id, lang) => { const g = gameOf(id); return lang === 'en' ? g.url : g.startUrl || g.url; };
+// O convite aparece no máximo CREW_MAX vezes (pedido do Bruno, 10/11); invites = quantas já abriram com ele.
+const CREW_MAX = 2;
+const startUrlOf = (id, lang, invites = 0) => {
+  const g = gameOf(id);
+  return lang === 'en' || !(invites < CREW_MAX) ? g.url : g.startUrl || g.url;
+};
 
 // DNS seguro, na ordem em que é tentado. Pelo IP: funciona mesmo quando o DNS da rede não resolve nome nenhum.
 const SECURE_DNS = Object.freeze({
@@ -70,4 +75,4 @@ const PARTITIONS = Object.freeze([...new Set(GAME_IDS.map((id) => GAMES[id].part
 // Jogos com Texturas HD (o pacote do app passa só pelo site deles) e com cópia do save (zip em "NFS Launcher Saves").
 const TEX_GAMES = Object.freeze(GAME_IDS.filter((id) => GAMES[id].textures));
 const SAVE_GAMES = Object.freeze(GAME_IDS.filter((id) => GAMES[id].saves));
-module.exports = { SECURE_DNS, GAMES, GAME_IDS, DEFAULT_GAME, ALLOWED_HOSTS, isAllowedUrl, gameOf, startUrlOf, PARTITION, PARTITIONS, TEX_GAMES, SAVE_GAMES };
+module.exports = { SECURE_DNS, GAMES, GAME_IDS, DEFAULT_GAME, ALLOWED_HOSTS, isAllowedUrl, gameOf, startUrlOf, CREW_MAX, PARTITION, PARTITIONS, TEX_GAMES, SAVE_GAMES };

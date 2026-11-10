@@ -186,6 +186,12 @@ function notifyLocked() {
     `Protected mode is on. To leave fullscreen: ${cfg.toggleCombo} (or ${cfg.exitCombo})`));
 }
 function saveCfg() { settings.save(cfgPath, cfg); }
+// Endereço do START. Quando ele leva o convite da equipe, conta mais uma vez (no máximo 2, config.CREW_MAX).
+function startUrl(id) {
+  const u = startUrlOf(id, cfg.lang, cfg.crewInvites);
+  if (u !== gameOf(id).url) { cfg = { ...cfg, crewInvites: cfg.crewInvites + 1 }; saveCfg(); }
+  return u;
+}
 function saveBounds() {
   if (!win || win.isDestroyed()) return;
   cfg.bounds = win.getNormalBounds();
@@ -1039,7 +1045,7 @@ function startGame(gameId) {
     beginLoading();
     screen = 'loading';
     refresh();
-    openSite(startUrlOf(id, cfg.lang));
+    openSite(startUrl(id));
     return;
   }
   if (!gameStarted) {
@@ -1050,7 +1056,7 @@ function startGame(gameId) {
     playingSince = Date.now();
     psbId = powerSaveBlocker.start('prevent-display-sleep');
     beginLoading();
-    openSite(startUrlOf(id, cfg.lang));
+    openSite(startUrl(id));
   } else if (connError) {
     reloadGame();
   }

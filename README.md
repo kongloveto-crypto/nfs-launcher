@@ -60,7 +60,7 @@ node node_modules\electron\install.js
 - **Conexão:**
   - O jogo abre com carga normal, como no Chrome (sem recarga sem cache), mantendo login e saves.
   - A tela de erro tem um botão de DNS seguro (Cloudflare, depois Google).
-- **Convite da equipe:** o START do NFSU2, com o app em português, abre `#crew=U2BR`. O site pergunta antes de entrar.
+- **Convite da equipe:** o START do NFSU2, com o app em português, abre `#crew=U2BR`, no máximo 2 vezes (`crewInvites`). O site pergunta antes de entrar.
 - **Atualizações (GitHub):**
   - O app lê `pc/atualizacao.json` deste repositório e baixa o instalador só das releases dele, conferindo o tamanho e o SHA-256 (`github.js`, `downloader.js`). Baixa fora do jogo e continua de onde parou.
   - Pronto, a tela inicial mostra "Atualizar agora" (instala e reabre). Ao fechar o app, a versão baixada se instala sozinha, sem janela.

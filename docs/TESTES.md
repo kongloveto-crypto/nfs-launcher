@@ -11,7 +11,7 @@ Automatizados, na pasta `pc`: `npm test` (141 testes) e `npm run verify` (27 ver
 | 3 | Tela inicial | 4 CDs (NFSU2, NFSU2 Modded com a faixa laranja "MODDED", Most Wanted, Carbon), cada um com seu fundo. Sem endereço, sem "site", sem nome de navegador. Rodapé só com a versão. Indicador de WebGPU só se houver problema. |
 | 4 | Tela inicial: passar o mouse, clicar num CD, START | Sons curtos. Durante o jogo, nenhum som do app. |
 | 5 | START em cada jogo | "Carregando o jogo…" com o CD girando até o jogo aparecer; título da janela com o nome do jogo. |
-| 6 | START do NFSU2 com o app em português | O jogo pergunta "Join crew?" (U2BR). Join entra; Not now não entra. Em inglês, nenhum convite. Recarregar não repete o convite. |
+| 6 | START do NFSU2 com o app em português | O jogo pergunta "Join crew?" (U2BR). Join entra; Not now não entra. Em inglês, nenhum convite. Recarregar não repete o convite. Só nos 2 primeiros START com convite; do 3º em diante, abre sem convite (PC: `crewInvites` nas configurações; celular: prefs `crewInvites`). |
 | 7 | App instalado: Ctrl+Shift+I, Ctrl+Shift+J, clique direito | Nada de painel de inspeção ou menu de navegador; F12 tira a foto do jogo. |
 | 8 | Jogar | Alt, Espaço, Ctrl, Shift, WASD, Tab, Esc, F5, F8 e F12 vão para o jogo. Ctrl+W não fecha nada. |
 | 9 | Em janela | Barra própria de 32 px: arrastar, dois cliques, encaixe, bordas, minimizar, maximizar e fechar funcionam; o jogo fica logo abaixo; reabrir mantém o tamanho. |

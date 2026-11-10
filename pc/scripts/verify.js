@@ -240,7 +240,8 @@ check('Domínios permitidos', () => {
   assert(GAMES.nfsu2.startUrl === 'https://nfsu2.xyz/#crew=U2BR' && isAllowedUrl(GAMES.nfsu2.startUrl, 'nfsu2') && !GAMES.nfsu2.url.includes('#'), 'convite da equipe incorreto');
   const mainJs = read('src/main/main.js');
   assert(/const gameUrl = \(\) => gameOf\(currentGame \|\| cfg\.game\)\.url;/.test(mainJs), 'Recarregar não pode usar o endereço com #');
-  assert((mainJs.match(/openSite\(startUrlOf\(id, cfg\.lang\)\)/g) || []).length === 2, 'o START precisa respeitar o idioma');
+  assert((mainJs.match(/openSite\(startUrl\(id\)\)/g) || []).length === 2 && /startUrlOf\(id, cfg\.lang, cfg\.crewInvites\)/.test(mainJs),
+    'o START precisa respeitar o idioma e o limite de convites');
 });
 check('Internet só para o jogo e para o GitHub do app (atualização e texturas); um único link externo fixo', () => {
   const m = read('src/main/main.js');

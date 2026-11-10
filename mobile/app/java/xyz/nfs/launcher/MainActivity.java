@@ -1033,8 +1033,17 @@ public class MainActivity extends Activity {
      */
     private CustomTabsServiceConnection motorConn;
     private long launchedAt = -10000;
+    /** O convite da equipe aparece no máximo 2 vezes (pedido do Bruno, 10/11), como no PC (config.CREW_MAX). */
+    private static final int CREW_MAX = 2;
+    private String startUrlOf(Game g) {
+        int invites = prefs.getInt("crewInvites", 0);
+        if ("en".equals(lang()) || g.startUrl.equals(g.url) || invites >= CREW_MAX) return g.url;
+        prefs.edit().putInt("crewInvites", invites + 1).apply();
+        return g.startUrl;
+    }
     private void launchInMotor(Game g) {
         launchedAt = SystemClock.uptimeMillis();
+        final String startUrl = startUrlOf(g);
         if (motorConn != null) { try { unbindService(motorConn); } catch (Exception ignored) { } motorConn = null; }
         motorConn = new CustomTabsServiceConnection() {
             @Override
@@ -1042,7 +1051,7 @@ public class MainActivity extends Activity {
                 client.warmup(0);
                 CustomTabsSession session = client.newSession(null);
                 if (session == null) { motorFailed(); return; }
-                Intent twa = new TrustedWebActivityIntentBuilder(Uri.parse("en".equals(lang()) ? g.url : g.startUrl))
+                Intent twa = new TrustedWebActivityIntentBuilder(Uri.parse(startUrl))
                         .setScreenOrientation(ScreenOrientation.LANDSCAPE) // jogos de corrida: deitado
                         .setDisplayMode(new TrustedWebActivityDisplayMode.ImmersiveMode(false,
                                 WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES))
