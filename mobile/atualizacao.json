@@ -1,10 +1,10 @@
 {
-  "versao": "1.6.7",
-  "arquivo": "https://github.com/vtrspeedman-cell/nfs-launcher/releases/download/android-1.6.7/NFS-Launcher-Android-1.6.7.apk",
-  "tamanho": 255456349,
-  "sha256": "c4574369f561957605c7cb16b3f17df1f8f0c04f9102b86c200b51b71cd37c19",
+  "versao": "1.6.8",
+  "arquivo": "https://github.com/vtrspeedman-cell/nfs-launcher/releases/download/android-1.6.8/NFS-Launcher-Android-1.6.8.apk",
+  "tamanho": 255456633,
+  "sha256": "d60b4f3fea129f24401862ec358e27e065587b5a368ed274eea9646f99a6b2ff",
   "novidades": {
-    "pt": "Jogo novo na tela: NFSU2 Modded (o servidor do NFSU2 com carros a mais), com Texturas HD e cópia dos saves, tudo separado do NFSU2 de sempre.",
-    "en": "New game on the home screen: NFSU2 Modded (the NFSU2 server with extra cars), with HD Textures and save copies, all kept apart from the regular NFSU2."
+    "pt": "O convite da equipe U2BR aparece no máximo 2 vezes.",
+    "en": "Small fixes."
   }
 }

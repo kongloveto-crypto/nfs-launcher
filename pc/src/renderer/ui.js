@@ -432,6 +432,8 @@
     cinema: ['Cinema', 'Cinema'],
     pretoBranco: ['Preto e branco', 'Black and white'],
     porDoSol: ['Pôr do sol', 'Sunset'],
+    neon: ['Neon', 'Neon'],
+    realista: ['Realista', 'Realistic'],
   };
   function render(s) {
     state = s;
@@ -444,7 +446,7 @@
     const imageName = s.settings.imageFilter ? t(...IMAGE_NAMES[s.settings.imageMode]) : t('Desligado', 'Off');
     $('c-image-name').textContent = imageName;
     $('c-image').classList.toggle('on', !!s.settings.imageFilter);
-    const imageTip = t(`Filtro de imagem: ${imageName}. Clique para trocar`, `Picture filter: ${imageName}. Click to change`);
+    const imageTip = t(`Pacote de imagem: ${imageName}. Clique para trocar`, `Picture pack: ${imageName}. Click to change`);
     $('c-image').title = imageTip;
     $('c-image').setAttribute('aria-label', imageTip);
     const open = s.gameStarted && gameInfo(s.game);

@@ -1,10 +1,10 @@
 {
-  "versao": "3.0.8",
-  "arquivo": "https://github.com/vtrspeedman-cell/nfs-launcher/releases/download/pc-3.0.8/NFS-Launcher-Setup-3.0.8.exe",
-  "tamanho": 105701322,
-  "sha256": "b0537560f015a1872632f88d5fd527d6a21fa68e6c8a87cab68bcc9726fd8844",
+  "versao": "3.0.9",
+  "arquivo": "https://github.com/vtrspeedman-cell/nfs-launcher/releases/download/pc-3.0.9/NFS-Launcher-Setup-3.0.9.exe",
+  "tamanho": 105635353,
+  "sha256": "d59499b4dbcccdd8fd52ed6f27bef5a6b75e0eb19d66942edb8aa92d835dab6e",
   "novidades": {
-    "pt": "Jogo novo na tela: NFSU2 Modded (o servidor do NFSU2 com carros a mais), com dicas, Texturas HD e cópia dos saves, tudo separado do NFSU2 de sempre. Filtro de imagem com 3 cores novas: Cinema, Preto e branco e Pôr do sol.",
-    "en": "New game on the home screen: NFSU2 Modded (the NFSU2 server with extra cars), with tips, HD Textures and save copies, all kept apart from the regular NFSU2. Image filter with 3 new colors: Cinema, Black and white and Sunset."
+    "pt": "Pacotes de imagem feitos pelo motor do app no NFSU2 (nitidez, brilho das luzes, cor e vinheta), mais leves que o filtro antigo e trocados na hora, com dois novos: Neon e Realista. O anti-serrilhado do app agora liga e desliga na hora e fica de fora quando o do próprio jogo está ligado. O convite da equipe U2BR aparece no máximo 2 vezes.",
+    "en": "Picture packs done by the app engine in NFSU2 (sharpening, light glow, color and vignette), lighter than the old filter and switched right away, with two new ones: Neon and Realistic. The app anti-aliasing now turns on and off right away and stays out when the game's own is on."
   }
 }

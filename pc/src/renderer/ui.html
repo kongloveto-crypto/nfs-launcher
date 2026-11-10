@@ -83,7 +83,7 @@
         <label class="switch"><input type="checkbox" id="s-prepareGame"><span data-t="sPrepare">Preparar o jogo ao carregar <small>(otimiza o jogo todo no início, não durante a corrida. Pesa mais nos primeiros segundos e pode reduzir engasgos depois)</small></span></label>
         <label class="switch"><input type="checkbox" id="s-lighterGpu"><span data-t="sLighter">Aliviar o processador (Dawn skip_validation) <small>(deixa de conferir cada comando gráfico. Ganho pequeno, ~0,1 ms por quadro. Se o jogo der erro gráfico, pode travar)</small></span></label>
         <label class="switch"><input type="checkbox" id="s-newDrawing"><span data-t="sNewDrawing">Desenhar a tela do jeito novo (Graphite + Delegated Compositing) <small>(outro método de desenhar a imagem, e o Windows monta a imagem final. Jogando numa RTX 4060: quadros de 3% a 10% mais rápidos e até 30% menos quadros perdidos)</small></span></label>
-        <label class="switch"><input type="checkbox" id="s-antiAlias"><span data-t="sAntiAlias">Anti-serrilhado (FXAA) <small>(deixa as bordas mais lisas. Custa ~0,27 ms por quadro e tira um pouco da nitidez de letras e detalhes. Fica de fora quando o anti-serrilhado do próprio jogo está ligado)</small></span></label>
+        <label class="switch"><input type="checkbox" id="s-antiAlias"><span data-t="sAntiAlias">Anti-serrilhado (FXAA) <small>(deixa as bordas mais lisas, na hora. Custa ~0,2 ms por quadro e tira um pouco da nitidez de letras e detalhes. Fica de fora quando o anti-serrilhado do próprio jogo está ligado)</small></span></label>
         <label class="switch" id="unblock-row" hidden><input type="checkbox" id="s-unblockGpu"><span data-t="sUnblock">Modo DirectX 11 (Dawn D3D11) <small>(para placa sem DirectX 12. Desliga texturas HD, desenho novo, FXAA e filtro de imagem e coloca os gráficos do jogo no mínimo; dá para religar depois. Se a tela ficar preta, diminua os gráficos do jogo. Pode dar erro de imagem ou travar)</small></span></label>
       </section>
       <section>
@@ -124,9 +124,9 @@
       <summary data-t="advanced">Avançado</summary>
       <section>
         <h3 data-t="hImage">Imagem do jogo</h3>
-        <label class="switch"><input type="checkbox" id="s-imageFilter"><span data-t="sImage">Filtro de imagem (CSS filter: saturate, contrast, sepia, grayscale e feConvolveMatrix) <small>(muda a cor e a nitidez na hora, sem reabrir o app. Os modos só de cor quase não pesam; os nítidos pesam um pouco, então confira com o F8)</small></span></label>
+        <label class="switch"><input type="checkbox" id="s-imageFilter"><span data-t="sImage">Pacote de imagem (nitidez CAS, bloom, cor e vinheta, feitos pelo motor do app) <small>(muda a imagem na hora, sem reabrir o app. No NFSU2 pesa pouco, ~0,15 a 0,3 ms por quadro; confira com o F8. No Most Wanted e no Carbon vale só a cor e a nitidez, por CSS filter)</small></span></label>
         <div class="row left image-mode">
-          <label for="s-imageMode" data-t="imgMode">Modo</label>
+          <label for="s-imageMode" data-t="imgMode">Pacote</label>
           <select id="s-imageMode">
             <option value="suave" data-t="imgSoft">Suave</option>
             <option value="vivido" data-t="imgVivid">Vívido</option>
@@ -136,6 +136,8 @@
             <option value="cinema" data-t="imgCinema">Cinema</option>
             <option value="pretoBranco" data-t="imgBw">Preto e branco</option>
             <option value="porDoSol" data-t="imgSunset">Pôr do sol</option>
+            <option value="neon" data-t="imgNeon">Neon (luzes com brilho)</option>
+            <option value="realista" data-t="imgReal">Realista</option>
           </select>
         </div>
       </section>

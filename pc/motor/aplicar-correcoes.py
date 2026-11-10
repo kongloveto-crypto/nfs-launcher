@@ -1,5 +1,6 @@
 # Correções no código do Electron em C:\e\src\electron. Rodar de novo não muda nada (compilar.cmd chama sempre).
 import pathlib
+import subprocess
 import sys
 
 ROOT = pathlib.Path(r"C:\e\src\electron")
@@ -103,197 +104,63 @@ CORRECOES += [
     ]),
 ]
 
-# Anti-serrilhado (FXAA), desligado por padrao: o jogo na web nao tem nenhum. Roda sobre a imagem pronta, logo antes do passo
-# de alfa, so com --enable-features=NfsAntiAlias. Encoder proprio: se falhar, o quadro sai sem filtro e o alfa continua.
-# O shader e o do prototipo medido em 03/11 (RTX 4060, 1440p: ~0,21 ms por quadro; pior caso ~0,35 ms).
-FXAA_WGSL = r'''
-@vertex fn vs(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
-  var p = array<vec2f, 3>(vec2f(-1, -1), vec2f(3, -1), vec2f(-1, 3));
-  return vec4f(p[i], 0, 1);
-}
-@group(0) @binding(0) var src: texture_2d<f32>;
-@group(0) @binding(1) var smp: sampler;
-const LIMIAR_MIN = 0.0312;
-const LIMIAR = 0.125;
-const SUBPIXEL = 0.5;
-fn lum(c: vec3f) -> f32 { return dot(c, vec3f(0.299, 0.587, 0.114)); }
-fn am(uv: vec2f) -> vec3f { return textureSampleLevel(src, smp, uv, 0.0).rgb; }
-@fragment fn fs(@builtin(position) pos: vec4f) -> @location(0) vec4f {
-  var Q = array<f32, 10>(1.0, 1.0, 1.0, 1.0, 1.5, 2.0, 2.0, 2.0, 4.0, 8.0);
-  let inv = 1.0 / vec2f(textureDimensions(src));
-  let uv = pos.xy * inv;
-  let cor = am(uv);
-  let c = lum(cor);
-  let n = lum(am(uv + vec2f(0.0, -inv.y)));
-  let s = lum(am(uv + vec2f(0.0, inv.y)));
-  let l = lum(am(uv + vec2f(inv.x, 0.0)));
-  let o = lum(am(uv + vec2f(-inv.x, 0.0)));
-  let mn = min(c, min(n, min(s, min(l, o))));
-  let mx = max(c, max(n, max(s, max(l, o))));
-  let faixa = mx - mn;
-  if (faixa < max(LIMIAR_MIN, mx * LIMIAR)) { return vec4f(cor, 1.0); }
-  let no = lum(am(uv + vec2f(-inv.x, -inv.y)));
-  let ne = lum(am(uv + vec2f(inv.x, -inv.y)));
-  let so = lum(am(uv + vec2f(-inv.x, inv.y)));
-  let se = lum(am(uv + vec2f(inv.x, inv.y)));
-  let bordaH = abs(-2.0 * o + no + so) + abs(-2.0 * c + n + s) * 2.0 + abs(-2.0 * l + ne + se);
-  let bordaV = abs(-2.0 * n + no + ne) + abs(-2.0 * c + o + l) * 2.0 + abs(-2.0 * s + so + se);
-  let horizontal = bordaH >= bordaV;
-  var passo = select(inv.x, inv.y, horizontal);
-  let l1 = select(o, n, horizontal);
-  let l2 = select(l, s, horizontal);
-  let g1 = l1 - c;
-  let g2 = l2 - c;
-  let forte1 = abs(g1) >= abs(g2);
-  let gMin = 0.25 * max(abs(g1), abs(g2));
-  var media = 0.5 * (l2 + c);
-  if (forte1) { passo = -passo; media = 0.5 * (l1 + c); }
-  var base = uv;
-  if (horizontal) { base.y += passo * 0.5; } else { base.x += passo * 0.5; }
-  let dir = select(vec2f(0.0, inv.y), vec2f(inv.x, 0.0), horizontal);
-  var uv1 = base - dir;
-  var uv2 = base + dir;
-  var f1 = lum(am(uv1)) - media;
-  var f2 = lum(am(uv2)) - media;
-  var fim1 = abs(f1) >= gMin;
-  var fim2 = abs(f2) >= gMin;
-  for (var i = 1; i < 10 && !(fim1 && fim2); i++) {
-    if (!fim1) { uv1 -= dir * Q[i]; f1 = lum(am(uv1)) - media; fim1 = abs(f1) >= gMin; }
-    if (!fim2) { uv2 += dir * Q[i]; f2 = lum(am(uv2)) - media; fim2 = abs(f2) >= gMin; }
-  }
-  let d1 = select(uv.y - uv1.y, uv.x - uv1.x, horizontal);
-  let d2 = select(uv2.y - uv.y, uv2.x - uv.x, horizontal);
-  let perto1 = d1 < d2;
-  let dist = min(d1, d2);
-  let extremo = select(f2, f1, perto1);
-  let certo = (extremo < 0.0) != (c < media);
-  var desloc = select(0.0, 0.5 - dist / (d1 + d2), certo);
-  let mediaTudo = (2.0 * (n + s + l + o) + no + ne + so + se) / 12.0;
-  let sub1 = clamp(abs(mediaTudo - c) / faixa, 0.0, 1.0);
-  let sub2 = (-2.0 * sub1 + 3.0) * sub1 * sub1;
-  desloc = max(desloc, sub2 * sub2 * SUBPIXEL);
-  var fim = uv;
-  if (horizontal) { fim.y += desloc * passo; } else { fim.x += desloc * passo; }
-  return vec4f(am(fim), 1.0);
-}
-'''
+# Pacotes de imagem do NFS Launcher (10/11, no lugar do FXAA sozinho de 03/11): anti-serrilhado (FXAA), nitidez (CAS),
+# bloom, cor e vinheta sobre a imagem pronta do jogo, logo antes do passo de alfa. Os efeitos estao em nfs-imagem.wgsl
+# e o codigo em nfs-imagem.inc, ao lado deste arquivo. O app escolhe os valores por CSS no canvas do jogo
+# (--nfs-image, 14 numeros), sem script e na hora; sem a linha, nada roda. Tudo dentro do escopo de erro do ClearAlpha:
+# se falhar, o quadro sai sem efeito e o alfa continua.
+AQUI = pathlib.Path(__file__).parent
+CRLF = chr(13) + chr(10)
+IMAGEM_WGSL = (AQUI / "nfs-imagem.wgsl").read_text(encoding="utf-8").replace(CRLF, chr(10))
+PARTES = {}
+for bloco in (AQUI / "nfs-imagem.inc").read_text(encoding="utf-8").replace(CRLF, chr(10)).split("//@@ ")[1:]:
+    nome, _, corpo = bloco.partition("\n")
+    PARTES[nome.strip()] = corpo
+assert ')NFS"' not in IMAGEM_WGSL
 CLEARER_H = '#include "third_party/blink/renderer/platform/graphics/gpu/webgpu_texture_alpha_clearer.h"\n\n'
+# Arquivos que tinham a versao antiga (so FXAA, ligada por NfsAntiAlias): voltam ao original antes de receber a nova.
+VERSAO_ANTIGA = {
+    "../third_party/blink/renderer/platform/graphics/gpu/webgpu_texture_alpha_clearer.h": "fxaa_pipeline_",
+    "../third_party/blink/renderer/platform/graphics/gpu/webgpu_texture_alpha_clearer.cc": "kNfsAntiAlias",
+}
 CORRECOES += [
     ("../third_party/blink/renderer/platform/graphics/gpu/webgpu_texture_alpha_clearer.h", [
-        ("  void ClearAlpha(const wgpu::Texture& texture);\n",
-         "  void ClearAlpha(const wgpu::Texture& texture);\n\n"
-         "  // NFS: anti-serrilhado sobre a imagem pronta (NfsAntiAlias).\n"
-         "  void AntiAlias(const wgpu::Texture& texture, const wgpu::TextureView& view);\n"),
-        ("  wgpu::RenderPipeline alpha_to_one_pipeline_ = nullptr;\n",
-         "  wgpu::RenderPipeline alpha_to_one_pipeline_ = nullptr;\n"
-         "  wgpu::RenderPipeline fxaa_pipeline_ = nullptr;\n"
-         "  wgpu::Sampler fxaa_sampler_ = nullptr;\n"
-         "  wgpu::Texture fxaa_copy_ = nullptr;\n"
-         "  wgpu::BindGroup fxaa_bind_group_ = nullptr;\n"),
+        ("#include <dawn/webgpu.h>\n", "#include <dawn/webgpu.h>\n\n#include <array>\n#include <string>\n"),
+        ("  void ClearAlpha(const wgpu::Texture& texture);\n", PARTES["h-publico"]),
+        ("  wgpu::RenderPipeline alpha_to_one_pipeline_ = nullptr;\n", PARTES["h-privado"]),
     ]),
     ("../third_party/blink/renderer/platform/graphics/gpu/webgpu_texture_alpha_clearer.cc", [
         (CLEARER_H + "namespace blink {\n",
-         CLEARER_H + '#include "base/feature_list.h"\n\nnamespace blink {\n\nnamespace {\n\n'
-         "// NFS: anti-serrilhado do NFS Launcher, ligado pela opcao do app.\n"
-         "BASE_FEATURE(kNfsAntiAlias, base::FEATURE_DISABLED_BY_DEFAULT);\n\n"
-         'constexpr char kFxaaShader[] = R"(' + FXAA_WGSL + ')";\n\n'
+         CLEARER_H + "#include <string_view>\n#include <vector>\n\n"
+         '#include "base/strings/string_number_conversions.h"\n#include "base/strings/string_split.h"\n\n'
+         "namespace blink {\n\nnamespace {\n\n"
+         "// NFS: efeitos do pacote de imagem do NFS Launcher (nfs-imagem.wgsl).\n"
+         'constexpr char kNfsImageShader[] = R"NFS(' + IMAGEM_WGSL + ')NFS";\n\n'
          "}  // namespace\n"),
-        ("  alpha_to_one_pipeline_ = device_.CreateRenderPipeline(&pipeline_desc);\n}\n",
-         "  alpha_to_one_pipeline_ = device_.CreateRenderPipeline(&pipeline_desc);\n\n"
-         "  if (base::FeatureList::IsEnabled(kNfsAntiAlias)) {\n"
-         "    // NFS: erro aqui fica escondido do jogo; o quadro sai sem filtro.\n"
-         "    device_.PushErrorScope(wgpu::ErrorFilter::Validation);\n"
-         "    wgpu::ShaderSourceWGSL fxaa_wgsl = {};\n"
-         "    fxaa_wgsl.code = kFxaaShader;\n"
-         "    wgpu::ShaderModuleDescriptor fxaa_module_desc = {.nextInChain = &fxaa_wgsl};\n"
-         "    wgpu::ShaderModule fxaa_module = device_.CreateShaderModule(&fxaa_module_desc);\n"
-         "    wgpu::ColorTargetState fxaa_target = {.format = format};\n"
-         "    wgpu::FragmentState fxaa_fragment = {\n"
-         "        .module = fxaa_module,\n"
-         "        .targetCount = 1,\n"
-         "        .targets = &fxaa_target,\n"
-         "    };\n"
-         "    wgpu::RenderPipelineDescriptor fxaa_desc = {\n"
-         "        .vertex = {.module = fxaa_module},\n"
-         "        .primitive = {.topology = wgpu::PrimitiveTopology::TriangleList},\n"
-         "        .multisample = {.count = 1, .mask = 0xFFFFFFFF},\n"
-         "        .fragment = &fxaa_fragment,\n"
-         "    };\n"
-         "    fxaa_pipeline_ = device_.CreateRenderPipeline(&fxaa_desc);\n"
-         "    wgpu::SamplerDescriptor sampler_desc = {};\n"
-         "    sampler_desc.magFilter = wgpu::FilterMode::Linear;\n"
-         "    sampler_desc.minFilter = wgpu::FilterMode::Linear;\n"
-         "    fxaa_sampler_ = device_.CreateSampler(&sampler_desc);\n"
-         "    device_.PopErrorScope(wgpu::CallbackMode::AllowSpontaneous,\n"
-         "                          [](wgpu::PopErrorScopeStatus, wgpu::ErrorType,\n"
-         "                             wgpu::StringView) {});\n"
-         "  }\n}\n"),
-        ("void WebGPUTextureAlphaClearer::ClearAlpha(const wgpu::Texture& texture) {\n",
-         "void WebGPUTextureAlphaClearer::AntiAlias(const wgpu::Texture& texture,\n"
-         "                                          const wgpu::TextureView& view) {\n"
-         "  const uint32_t width = texture.GetWidth();\n"
-         "  const uint32_t height = texture.GetHeight();\n"
-         "  if (!fxaa_pipeline_ || width == 0 || height == 0) {\n"
-         "    return;\n"
-         "  }\n"
-         "  if (!fxaa_copy_ || fxaa_copy_.GetWidth() != width ||\n"
-         "      fxaa_copy_.GetHeight() != height) {\n"
-         "    wgpu::TextureDescriptor copy_desc = {};\n"
-         "    copy_desc.usage =\n"
-         "        wgpu::TextureUsage::TextureBinding | wgpu::TextureUsage::CopyDst;\n"
-         "    copy_desc.size = {width, height, 1};\n"
-         "    copy_desc.format = format_;\n"
-         "    fxaa_copy_ = device_.CreateTexture(&copy_desc);\n"
-         "    wgpu::BindGroupEntry entries[2] = {};\n"
-         "    entries[0].binding = 0;\n"
-         "    entries[0].textureView = fxaa_copy_.CreateView();\n"
-         "    entries[1].binding = 1;\n"
-         "    entries[1].sampler = fxaa_sampler_;\n"
-         "    wgpu::BindGroupDescriptor bind_group_desc = {};\n"
-         "    bind_group_desc.layout = fxaa_pipeline_.GetBindGroupLayout(0);\n"
-         "    bind_group_desc.entryCount = 2;\n"
-         "    bind_group_desc.entries = entries;\n"
-         "    fxaa_bind_group_ = device_.CreateBindGroup(&bind_group_desc);\n"
-         "  }\n\n"
-         "  wgpu::DawnEncoderInternalUsageDescriptor internal_usage_desc = {};\n"
-         "  internal_usage_desc.useInternalUsages = true;\n"
-         "  wgpu::CommandEncoderDescriptor command_encoder_desc = {\n"
-         "      .nextInChain = &internal_usage_desc,\n"
-         "  };\n"
-         "  wgpu::CommandEncoder command_encoder =\n"
-         "      device_.CreateCommandEncoder(&command_encoder_desc);\n"
-         "  wgpu::TexelCopyTextureInfo source = {.texture = texture};\n"
-         "  wgpu::TexelCopyTextureInfo destination = {.texture = fxaa_copy_};\n"
-         "  wgpu::Extent3D copy_size = {width, height, 1};\n"
-         "  command_encoder.CopyTextureToTexture(&source, &destination, &copy_size);\n"
-         "  wgpu::RenderPassColorAttachment color_attachment = {\n"
-         "      .view = view,\n"
-         "      .depthSlice = wgpu::kDepthSliceUndefined,\n"
-         "      .loadOp = wgpu::LoadOp::Load,\n"
-         "      .storeOp = wgpu::StoreOp::Store,\n"
-         "  };\n"
-         "  wgpu::RenderPassDescriptor render_pass_desc = {\n"
-         "      .colorAttachmentCount = 1,\n"
-         "      .colorAttachments = &color_attachment,\n"
-         "  };\n"
-         "  wgpu::RenderPassEncoder pass =\n"
-         "      command_encoder.BeginRenderPass(&render_pass_desc);\n"
-         "  pass.SetPipeline(fxaa_pipeline_);\n"
-         "  pass.SetBindGroup(0, fxaa_bind_group_);\n"
-         "  pass.Draw(3, 1, 0, 0);\n"
-         "  pass.End();\n"
-         "  wgpu::CommandBuffer command_buffer = command_encoder.Finish();\n"
-         "  device_.GetQueue().Submit(1, &command_buffer);\n"
-         "}\n\n"
-         "void WebGPUTextureAlphaClearer::ClearAlpha(const wgpu::Texture& texture) {\n"),
+        ("void WebGPUTextureAlphaClearer::ClearAlpha(const wgpu::Texture& texture) {\n", PARTES["cc-funcoes"]),
         ("  wgpu::TextureView attachment_view = texture.CreateView();\n",
          "  wgpu::TextureView attachment_view = texture.CreateView();\n"
-         "  AntiAlias(texture, attachment_view);\n"),
+         "  NfsImage(texture, attachment_view);\n"),
+    ]),
+    ("../third_party/blink/renderer/modules/webgpu/gpu_canvas_context.cc", [
+        ('#include "third_party/blink/renderer/core/offscreencanvas/offscreen_canvas.h"\n',
+         '#include "third_party/blink/renderer/core/offscreencanvas/offscreen_canvas.h"\n'
+         '#include "third_party/blink/renderer/core/css/css_variable_data.h"\n'
+         '#include "third_party/blink/renderer/core/html/canvas/html_canvas_element.h"\n'
+         '#include "third_party/blink/renderer/core/style/computed_style.h"\n'
+         '#include "third_party/blink/renderer/platform/wtf/std_lib_extras.h"\n'
+         '#include "third_party/blink/renderer/platform/wtf/text/atomic_string.h"\n'),
+        ("  mailbox_texture->SetAlphaClearer(alpha_clearer_);\n", PARTES["canvas"]),
     ]),
 ]
 
 
 def main():
+    for nome, marca in VERSAO_ANTIGA.items():
+        caminho = (ROOT / nome).resolve()
+        if marca in caminho.read_text(encoding="utf-8"):
+            subprocess.run(["git", "checkout", "--", str(caminho)], cwd=caminho.parent, check=True)
+            print(f"voltou ao original: {nome}")
     for nome, trocas in CORRECOES:
         caminho = ROOT / nome
         with open(caminho, encoding="utf-8", newline="") as f:

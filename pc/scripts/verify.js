@@ -301,10 +301,21 @@ check('Opções de desempenho e qualidade ligadas por padrão (DX12); no DX11 s�
   assert(s.newDrawing === true, 'Graphite e Delegated deveriam vir ligados por padrão');
   assert(/NEW_DRAWING_ON && '[^']*SkiaGraphite[^']*DelegatedCompositing'/.test(m), 'Graphite e Delegated deveriam ligar juntos, na mesma opção');
   assert(s.antiAlias === true && s.imageFilter === true, 'anti-serrilhado ou filtro de imagem desligado por padrão');
-  assert((m.match(/insertCSS\(/g) || []).length === 1 && /imageFilter\.css\(cfg\.imageFilter, cfg\.imageMode\)/.test(m), 'CSS no jogo fora do filtro de imagem');
-  assert((m.match(/sw\('enable-features'/g) || []).length === 1 && /if \(NEW_DRAWING_ON \|\| ANTI_ALIAS_ON\) sw\('enable-features', DRAW_FEATURES\)/.test(m), 'desenho da tela fora da opção');
-  assert(/ANTI_ALIAS_ON && 'NfsAntiAlias'/.test(m) && /BASE_FEATURE\(kNfsAntiAlias, base::FEATURE_DISABLED_BY_DEFAULT\)/.test(read('motor/aplicar-correcoes.py')), 'anti-serrilhado fora da opção');
-  assert(/const ANTI_ALIAS_ON = savedAtStart\.antiAlias && !SAFE_MODE && !GAME_AA_ON;/.test(m), 'FXAA por cima do anti-serrilhado do próprio jogo');
+  assert((m.match(/insertCSS\(/g) || []).length === 1 && /imageFilter\.css\(cfg\.imageFilter, cfg\.imageMode, cfg\.antiAlias && !gameAaNow\(currentGame\)\)/.test(m), 'CSS no jogo fora do pacote de imagem, ou FXAA por cima do anti-serrilhado do próprio jogo');
+  assert((m.match(/sw\('enable-features'/g) || []).length === 1 && /if \(NEW_DRAWING_ON\) sw\('enable-features', DRAW_FEATURES\)/.test(m), 'desenho da tela fora da opção');
+  // Pacotes de imagem: o motor só age com a linha --nfs-image que o app põe por CSS; sem ela, nada roda.
+  const inc = read('motor/nfs-imagem.inc');
+  assert(/"--nfs-image"/.test(inc) && /if \(\(!nfs_fxaa_ && !nfs_grade_\) \|\| nfs_unsupported_\) \{\s*return;/.test(inc) && !/NfsAntiAlias/.test(m), 'efeitos do motor fora da opção');
+  {
+    const img = require('../src/main/imageFilter');
+    const wgsl = read('motor/nfs-imagem.wgsl');
+    assert(img.FX_KEYS.length === 14 && /std::array<float, 14> kNeutral/.test(inc), 'app e motor com quantidades diferentes de valores');
+    for (const e of ['fs_fxaa', 'fs_down', 'fs_blur_h', 'fs_blur_v', 'fs_blur_h2', 'fs_blur_v2', 'fs_grade']) assert(wgsl.includes('fn ' + e + '(') && inc.includes('"' + e + '"'), 'efeito sem par no motor: ' + e);
+    const lim = (nome) => inc.match(new RegExp('k' + nome + ' = \\{\\s*([^}]+)\\}'))[1].split(',').map((x) => parseFloat(x));
+    const mn = lim('Min'); const mx = lim('Max'); const ne = lim('Neutral');
+    img.FX_KEYS.forEach((k, i) => assert(img.RANGE[k][0] === mn[i] && img.RANGE[k][1] === mx[i] && img.NEUTRAL[k] === ne[i], 'limite ou neutro diferente no motor: ' + k));
+    for (const id of img.MODE_IDS) for (const [k, v] of Object.entries(img.MODES[id].fx)) assert(img.RANGE[k] && v >= img.RANGE[k][0] && v <= img.RANGE[k][1], id + ': valor fora do limite do motor (' + k + ')');
+  }
   assert(!/g_FSAALevel=1/.test(read('src/main/gameSettings.js').replace(/\/\/.*$/gm, '')), 'o app não liga o anti-serrilhado do jogo: só lê');
   const d = read('src/main/discord.js');
   assert(/\\\\\\\\\?\\\\pipe\\\\discord-ipc-/.test(d) && !/https?:|require\('(http|https|tls|dns)'\)/.test(d), 'Discord fora do canal local');

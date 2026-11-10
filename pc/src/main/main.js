@@ -80,24 +80,16 @@ if (UNBLOCK_ON) sw('use-webgpu-adapter', 'd3d11');
 // Um único switch: appendSwitch repetido sobrescreve o anterior, inclusive o que veio na linha de comando.
 // No modo DirectX 11 fica desligado: placa antiga, e esse desenho só foi medido numa RTX 4060.
 const NEW_DRAWING_ON = savedAtStart.newDrawing && !SAFE_MODE && !UNBLOCK_ON;
-// Anti-serrilhado: filtro do nosso motor (motor/aplicar-correcoes.py), sobre a imagem pronta. O motor oficial do `npm start` ignora.
-// O NFSU2 tem anti-serrilhado próprio desde 08/11 (MSAA 4x, escolha do jogador no jogo). Com ele ligado no último jogo
-// aberto, o FXAA não entra por cima (pedido do Bruno, 10/11). Só leitura, de um arquivo achado na abertura anterior.
-const GAME_AA_KEY = { nfsu2: ['gameAa', 'gameReg'], nfsu2mod: ['gameAaMod', 'gameRegMod'] };
-const GAME_AA_ON = (() => {
-  const k = GAME_AA_KEY[savedAtStart.game];
-  if (!k) return false;
-  const root = path.join(app.getPath('userData'), 'Partitions', GAMES[savedAtStart.game].partition.replace('persist:', ''), 'File System');
-  const now = gameSettings.gameAaSync(root, savedAtStart[k[1]]);
-  return now === null ? savedAtStart[k[0]] : now;
-})();
-const ANTI_ALIAS_ON = savedAtStart.antiAlias && !SAFE_MODE && !GAME_AA_ON;
 const DRAW_FEATURES = [
   app.commandLine.getSwitchValue('enable-features'),
   NEW_DRAWING_ON && 'SkiaGraphite:dawn_backend_validation/false/dawn_skip_validation/true/dawn_use_persistent_cache/true,SkiaGraphiteWinIntel,DelegatedCompositing',
-  ANTI_ALIAS_ON && 'NfsAntiAlias',
 ].filter(Boolean).join(',');
-if (NEW_DRAWING_ON || ANTI_ALIAS_ON) sw('enable-features', DRAW_FEATURES);
+if (NEW_DRAWING_ON) sw('enable-features', DRAW_FEATURES);
+// Anti-serrilhado (FXAA) e pacotes de imagem: efeitos do nosso motor (motor/nfs-imagem.wgsl) sobre a imagem pronta,
+// escolhidos por CSS no canvas do jogo (imageFilter.js), na hora e por jogo. O motor oficial do `npm start` ignora.
+// O NFSU2 tem anti-serrilhado próprio desde 08/11 (MSAA 4x, escolha do jogador no jogo): com ele ligado, o FXAA não
+// entra por cima (pedido do Bruno, 10/11). O app só lê essa opção (registry.txt), nunca a muda.
+const GAME_AA_KEY = { nfsu2: ['gameAa', 'gameReg'], nfsu2mod: ['gameAaMod', 'gameRegMod'] };
 
 // ───────────────────────── Caminhos ─────────────────────────
 const RENDERER_DIR = path.join(__dirname, '..', 'renderer');
@@ -267,8 +259,7 @@ function buildState() {
     fsHint: hintOn, // dica piscando no topo: "para sair da tela cheia: <atalho>"
     guideOpen: panelOpen('guide'),
     // "Preparar o jogo" e "aliviar o processador" só valem ao reabrir (as flags são lidas antes do app iniciar).
-    restartNeeded: !SAFE_MODE && (cfg.prepareGame !== PREPARE_ON || cfg.lighterGpu !== LIGHTER_ON || cfg.unblockGpu !== UNBLOCK_ON || (cfg.newDrawing && !cfg.unblockGpu) !== NEW_DRAWING_ON || (cfg.antiAlias && !GAME_AA_ON) !== ANTI_ALIAS_ON),
-    gameAa: GAME_AA_ON, // o anti-serrilhado do próprio jogo está ligado: o FXAA do app fica de fora nesta abertura
+    restartNeeded: !SAFE_MODE && (cfg.prepareGame !== PREPARE_ON || cfg.lighterGpu !== LIGHTER_ON || cfg.unblockGpu !== UNBLOCK_ON || (cfg.newDrawing && !cfg.unblockGpu) !== NEW_DRAWING_ON),
     versions: { app: app.getVersion(), electron: process.versions.electron, chrome: process.versions.chrome },
   };
 }
@@ -983,7 +974,16 @@ function endLoading() {
   if (screen === 'loading') { screen = 'none'; refresh(); }
 }
 
-// Filtro de imagem: CSS no canvas do jogo, nunca script. Vale na hora e volta sozinho a cada carga da página (dom-ready).
+// O anti-serrilhado do próprio jogo está ligado? Lê o registry.txt achado na abertura do app (só leitura, um arquivo);
+// se ele mudou de lugar, vale o que estava guardado.
+function gameAaNow(id) {
+  const k = GAME_AA_KEY[id];
+  if (!k) return false;
+  const now = gameSettings.gameAaSync(gameFsRoot(GAMES[id].partition), cfg[k[1]]);
+  return now === null ? cfg[k[0]] : now;
+}
+// Pacote de imagem e anti-serrilhado: CSS no canvas do jogo, nunca script. Vale na hora e volta sozinho a cada carga da
+// página (dom-ready). No NFSU2 o CSS só leva os valores (--nfs-image) e o motor do app faz os efeitos.
 let imageCssKey = null;
 let imageCssRun = 0;
 async function applyImageFilter() {
@@ -993,7 +993,7 @@ async function applyImageFilter() {
   const old = imageCssKey;
   imageCssKey = null;
   if (old) wc.removeInsertedCSS(old).catch(() => {});
-  const css = SAFE_MODE ? null : imageFilter.css(cfg.imageFilter, cfg.imageMode);
+  const css = SAFE_MODE ? null : imageFilter.css(cfg.imageFilter, cfg.imageMode, cfg.antiAlias && !gameAaNow(currentGame));
   if (!css) return;
   try {
     const key = await wc.insertCSS(css);
@@ -1488,7 +1488,7 @@ async function collectDiagnostics() {
     onBattery: powerMonitor.isOnBatteryPower(),
     tools: diagnostics.detectTools(names),
     crashes: crashLog.load(crashFile()),
-    flags: { uncapped: VSYNC_OFF, prepareGame: PREPARE_ON, lighterGpu: LIGHTER_ON, unblockGpu: UNBLOCK_ON, newDrawing: NEW_DRAWING_ON, antiAlias: ANTI_ALIAS_ON, imageFilter: cfg.imageFilter ? cfg.imageMode : false, unsafeWebgpu: argv.includes('--unsafe-webgpu'), safeMode: SAFE_MODE, noUi: NO_UI, dev: DEV },
+    flags: { uncapped: VSYNC_OFF, prepareGame: PREPARE_ON, lighterGpu: LIGHTER_ON, unblockGpu: UNBLOCK_ON, newDrawing: NEW_DRAWING_ON, antiAlias: cfg.antiAlias && !SAFE_MODE && !gameAaNow(currentGame || cfg.game), imageFilter: cfg.imageFilter ? cfg.imageMode : false, unsafeWebgpu: argv.includes('--unsafe-webgpu'), safeMode: SAFE_MODE, noUi: NO_UI, dev: DEV },
     settings: settingsShown,
     window: {
       fullscreen: isFullscreen(), protegido: locked(), maximizada: !!win && win.isMaximized(),
@@ -1541,7 +1541,7 @@ function registerIpc() {
     cfg = r.cfg;
     saveCfg();
     if (key === 'highPriority') applyPriority();
-    if (key === 'imageFilter' || key === 'imageMode' || key === 'unblockGpu') applyImageFilter(); // DX11 desliga o filtro
+    if (key === 'imageFilter' || key === 'imageMode' || key === 'antiAlias' || key === 'unblockGpu') applyImageFilter(); // DX11 desliga o filtro
     refresh();
     if (key === 'hdTextures') askTexturesRestart();
     return { ok: true };
