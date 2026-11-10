@@ -189,3 +189,7 @@ body.windowed .screen, body.windowed .intro { top: 32px; }
 .custom-cell { display: flex; align-items: center; gap: 8px; }
 .thumb-bg { width: 96px; height: 54px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); background: #000; }
 .thumb-disc { width: 54px; height: 54px; object-fit: cover; border-radius: 50%; border: 1px solid var(--line); }
+/* Versão privada com o ReShade: 3 pontos no canto dizem ao efeito NfsMascara.fx onde está o jogo (ui.js). */
+#rs-mark { position: fixed; left: 0; top: 0; z-index: 99999; display: flex; pointer-events: none; }
+#rs-mark[hidden] { display: none; }
+#rs-mark i { display: block; }

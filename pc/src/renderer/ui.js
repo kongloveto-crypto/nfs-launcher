@@ -441,6 +441,20 @@
     document.body.dataset.screen = s.screen;
     // Em janela, a barra do topo fica em todas as telas; os botões dela, só com o jogo aberto. Na tela cheia, botão discreto.
     document.body.classList.toggle('windowed', !s.fullscreen);
+    // Versão privada com o ReShade (NFS_MARCA_JOGO): 3 blocos de 8x3 pontos reais no canto. 1º magenta = marca; 2º verde =
+    // tela do app (nada de efeito), azul = jogo; 3º cinza = altura da barra do topo em pontos (acima dela, sem efeito).
+    // Jogo em tela cheia: sem marca, o efeito vale na tela toda.
+    {
+      const mark = $('rs-mark');
+      const playing = s.screen === 'none';
+      mark.hidden = !s.reshadeMark || (playing && s.fullscreen);
+      if (!mark.hidden) {
+        const r = window.devicePixelRatio || 1;
+        const h = playing ? Math.min(255, Math.round(32 * r)) : 0;
+        const cores = ['#ff00ff', playing ? '#0000ff' : '#00ff00', `rgb(${h},${h},${h})`];
+        [...mark.children].forEach((b, i) => { b.style.width = `${8 / r}px`; b.style.height = `${3 / r}px`; b.style.background = cores[i]; });
+      }
+    }
     $('corner').hidden = s.fullscreen && s.screen !== 'none';
     for (const id of ['c-home', 'c-reload', 'c-image', 'c-fs']) $(id).hidden = !s.gameStarted;
     const imageName = s.settings.imageFilter ? t(...IMAGE_NAMES[s.settings.imageMode]) : t('Desligado', 'Off');
