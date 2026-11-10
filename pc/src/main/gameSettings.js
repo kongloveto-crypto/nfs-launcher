@@ -8,7 +8,8 @@
 //   - nunca com "NFSU2_MAP_TEXTURES" escrito pelo jogador (ele escolheu o mapa à mão);
 //   - cópia do arquivo antes, fora da pasta do jogo;
 //   - com a opção desligada, volta a linha ao que era, só se foi o app que trocou e ela continua "map".
-const fsp = require('fs').promises;
+const fs = require('fs');
+const fsp = fs.promises;
 const path = require('path');
 const saveCopy = require('./saveCopy');
 
@@ -123,4 +124,42 @@ async function minGraphics({ root, backupDir, budgetMs = 3000 }) {
   return { done: true, changed: true, file };
 }
 
-module.exports = { plan, run, UI_LINE, BACKUP, MIN_GRAPHICS, minGraphicsText, minGraphics, REG_BACKUP };
+// ───────────── Anti-serrilhado do próprio jogo (pedido do Bruno, 10/11) ─────────────
+// Desde 08/11 o NFSU2 tem o dele (MSAA 4x): "d g_FSAALevel=1" no registry.txt. Jogador novo no PC começa com ele ligado; a
+// quem já jogava, o jogo pergunta uma vez (4294967295 = nunca ligado; phonegraphics.ts do jogo). Com ele ligado, o FXAA
+// do app não entra por cima. O app só LÊ: a escolha é do jogador, feita no jogo.
+const FSAA = /^d g_FSAALevel=(\d+)\r?$/im;
+function gameAaOn(text) {
+  const m = FSAA.exec(String(text || ''));
+  const v = m ? Number(m[1]) : 0;
+  return v >= 1 && v <= 16;
+}
+// Acha o registry.txt (um só). Devolve o caminho dentro da pasta de dados e se o anti-serrilhado do jogo está ligado.
+async function gameAa({ root, budgetMs = 3000 }) {
+  const t0 = Date.now();
+  const found = [];
+  for (const f of await saveCopy.listFiles(root)) {
+    if (f.size < 20 || f.size > 200000) continue;
+    if (Date.now() - t0 > budgetMs) return null;
+    let head;
+    try { head = await saveCopy.readHead(f.path, 32); } catch { continue; }
+    if (saveCopy.kindOf(head) === 'registry.txt') found.push(f.path);
+  }
+  if (found.length !== 1) return null;
+  return { rel: path.relative(root, found[0]), on: gameAaOn(await fsp.readFile(found[0], 'latin1')) };
+}
+// Ao abrir o app, antes de tudo: lê só o arquivo achado na abertura anterior (sem procurar na pasta).
+// Devolve true/false, ou null se o arquivo mudou de lugar (vale então o que estava guardado).
+function gameAaSync(root, rel) {
+  if (!rel) return null;
+  try {
+    const file = path.join(root, rel);
+    if (path.relative(root, file).startsWith('..')) return null;
+    const st = fs.statSync(file);
+    if (!st.isFile() || st.size < 20 || st.size > 200000) return null;
+    const text = fs.readFileSync(file, 'latin1');
+    return saveCopy.kindOf(Buffer.from(text.slice(0, 32), 'latin1')) === 'registry.txt' ? gameAaOn(text) : null;
+  } catch { return null; }
+}
+
+module.exports = { plan, run, UI_LINE, BACKUP, MIN_GRAPHICS, minGraphicsText, minGraphics, REG_BACKUP, gameAaOn, gameAa, gameAaSync };

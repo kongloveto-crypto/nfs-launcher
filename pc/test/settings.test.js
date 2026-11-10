@@ -152,3 +152,19 @@ test('save/load persistem e arquivo corrompido volta ao padrão', () => {
   fs.writeFileSync(f, '{corrompido');
   assert.deepEqual(s.load(f), s.DEFAULTS);
 });
+
+require('node:test')('anti-serrilhado do jogo: guarda ligado/desligado e o caminho do registry.txt, só se for simples', () => {
+  const assert = require('node:assert/strict');
+  const settings = require('../src/main/settings');
+  const B = String.fromCharCode(92); // barra invertida
+  const d = settings.sanitize({});
+  assert.strictEqual(d.gameAa, false);
+  assert.strictEqual(d.gameReg, '');
+  const win = ['000', 't', '00', '00000007'].join(B);
+  const ok = settings.sanitize({ gameAa: true, gameAaMod: true, gameReg: win, gameRegMod: '001/t/00/00000012' });
+  assert.strictEqual(ok.gameAa, true);
+  assert.strictEqual(ok.gameAaMod, true);
+  assert.strictEqual(ok.gameReg, win);
+  assert.strictEqual(ok.gameRegMod, '001/t/00/00000012');
+  for (const ruim of [`..${B}fora`, `C:${B}Windows${B}x`, '/etc/x', `000${B}..${B}x`, 7, 'a\nb']) assert.strictEqual(settings.sanitize({ gameReg: ruim }).gameReg, '', String(ruim));
+});

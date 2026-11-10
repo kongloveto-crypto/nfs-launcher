@@ -26,6 +26,10 @@ const DEFAULTS = Object.freeze({
   texParts: {},             // ordem dos mods de cada parte das texturas (texPack.js), ex.: { asfalto: ['nextgen', 'redux'], ceu: [] }; vazio = padrão
   dx11GameMin: false,       // gráficos do jogo no mínimo ainda por fazer (entrou no modo DirectX 11; gameSettings.minGraphics)
   dx11GameMinMod: false,    // o mesmo, no NFSU2 Modded (feito à parte: ele pode ser aberto pela 1ª vez bem depois)
+  gameAa: false,            // o anti-serrilhado do próprio NFSU2 estava ligado na última leitura (gameSettings.gameAa): o FXAA não entra por cima
+  gameAaMod: false,         // o mesmo, no NFSU2 Modded
+  gameReg: '',              // onde fica o registry.txt do NFSU2 dentro da pasta de dados (para ler direto ao abrir)
+  gameRegMod: '',           // o mesmo, no NFSU2 Modded
   sounds: true,             // sons nas telas do app (nunca durante o jogo)
   discord: true,            // mostra "Jogando NFS Launcher" no Discord aberto neste PC
   toggleCombo: 'Ctrl+F',    // entra E sai da tela cheia (também sai do modo protegido)
@@ -45,7 +49,7 @@ const LANGS = ['pt', 'en'];
 const USER_BOOLS = ['startFullscreen', 'highPriority', 'prepareGame', 'lighterGpu', 'unblockGpu', 'newDrawing', 'antiAlias', 'imageFilter', 'hdTextures'];
 // Sempre ligadas e fora das configurações (pedido do Bruno): vale também para quem tinha desligado antes.
 const ALWAYS_ON = ['showHome', 'protectFullscreen', 'blockAltSpace', 'showCorner', 'sounds', 'discord'];
-const BOOLS = [...USER_BOOLS, 'maximized', 'tipsDiscovered', 'unblockTried', 'dx11GameMin', 'dx11GameMinMod'];
+const BOOLS = [...USER_BOOLS, 'maximized', 'tipsDiscovered', 'unblockTried', 'dx11GameMin', 'dx11GameMinMod', 'gameAa', 'gameAaMod'];
 const OPACITY = (v, d) => (Number.isFinite(v) && v >= 0.3 && v <= 1 ? Math.round(v * 100) / 100 : d);
 
 function sanitizeBounds(b, minW = 640, minH = 360) {
@@ -74,6 +78,8 @@ function sanitize(raw) {
   if (Number.isInteger(r.crewInvites) && r.crewInvites >= 0) out.crewInvites = Math.min(r.crewInvites, 99);
   out.texParts = require('./texPack').sanitizeChoice(r.texParts);
   for (const k of ['texUiPrev', 'texUiPrevMod']) if (typeof r[k] === 'string' && r[k].length <= 200 && !/[\r\n]/.test(r[k])) out[k] = r[k];
+  // Caminho do registry.txt: só pastas e nomes simples, dentro da pasta de dados do jogo.
+  for (const k of ['gameReg', 'gameRegMod']) if (typeof r[k] === 'string' && r[k].length <= 200 && /^[\w-]+([\\/][\w.-]+)*$/.test(r[k]) && !r[k].includes('..')) out[k] = r[k];
   // NFSU2 Modded (09/11): quem já estava no modo DirectX 11 recebe os gráficos mínimos nele também, uma vez.
   if (typeof r.dx11GameMinMod !== 'boolean' && out.unblockGpu) out.dx11GameMinMod = true;
   // Preferências de antes da versão 4 guardavam os padrões antigos: opacidade do guia 50% -> 75% e

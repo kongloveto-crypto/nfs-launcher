@@ -81,7 +81,17 @@ if (UNBLOCK_ON) sw('use-webgpu-adapter', 'd3d11');
 // No modo DirectX 11 fica desligado: placa antiga, e esse desenho só foi medido numa RTX 4060.
 const NEW_DRAWING_ON = savedAtStart.newDrawing && !SAFE_MODE && !UNBLOCK_ON;
 // Anti-serrilhado: filtro do nosso motor (motor/aplicar-correcoes.py), sobre a imagem pronta. O motor oficial do `npm start` ignora.
-const ANTI_ALIAS_ON = savedAtStart.antiAlias && !SAFE_MODE;
+// O NFSU2 tem anti-serrilhado próprio desde 08/11 (MSAA 4x, escolha do jogador no jogo). Com ele ligado no último jogo
+// aberto, o FXAA não entra por cima (pedido do Bruno, 10/11). Só leitura, de um arquivo achado na abertura anterior.
+const GAME_AA_KEY = { nfsu2: ['gameAa', 'gameReg'], nfsu2mod: ['gameAaMod', 'gameRegMod'] };
+const GAME_AA_ON = (() => {
+  const k = GAME_AA_KEY[savedAtStart.game];
+  if (!k) return false;
+  const root = path.join(app.getPath('userData'), 'Partitions', GAMES[savedAtStart.game].partition.replace('persist:', ''), 'File System');
+  const now = gameSettings.gameAaSync(root, savedAtStart[k[1]]);
+  return now === null ? savedAtStart[k[0]] : now;
+})();
+const ANTI_ALIAS_ON = savedAtStart.antiAlias && !SAFE_MODE && !GAME_AA_ON;
 const DRAW_FEATURES = [
   app.commandLine.getSwitchValue('enable-features'),
   NEW_DRAWING_ON && 'SkiaGraphite:dawn_backend_validation/false/dawn_skip_validation/true/dawn_use_persistent_cache/true,SkiaGraphiteWinIntel,DelegatedCompositing',
@@ -257,7 +267,8 @@ function buildState() {
     fsHint: hintOn, // dica piscando no topo: "para sair da tela cheia: <atalho>"
     guideOpen: panelOpen('guide'),
     // "Preparar o jogo" e "aliviar o processador" só valem ao reabrir (as flags são lidas antes do app iniciar).
-    restartNeeded: !SAFE_MODE && (cfg.prepareGame !== PREPARE_ON || cfg.lighterGpu !== LIGHTER_ON || cfg.unblockGpu !== UNBLOCK_ON || (cfg.newDrawing && !cfg.unblockGpu) !== NEW_DRAWING_ON || cfg.antiAlias !== ANTI_ALIAS_ON),
+    restartNeeded: !SAFE_MODE && (cfg.prepareGame !== PREPARE_ON || cfg.lighterGpu !== LIGHTER_ON || cfg.unblockGpu !== UNBLOCK_ON || (cfg.newDrawing && !cfg.unblockGpu) !== NEW_DRAWING_ON || (cfg.antiAlias && !GAME_AA_ON) !== ANTI_ALIAS_ON),
+    gameAa: GAME_AA_ON, // o anti-serrilhado do próprio jogo está ligado: o FXAA do app fica de fora nesta abertura
     versions: { app: app.getVersion(), electron: process.versions.electron, chrome: process.versions.chrome },
   };
 }
@@ -330,6 +341,18 @@ async function dx11MinAtStart() {
       const r = await gameSettings.minGraphics({ root: gameFsRoot(GAMES[id].partition), backupDir: savesDirOf(id) });
       if (r.done) { cfg = { ...cfg, [key]: false }; saveCfg(); dx11MinApplied = dx11MinApplied || !!r.changed; }
     } catch { /* tenta na próxima abertura */ }
+  }
+}
+// Anti-serrilhado do próprio jogo (gameSettings.gameAa): guarda se está ligado e onde fica o registry.txt, para a próxima
+// abertura decidir o FXAA sem procurar na pasta. Só leitura; não segura a abertura.
+async function gameAaAtStart() {
+  for (const id of TEX_GAMES) {
+    const k = GAME_AA_KEY[id];
+    if (!k) continue;
+    try {
+      const r = await gameSettings.gameAa({ root: gameFsRoot(GAMES[id].partition) });
+      if (r && (r.on !== cfg[k[0]] || r.rel !== cfg[k[1]])) { cfg = { ...cfg, [k[0]]: r.on, [k[1]]: r.rel }; saveCfg(); }
+    } catch { /* fica o que estava */ }
   }
 }
 function dx11Warning() {
@@ -1706,6 +1729,7 @@ if (gotLock) {
     await texturesSettingAtStart(); // inteiras antes da sessão: as únicas escritas nos dados do jogo
     await dx11MinAtStart();
     await copySaveAtStart();
+    gameAaAtStart().catch(() => {}); // só leitura, depois do modo DirectX 11 (que zera o anti-serrilhado do jogo)
 
     // Uma sessão por pasta de dados (a do NFSU2, que o Most Wanted e o Carbon dividem, e a do NFSU2 Modded), com as mesmas regras.
     for (const p of PARTITIONS) {

@@ -103,3 +103,34 @@ test('DirectX 11: grava no registry.txt com cópia antes; sem o arquivo, tenta d
     assert.strictEqual(fs.readFileSync(path.join(bak, gs.REG_BACKUP), 'latin1'), reg);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
+
+test('anti-serrilhado do jogo: 1 = ligado; 0, nunca ligado (4294967295) e ausente = desligado', () => {
+  assert.strictEqual(gs.gameAaOn('d g_CarLodLevel=1\r\nd g_FSAALevel=1\r\nd FsaaAsked=1\r\n'), true);
+  assert.strictEqual(gs.gameAaOn('d g_FSAALevel=0\n'), false);
+  assert.strictEqual(gs.gameAaOn('d g_FSAALevel=4294967295\r\nd FsaaAsked=1\r\n'), false);
+  assert.strictEqual(gs.gameAaOn('d g_CarLodLevel=1\n'), false);
+  assert.strictEqual(gs.gameAaOn(''), false);
+});
+
+test('anti-serrilhado do jogo: acha o registry.txt, lê direto na abertura seguinte e nunca escreve', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nfs-aa-'));
+  const dir = path.join(root, '000', 't', '00');
+  fs.mkdirSync(dir, { recursive: true });
+  const reg = path.join(dir, '00000007');
+  const text = 'd g_WorldLodLevel=3\r\nd g_FSAALevel=1\r\n';
+  fs.writeFileSync(reg, text, 'latin1');
+  fs.writeFileSync(path.join(dir, '00000008'), `${HEAD}fps = 120\r\n`, 'latin1');
+  const r = await gs.gameAa({ root });
+  assert.deepStrictEqual(r, { rel: path.join('000', 't', '00', '00000007'), on: true });
+  assert.strictEqual(gs.gameAaSync(root, r.rel), true);
+  assert.strictEqual(fs.readFileSync(reg, 'latin1'), text, 'só leitura');
+  fs.writeFileSync(reg, 'd g_FSAALevel=4294967295\r\nd FsaaAsked=1\r\n', 'latin1');
+  assert.strictEqual(gs.gameAaSync(root, r.rel), false, 'o jogador desligou no jogo: vale já na abertura seguinte');
+  assert.strictEqual(gs.gameAaSync(root, path.join('000', 't', '00', '00000008')), null, 'outro arquivo no lugar: fica o guardado');
+  assert.strictEqual(gs.gameAaSync(root, path.join('000', 't', '00', 'sumiu')), null);
+  assert.strictEqual(gs.gameAaSync(root, path.join('..', 'fora')), null);
+  assert.strictEqual(gs.gameAaSync(root, ''), null);
+  fs.writeFileSync(path.join(dir, '00000009'), 'd g_WorldLodLevel=0\r\nd g_FSAALevel=0\r\n', 'latin1');
+  assert.strictEqual(await gs.gameAa({ root }), null, 'dois registry.txt: não escolhe');
+  fs.rmSync(root, { recursive: true, force: true });
+});

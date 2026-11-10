@@ -304,6 +304,8 @@ check('Opções de desempenho e qualidade ligadas por padrão (DX12); no DX11 s�
   assert((m.match(/insertCSS\(/g) || []).length === 1 && /imageFilter\.css\(cfg\.imageFilter, cfg\.imageMode\)/.test(m), 'CSS no jogo fora do filtro de imagem');
   assert((m.match(/sw\('enable-features'/g) || []).length === 1 && /if \(NEW_DRAWING_ON \|\| ANTI_ALIAS_ON\) sw\('enable-features', DRAW_FEATURES\)/.test(m), 'desenho da tela fora da opção');
   assert(/ANTI_ALIAS_ON && 'NfsAntiAlias'/.test(m) && /BASE_FEATURE\(kNfsAntiAlias, base::FEATURE_DISABLED_BY_DEFAULT\)/.test(read('motor/aplicar-correcoes.py')), 'anti-serrilhado fora da opção');
+  assert(/const ANTI_ALIAS_ON = savedAtStart\.antiAlias && !SAFE_MODE && !GAME_AA_ON;/.test(m), 'FXAA por cima do anti-serrilhado do próprio jogo');
+  assert(!/g_FSAALevel=1/.test(read('src/main/gameSettings.js').replace(/\/\/.*$/gm, '')), 'o app não liga o anti-serrilhado do jogo: só lê');
   const d = read('src/main/discord.js');
   assert(/\\\\\\\\\?\\\\pipe\\\\discord-ipc-/.test(d) && !/https?:|require\('(http|https|tls|dns)'\)/.test(d), 'Discord fora do canal local');
   assert(/s\.settings\.sounds && s\.screen !== 'none'/.test(read('src/renderer/ui.js')), 'sons ligados durante o jogo');

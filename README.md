@@ -49,7 +49,7 @@ node node_modules\electron\install.js
   - Desligar o Windows nunca é bloqueado.
 - **Gráficos iguais ao Chrome:** nenhuma flag que mude a composição dos quadros.
   - Avançado tem:
-    - Prioridade "acima do normal", "Preparar o jogo ao carregar", "Aliviar o processador", Graphite + Delegated e FXAA do motor próprio, todos ligados por padrão (no modo DirectX 11, todos desligados);
+    - Prioridade "acima do normal", "Preparar o jogo ao carregar", "Aliviar o processador", Graphite + Delegated e FXAA do motor próprio, todos ligados por padrão (no modo DirectX 11, todos desligados). O FXAA fica de fora quando o anti-serrilhado do próprio NFSU2 (MSAA 4x, opção do jogo) está ligado no último jogo aberto: o app só lê essa opção, nunca a muda;
     - filtro de imagem com 5 modos.
   - Placa sem DirectX 12: liga sozinho o modo DirectX 11, inclusive no nível 11_0, com "Desfazer e reabrir". Nesse modo sai o que pesa na placa (texturas HD, desenho novo, FXAA e filtro de imagem; Prioridade, Preparar o jogo e Aliviar o processador ficam), e os gráficos do próprio jogo vão ao mínimo uma vez (`registry.txt`, com cópia antes). Um aviso explica: com tela preta, baixe os gráficos do jogo até a imagem aparecer. Dá para religar tudo.
 - **Saves:**
