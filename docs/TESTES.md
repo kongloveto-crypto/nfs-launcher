@@ -63,6 +63,7 @@ Automatizados, na pasta `pc`: `npm test` (141 testes) e `npm run verify` (27 ver
 | 46f | Na janela "Texturas HD", em Asfalto e pistas clicar NextGen, Definitive e Redux nessa ordem; clicar de novo no Definitive; Aplicar e jogar | Os botões mostram "1ª NextGen", "2ª Definitive"..., e tirar um renumera os outros. Asfalto do NextGen; o que ele não tem vem da 2ª; o que nenhum escolhido tem fica original (nada de mod não escolhido). "Original" limpa a ordem. |
 | 46e | Baixar o TexWizard; abrir a janela "Texturas HD"; depois baixar o Redux, trocar Asfalto e pistas para Redux, Aplicar e reabrir o app | Asfalto, calçadas, grama e terra, sombra e neon dos carros com o TexWizard por padrão. Depois da troca, o Redux continua ao reabrir. Os mapas das corridas aparecem detalhados. |
 | 46g | Texturas HD ligada, com mods baixados: START no NFSU2 Modded, jogar até o settings.ini existir, fechar e abrir o app de novo; andar na cidade | Asfalto, cenário e céu com as texturas escolhidas, como no NFSU2; carros novos do site ficam como o site fez. Os saves do Modded não aparecem no NFSU2 nem o contrário. A cópia do save do Modded fica em `NFS Launcher Saves\NFSU2 Modded`. Trocar do NFSU2 para o Modded com a partida aberta pede confirmação antes. |
+| 46h | NFSU2: Options > Audio (músicas), clicar no botão do Spotify | A playlist oficial abre no navegador do Windows; o jogo continua aberto no app. Outros links continuam sem abrir. |
 
 ## Celular (Android)
 
