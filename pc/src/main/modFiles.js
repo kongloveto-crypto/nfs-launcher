@@ -5,7 +5,7 @@
 // O app acrescenta à lista os arquivos da pasta de mods (ou troca o tamanho e a data de um que já existe)
 // e entrega só esses. O resto vem do site como sempre: nada de script na página e nenhum arquivo do jogo alterado.
 // O jogo guarda o que baixa numa cópia própria com nome caminho.tamanho.data: trocar o arquivo do mod gera outro nome,
-// e nada da cópia antiga é apagado aqui.
+// e o jogo não apaga a antiga: quem limpa é o cacheClean.js, antes de abrir o jogo.
 const fs = require('fs');
 const path = require('path');
 

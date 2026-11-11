@@ -29,6 +29,7 @@ const { Presence } = require('./discord');
 const profileLock = require('./profileLock');
 const saveCopy = require('./saveCopy');
 const modFiles = require('./modFiles');
+const cacheClean = require('./cacheClean');
 const texPack = require('./texPack');
 const gameSettings = require('./gameSettings');
 
@@ -1008,7 +1009,31 @@ function openSite(url) {
   try { modLog(`abrindo ${new URL(url).host}${modsOn ? (cfg.hdTextures ? '' : ' (texturas desligadas nas configurações)') : ' (sem mods carregados)'}`); } catch { /* endereço inválido: segue */ }
   // "Texturas melhores" desligada: nada passa pelo app e o jogo recebe a lista do site como ela é.
   if (modsOn) { try { modsOn.active(url); } catch (e) { modLog(`não deu para ligar os mods: ${e && e.message}`); } }
-  gameView.webContents.loadURL(url).catch(() => {}); // erros de carga vão para o did-fail-load
+  const wc = gameView.webContents;
+  cleanGameCache(url, wc.getURL()).finally(() => {
+    if (!wc.isDestroyed()) wc.loadURL(url).catch(() => {}); // erros de carga vão para o did-fail-load
+  });
+}
+// Antes de abrir o NFSU2 (ou o Modded), apaga as cópias velhas que o jogo deixa no disco (cacheClean.js). Só quando a
+// página do mesmo site não está aberta (nada em uso) e com no máximo 10 s, para nunca segurar o jogo.
+async function cleanGameCache(url, fromUrl) {
+  const id = TEX_GAMES.find((g) => isAllowedUrl(url, g));
+  if (!id || SAFE_MODE) return;
+  let origin;
+  try { origin = new URL(url).origin; if (new URL(fromUrl).origin === origin) return; } catch { if (!origin) return; }
+  const w = new BrowserWindow({
+    show: false, focusable: false, width: 200, height: 200,
+    webPreferences: { partition: GAMES[id].partition, sandbox: true, contextIsolation: true, nodeIntegration: false, spellcheck: false },
+  });
+  try {
+    const job = (async () => {
+      await w.webContents.loadURL(`${origin}/data-manifest`);
+      return w.webContents.executeJavaScript(cacheClean.pageCode, true);
+    })();
+    const r = await Promise.race([job, new Promise((res) => setTimeout(() => res({ erro: 'demorou demais' }), 10000))]);
+    if (r && r.erro) modLog(`limpeza das cópias velhas não rodou: ${r.erro}`);
+    else if (r && r.apagados) modLog(`limpeza: ${r.apagados} cópias velhas apagadas (${Math.round(r.bytes / 1048576)} MB)`);
+  } catch (e) { modLog(`limpeza das cópias velhas não rodou: ${e && e.message}`); } finally { if (!w.isDestroyed()) w.destroy(); }
 }
 // Uma view do jogo por pasta de dados (partição): o NFSU2 Modded tem a dele; os outros jogos dividem a do NFSU2.
 // Só a do jogo aberto fica visível (gameView); a outra fica em branco e escondida.
