@@ -1,10 +1,10 @@
 {
-  "versao": "3.0.10",
-  "arquivo": "https://github.com/vtrspeedman-cell/nfs-launcher/releases/download/pc-3.0.10/NFS-Launcher-Setup-3.0.10.exe",
-  "tamanho": 105642403,
-  "sha256": "2d76df44da6dde4f7c2519687385646b56ce4be7285fd923607d55a8450de64c",
+  "versao": "3.0.11",
+  "arquivo": "https://github.com/vtrspeedman-cell/nfs-launcher/releases/download/pc-3.0.11/NFS-Launcher-Setup-3.0.11.exe",
+  "tamanho": 105642871,
+  "sha256": "86a68340958393b1c1c9a51b64dd2eb45515a2a9ad7952d9a11454efdb15b769",
   "novidades": {
-    "pt": "O app agora apaga sozinho as cópias velhas de arquivos que o NFSU2 e o NFSU2 Modded deixavam no disco: cada troca de texturas deixava uns 450 MB para trás e o espaço só crescia. Saves não são tocados.",
-    "en": "The app now deletes on its own the old file copies NFSU2 and NFSU2 Modded left on disk: each texture change left about 450 MB behind and the space only grew. Saves are never touched."
+    "pt": "O botão do Spotify nas músicas do NFSU2 agora funciona: abre a playlist oficial no navegador, e dá para ouvir junto com o jogo.",
+    "en": "The Spotify button in NFSU2 music settings now works: it opens the official playlist in your browser, so you can listen while you play."
   }
 }
