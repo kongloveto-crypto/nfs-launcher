@@ -1,10 +1,10 @@
 {
-  "versao": "3.0.9",
-  "arquivo": "https://github.com/vtrspeedman-cell/nfs-launcher/releases/download/pc-3.0.9/NFS-Launcher-Setup-3.0.9.exe",
-  "tamanho": 105635353,
-  "sha256": "d59499b4dbcccdd8fd52ed6f27bef5a6b75e0eb19d66942edb8aa92d835dab6e",
+  "versao": "3.0.10",
+  "arquivo": "https://github.com/vtrspeedman-cell/nfs-launcher/releases/download/pc-3.0.10/NFS-Launcher-Setup-3.0.10.exe",
+  "tamanho": 105642403,
+  "sha256": "2d76df44da6dde4f7c2519687385646b56ce4be7285fd923607d55a8450de64c",
   "novidades": {
-    "pt": "Pacotes de imagem feitos pelo motor do app no NFSU2 (nitidez, brilho das luzes, cor e vinheta), mais leves que o filtro antigo e trocados na hora, com dois novos: Neon e Realista. O anti-serrilhado do app agora liga e desliga na hora e fica de fora quando o do próprio jogo está ligado. O convite da equipe U2BR aparece no máximo 2 vezes.",
-    "en": "Picture packs done by the app engine in NFSU2 (sharpening, light glow, color and vignette), lighter than the old filter and switched right away, with two new ones: Neon and Realistic. The app anti-aliasing now turns on and off right away and stays out when the game's own is on."
+    "pt": "O app agora apaga sozinho as cópias velhas de arquivos que o NFSU2 e o NFSU2 Modded deixavam no disco: cada troca de texturas deixava uns 450 MB para trás e o espaço só crescia. Saves não são tocados.",
+    "en": "The app now deletes on its own the old file copies NFSU2 and NFSU2 Modded left on disk: each texture change left about 450 MB behind and the space only grew. Saves are never touched."
   }
 }
