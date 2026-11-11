@@ -22,7 +22,7 @@ Já joga NFSU2 no navegador? Use "Baixar backup" lá e "Restaurar" no app.
 📖 Tudo sobre o app: https://claude.ai/artifact/RKw9JHnui62my5XSLXEZGB
 
 🔒 **Confira o arquivo (SHA-256, como usar na página):**
-PC 3.0.10: `2D76DF44DA6DDE4F7C2519687385646B56CE4BE7285FD923607D55A8450DE64C`
+PC 3.0.11: `86A68340958393B1C1C9A51B64DD2EB45515A2A9AD7952D9A11454EFDB15B769`
 Android 1.6.8: `D60B4F3FEA129F24401862EC358E27E065587B5A368ED274EEA9646F99A6B2FF`
 
 @everyone banquei o app do meu bolso e é grátis. Testa, manda para os amigos e dá uma moral, é nois! 🤝
@@ -50,7 +50,7 @@ Already play NFSU2 in a browser? Back up in the game there and restore in the ap
 📖 Everything about the app: https://claude.ai/artifact/RKw9JHnui62my5XSLXEZGB
 
 🔒 **Verify the file (SHA-256, how-to on the page):**
-PC 3.0.10: `2D76DF44DA6DDE4F7C2519687385646B56CE4BE7285FD923607D55A8450DE64C`
+PC 3.0.11: `86A68340958393B1C1C9A51B64DD2EB45515A2A9AD7952D9A11454EFDB15B769`
 Android 1.6.8: `D60B4F3FEA129F24401862EC358E27E065587B5A368ED274EEA9646F99A6B2FF`
 
 I paid for this app myself and it's free. Try it, share it, and thanks for the support! 🤝
