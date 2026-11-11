@@ -53,6 +53,17 @@ function isAllowedUrl(u, gameId) {
     return false;
   }
 }
+// Links que o jogo abre em nova aba e que vão para o navegador do Windows (nunca dentro do app).
+// open.spotify.com: botão "Open the official playlist" das músicas do NFSU2 (pedido do Bruno, 11/11).
+const EXTERNAL_HOSTS = Object.freeze(['open.spotify.com']);
+function isExternalUrl(u) {
+  try {
+    const x = new URL(u);
+    return x.protocol === 'https:' && !x.username && !x.password && !x.port && EXTERNAL_HOSTS.includes(x.hostname);
+  } catch {
+    return false;
+  }
+}
 const gameOf = (id) => GAMES[id] || GAMES[DEFAULT_GAME];
 // Endereço do START: em inglês, o normal, sem o convite da equipe brasileira (pedido do Bruno).
 // O convite aparece no máximo CREW_MAX vezes (pedido do Bruno, 10/11); invites = quantas já abriram com ele.
@@ -75,4 +86,4 @@ const PARTITIONS = Object.freeze([...new Set(GAME_IDS.map((id) => GAMES[id].part
 // Jogos com Texturas HD (o pacote do app passa só pelo site deles) e com cópia do save (zip em "NFS Launcher Saves").
 const TEX_GAMES = Object.freeze(GAME_IDS.filter((id) => GAMES[id].textures));
 const SAVE_GAMES = Object.freeze(GAME_IDS.filter((id) => GAMES[id].saves));
-module.exports = { SECURE_DNS, GAMES, GAME_IDS, DEFAULT_GAME, ALLOWED_HOSTS, isAllowedUrl, gameOf, startUrlOf, CREW_MAX, PARTITION, PARTITIONS, TEX_GAMES, SAVE_GAMES };
+module.exports = { SECURE_DNS, GAMES, GAME_IDS, DEFAULT_GAME, ALLOWED_HOSTS, isAllowedUrl, EXTERNAL_HOSTS, isExternalUrl, gameOf, startUrlOf, CREW_MAX, PARTITION, PARTITIONS, TEX_GAMES, SAVE_GAMES };

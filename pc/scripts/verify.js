@@ -246,7 +246,10 @@ check('Domínios permitidos', () => {
 check('Internet só para o jogo e para o GitHub do app (atualização e texturas); um único link externo fixo', () => {
   const m = read('src/main/main.js');
   const opens = [...m.matchAll(/shell\.openExternal\(([^)]*)\)/g)].map((x) => x[1].trim());
-  assert(opens.length === 1 && opens[0] === 'github.RELEASES_URL', `openExternal inesperado: ${opens.join(', ')}`);
+  assert(opens.length === 2 && [...opens].sort().join() === 'github.RELEASES_URL,url', `openExternal inesperado: ${opens.join(', ')}`);
+  // O segundo é só o link de nova aba do jogo que passa por isExternalUrl (hoje só open.spotify.com, 11/11).
+  assert(/else if \(isExternalUrl\(url\)\) shell\.openExternal\(url\)/.test(m), 'openExternal(url) sem isExternalUrl');
+  assert(JSON.stringify(require('../src/main/config').EXTERNAL_HOSTS) === '["open.spotify.com"]', 'EXTERNAL_HOSTS mudou');
   const fetches = [...m.matchAll(/net\.fetch\(([\w.]+(?:\(\))?)/g)].map((x) => x[1].trim());
   assert(fetches.every((f) => ['gameUrl()', 'url'].includes(f)), `net.fetch inesperado: ${fetches.join(', ')}`);
   // net.fetch(url) só em fetchJson, e fetchJson só com os dois arquivos do repositório. Os downloads passam pelo

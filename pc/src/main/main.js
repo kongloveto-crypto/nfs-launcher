@@ -8,7 +8,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-const { GAMES, GAME_IDS, isAllowedUrl, gameOf, startUrlOf, PARTITION, PARTITIONS, TEX_GAMES, SAVE_GAMES } = require('./config');
+const { GAMES, GAME_IDS, isAllowedUrl, isExternalUrl, gameOf, startUrlOf, PARTITION, PARTITIONS, TEX_GAMES, SAVE_GAMES } = require('./config');
 const settings = require('./settings');
 const combo = require('./combo');
 const { toChromeUA } = require('./ua');
@@ -1417,6 +1417,7 @@ function wireGameContents(wc) {
   // Navegação só dentro do site do jogo aberto (o login/cadastro pode passar por outro endereço do mesmo site).
   wc.setWindowOpenHandler(({ url }) => {
     if (isAllowedUrl(url, currentGame)) wc.loadURL(url);
+    else if (isExternalUrl(url)) shell.openExternal(url).catch(() => {});
     return { action: 'deny' };
   });
   const guard = (e, url) => { if (!isAllowedUrl(url, currentGame)) e.preventDefault(); };
